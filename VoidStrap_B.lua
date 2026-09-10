@@ -187,21 +187,37 @@ local FIRE_PRESETS = {
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
--- Heurística: nome contém "ball"/"bola" e é BasePart, não é do Character.
+-- Prioriza nome exato "tps" (bola do The Classic Soccer).
+-- Fallback: nome com ball/bola/soccer/football, ou esfera pequena (1-6 studs).
 local function looksLikeBall(obj)
     if not obj:IsA("BasePart") then return false end
-    local n = obj.Name:lower()
-    if not (n:find("ball") or n:find("bola") or n == "soccer" or n:find("football")) then
-        return false
-    end
-    -- Descarta se estiver dentro do Character (evita pegar acessórios)
     local char = LP.Character
     if char and obj:IsDescendantOf(char) then return false end
-    return true
+
+    local n = obj.Name:lower()
+
+    -- Nome exato da bola do TPS
+    if n == "tps" then return true end
+
+    -- Outros nomes comuns
+    if n:find("ball") or n:find("bola") or n:find("soccer") or
+       n:find("football") or n:find("sphere") or n:find("pelota") then
+        return true
+    end
+
+    -- Fallback: esferas pequenas (1 a 6 studs)
+    if obj.Shape == Enum.PartType.Ball then
+        local s = obj.Size
+        local maxSize = math.max(s.X, s.Y, s.Z)
+        if maxSize >= 1 and maxSize <= 6 then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function findBall()
-    -- Primeiro tenta por nome exato (mais rápido)
     local candidates = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if looksLikeBall(obj) then
@@ -210,16 +226,17 @@ local function findBall()
     end
     if #candidates == 0 then return nil end
 
-    -- Prioriza bolas com MeshPart, com esfera, ou maiores
+    -- Prioriza: nome "tps" > MeshPart > Shape Ball > tamanho
     table.sort(candidates, function(a, b)
-        local scoreA, scoreB = 0, 0
-        if a:IsA("MeshPart") then scoreA = scoreA + 2 end
-        if b:IsA("MeshPart") then scoreB = scoreB + 2 end
-        if a.Shape == Enum.PartType.Ball then scoreA = scoreA + 3 end
-        if b.Shape == Enum.PartType.Ball then scoreB = scoreB + 3 end
-        scoreA = scoreA + a.Size.Magnitude
-        scoreB = scoreB + b.Size.Magnitude
-        return scoreA > scoreB
+        local function score(x)
+            local s = 0
+            if x.Name:lower() == "tps" then s = s + 10 end
+            if x:IsA("MeshPart") then s = s + 2 end
+            if x.Shape == Enum.PartType.Ball then s = s + 3 end
+            s = s + math.min(x.Size.Magnitude, 10)
+            return s
+        end
+        return score(a) > score(b)
     end)
 
     return candidates[1]
@@ -243,9 +260,6 @@ local function applyEffects(ball, presetName)
 
     local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
     CurrentBall = ball
-
-    -- Guarda flag para pular o Character (evita detecção desnecessária)
-    -- Como só decoramos a bola, não há risco direto de anti-cheat.
 
     -- 1) Fire clássico
     local fire = Instance.new("Fire")
@@ -325,7 +339,7 @@ local function applyEffects(ball, presetName)
     light.Brightness = 3
     light.Range = 14
     light.Color = p.light
-    light.Shadows = false   -- menos custo + menos "pesado" para anti-cheat
+    light.Shadows = false
     light.Parent = ball
     table.insert(ActiveInstances, light)
 end
@@ -340,7 +354,6 @@ function FireTrailModule.setEnabled(on)
             notify("Fire Trail ativado na bola", "good")
         else
             notify("Bola não encontrada ainda...", "bad")
-            -- continua tentando via loop
         end
     else
         destroyEffects()
@@ -461,7 +474,7 @@ do
 end
 
 --====================================================================
--- HOOK NO UNLOAD / CLEANUP (encadeia com o que já existe)
+-- HOOK NO UNLOAD / CLEANUP
 --====================================================================
 local _prevUnload2 = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
@@ -480,6 +493,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 --====================================================================
--- FIM DA PARTE 5 — Aba "Fire Trail" adicionada
+-- FIM DA PARTE 5
 --====================================================================
 print("[VoidStrap] Módulo Fire Trail carregado.")
