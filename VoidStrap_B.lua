@@ -111,9 +111,7 @@ end)
 -- FIM DA PARTE 4 — Aba "Lighting" adicionada
 --====================================================================
 print("[VoidStrap] Módulo de Iluminação carregado.")--====================================================================
--- PARTE 5 — MÓDULO: FIRE TRAIL NA BOLA (The Classic Soccer)
--- Usa uma PART FANTASMA que segue a bola via Heartbeat.
--- Isso evita problemas de network ownership — nunca tocamos na bola real.
+-- PARTE 5 — FIRE TRAIL NA BOLA (Mobile Edition + Debug na UI)
 --====================================================================
 
 State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
@@ -123,94 +121,91 @@ local FireTrailModule = {}
 local CurrentBall     = nil
 local GhostPart       = nil
 local HeartbeatConn   = nil
-local ActiveInstances = {}  -- tudo que precisa ser destruído no cleanup
+local ActiveInstances = {}
+local DebugLabel      = nil
+local DebugLog        = {}
+
+-- Função de debug que escreve na UI + console
+local function dbg(msg)
+    table.insert(DebugLog, 1, msg)
+    while #DebugLog > 8 do table.remove(DebugLog) end
+    if DebugLabel then
+        DebugLabel.Text = table.concat(DebugLog, "\n")
+    end
+    print("[FireTrail] " .. msg)
+end
 
 -- ---------- PRESETS ----------
 local FIRE_PRESETS = {
     ["Fogo Clássico"] = { fire=Color3.fromRGB(255,120,30), secondary=Color3.fromRGB(255,60,0),
         trail=Color3.fromRGB(255,180,60), trailMid=Color3.fromRGB(255,80,20),
-        light=Color3.fromRGB(255,140,40), size=6 },
+        light=Color3.fromRGB(255,140,40), size=8 },
     ["Fogo Azul"] = { fire=Color3.fromRGB(80,180,255), secondary=Color3.fromRGB(30,90,220),
         trail=Color3.fromRGB(150,210,255), trailMid=Color3.fromRGB(50,130,255),
-        light=Color3.fromRGB(100,180,255), size=6 },
+        light=Color3.fromRGB(100,180,255), size=8 },
     ["Fogo Roxo"] = { fire=Color3.fromRGB(180,80,255), secondary=Color3.fromRGB(120,30,220),
         trail=Color3.fromRGB(210,150,255), trailMid=Color3.fromRGB(140,60,255),
-        light=Color3.fromRGB(180,100,255), size=6 },
+        light=Color3.fromRGB(180,100,255), size=8 },
     ["Fogo Verde"] = { fire=Color3.fromRGB(100,255,120), secondary=Color3.fromRGB(30,200,60),
         trail=Color3.fromRGB(160,255,180), trailMid=Color3.fromRGB(50,220,100),
-        light=Color3.fromRGB(120,255,140), size=6 },
+        light=Color3.fromRGB(120,255,140), size=8 },
     ["Fogo Branco"] = { fire=Color3.fromRGB(255,255,255), secondary=Color3.fromRGB(220,240,255),
         trail=Color3.fromRGB(255,255,255), trailMid=Color3.fromRGB(200,220,255),
-        light=Color3.fromRGB(255,255,255), size=6 },
+        light=Color3.fromRGB(255,255,255), size=8 },
     ["Fogo Sombrio"] = { fire=Color3.fromRGB(80,20,100), secondary=Color3.fromRGB(30,5,40),
         trail=Color3.fromRGB(150,50,200), trailMid=Color3.fromRGB(80,10,120),
-        light=Color3.fromRGB(120,30,180), size=6 },
+        light=Color3.fromRGB(120,30,180), size=8 },
     ["Inferno"] = { fire=Color3.fromRGB(255,80,0), secondary=Color3.fromRGB(255,220,60),
         trail=Color3.fromRGB(255,160,30), trailMid=Color3.fromRGB(255,60,0),
-        light=Color3.fromRGB(255,120,20), size=8 },
+        light=Color3.fromRGB(255,120,20), size=10 },
 }
 
--- ---------- DETECÇÃO DA BOLA ----------
--- Prioriza nome "tps" — é a bola do The Classic Soccer.
+-- ---------- DETECÇÃO ----------
 local function looksLikeBall(obj)
     if not obj:IsA("BasePart") then return false end
-    if obj:IsDescendantOf(LP.Character or game) then return false end
-
+    local char = LP.Character
+    if char and obj:IsDescendantOf(char) then return false end
     local n = obj.Name:lower()
-
-    -- Nome exato da bola do TPS (prioridade máxima)
     if n == "tps" then return true end
-
-    -- Outros nomes comuns
     if n:find("ball") or n:find("bola") or n:find("soccer") or
-       n:find("football") or n:find("pelota") then
-        return true
-    end
-
-    -- Fallback: esfera entre 1 e 6 studs
+       n:find("football") or n:find("pelota") then return true end
     if obj.Shape == Enum.PartType.Ball then
         local s = obj.Size
         local mx = math.max(s.X, s.Y, s.Z)
-        if mx >= 1 and mx <= 6 then
-            return true
-        end
+        if mx >= 1 and mx <= 6 then return true end
     end
-
     return false
 end
 
 local function findBall()
-    local candidates = {}
+    local list = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if looksLikeBall(obj) then
-            table.insert(candidates, obj)
-        end
+        if looksLikeBall(obj) then table.insert(list, obj) end
     end
-    if #candidates == 0 then return nil end
-
-    -- Prioriza nome "tps" e MeshPart/esfera
-    table.sort(candidates, function(a, b)
-        local function score(x)
+    if #list == 0 then return nil end
+    table.sort(list, function(a, b)
+        local function sc(x)
             local s = 0
             if x.Name:lower() == "tps" then s = s + 100 end
             if x:IsA("MeshPart") then s = s + 5 end
             if x.Shape == Enum.PartType.Ball then s = s + 3 end
             return s
         end
-        return score(a) > score(b)
+        return sc(a) > sc(b)
     end)
-
-    return candidates[1]
+    return list[1]
 end
 
--- ---------- GHOST PART ----------
+-- ---------- GHOST ----------
 local function createGhost()
     if GhostPart and GhostPart.Parent then return end
-
     GhostPart = Instance.new("Part")
     GhostPart.Name = "VST_Ghost"
-    GhostPart.Size = Vector3.new(1, 1, 1)
-    GhostPart.Transparency = 1
+    GhostPart.Size = Vector3.new(3, 3, 3)
+    -- Quase invisível mas ainda renderizável (Fire precisa disso no mobile)
+    GhostPart.Transparency = 0.98
+    GhostPart.Material = Enum.Material.SmoothPlastic
+    GhostPart.Color = Color3.new(0, 0, 0)
     GhostPart.CanCollide = false
     GhostPart.CanQuery = false
     GhostPart.CanTouch = false
@@ -219,38 +214,41 @@ local function createGhost()
     GhostPart.Massless = true
     GhostPart.Parent = Workspace
     table.insert(ActiveInstances, GhostPart)
+    dbg("Ghost criado")
 end
 
 -- ---------- EFEITOS ----------
 local function attachEffects(presetName)
     local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
+    if not GhostPart or not GhostPart.Parent then
+        dbg("ERRO: ghost sumiu")
+        return
+    end
 
-    if not GhostPart or not GhostPart.Parent then return end
-
-    -- Fire
+    -- 1) Fire
     local fire = Instance.new("Fire")
     fire.Name = "VST_Fire"
     fire.Color = p.fire
     fire.SecondaryColor = p.secondary
     fire.Size = p.size
-    fire.Heat = 15
+    fire.Heat = 20
     fire.Parent = GhostPart
     table.insert(ActiveInstances, fire)
 
-    -- Attachments para Trail
+    -- 2) Attachments
     local a0 = Instance.new("Attachment")
     a0.Name = "VST_A0"
-    a0.Position = Vector3.new(0, 0.5, 0)
+    a0.Position = Vector3.new(0, 1, 0)
     a0.Parent = GhostPart
     table.insert(ActiveInstances, a0)
 
     local a1 = Instance.new("Attachment")
     a1.Name = "VST_A1"
-    a1.Position = Vector3.new(0, -0.5, 0)
+    a1.Position = Vector3.new(0, -1, 0)
     a1.Parent = GhostPart
     table.insert(ActiveInstances, a1)
 
-    -- Trail
+    -- 3) Trail
     local trail = Instance.new("Trail")
     trail.Name = "VST_Trail"
     trail.Attachment0 = a0
@@ -261,47 +259,56 @@ local function attachEffects(presetName)
         ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0, 0, 0)),
     })
     trail.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.15),
-        NumberSequenceKeypoint.new(0.6, 0.65),
+        NumberSequenceKeypoint.new(0.0, 0.1),
+        NumberSequenceKeypoint.new(0.6, 0.5),
         NumberSequenceKeypoint.new(1.0, 1.0),
     })
-    trail.Lifetime = 0.7
+    trail.WidthScale = NumberSequence.new({
+        NumberSequenceKeypoint.new(0.0, 2.5),
+        NumberSequenceKeypoint.new(0.5, 1.5),
+        NumberSequenceKeypoint.new(1.0, 0.2),
+    })
+    trail.Lifetime = 0.8
     trail.LightEmission = 1
     trail.LightInfluence = 0
     trail.FaceCamera = true
     trail.Parent = GhostPart
     table.insert(ActiveInstances, trail)
 
-    -- Faíscas
+    -- 4) Partículas reforçadas (visual principal no mobile)
     local sparks = Instance.new("ParticleEmitter")
     sparks.Name = "VST_Sparks"
     sparks.Color = ColorSequence.new(p.fire, p.secondary)
     sparks.Size = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.6),
+        NumberSequenceKeypoint.new(0.0, 2.0),
         NumberSequenceKeypoint.new(1.0, 0.0),
     })
     sparks.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.1),
+        NumberSequenceKeypoint.new(0.0, 0.15),
         NumberSequenceKeypoint.new(1.0, 1.0),
     })
-    sparks.Lifetime = NumberRange.new(0.4, 0.9)
-    sparks.Rate = 45
-    sparks.Speed = NumberRange.new(3, 7)
+    sparks.Lifetime = NumberRange.new(0.7, 1.3)
+    sparks.Rate = 100
+    sparks.Speed = NumberRange.new(3, 9)
     sparks.SpreadAngle = Vector2.new(180, 180)
+    sparks.Rotation = NumberRange.new(0, 360)
+    sparks.RotSpeed = NumberRange.new(-180, 180)
     sparks.LightEmission = 1
     sparks.LightInfluence = 0
     sparks.Parent = GhostPart
     table.insert(ActiveInstances, sparks)
 
-    -- Luz
+    -- 5) Luz
     local light = Instance.new("PointLight")
     light.Name = "VST_Light"
-    light.Brightness = 3
-    light.Range = 14
+    light.Brightness = 5
+    light.Range = 20
     light.Color = p.light
     light.Shadows = false
     light.Parent = GhostPart
     table.insert(ActiveInstances, light)
+
+    dbg("Efeitos OK")
 end
 
 local function destroyEffects()
@@ -317,31 +324,26 @@ local function destroyEffects()
     ActiveInstances = {}
     CurrentBall = nil
     GhostPart = nil
+    dbg("Efeitos removidos")
 end
 
--- ---------- LOOP QUE FAZ O GHOST SEGUIR A BOLA ----------
+-- ---------- LOOP ----------
 local function startFollowLoop()
     if HeartbeatConn then HeartbeatConn:Disconnect() end
-
     HeartbeatConn = RunService.Heartbeat:Connect(function()
         if not State.FireTrail.Enabled then return end
-
-        -- Bola sumiu? procura de novo
         if not CurrentBall or not CurrentBall.Parent then
             CurrentBall = findBall()
             if not CurrentBall then return end
+            dbg("Bola: " .. CurrentBall.Name)
         end
-
-        -- Ghost existe?
         if not GhostPart or not GhostPart.Parent then
-            destroyEffects()
+            createGhost()
+            attachEffects(State.FireTrail.Preset)
             return
         end
-
-        -- Segue a bola
         pcall(function()
             GhostPart.CFrame = CurrentBall.CFrame
-            GhostPart.Size = CurrentBall.Size
         end)
     end)
 end
@@ -350,18 +352,19 @@ end
 function FireTrailModule.setEnabled(on)
     State.FireTrail.Enabled = on
     if on then
+        dbg("Ativando...")
         destroyEffects()
         createGhost()
-
         CurrentBall = findBall()
         if CurrentBall then
+            dbg("Bola: " .. CurrentBall.Name)
             attachEffects(State.FireTrail.Preset)
             startFollowLoop()
             notify("Fire Trail ativado", "good")
         else
-            notify("Bola não encontrada — tentando...", "bad")
-            -- loop vai achar assim que aparecer
+            dbg("Bola não achada")
             startFollowLoop()
+            notify("Aguardando bola...", "bad")
         end
     else
         destroyEffects()
@@ -372,7 +375,6 @@ end
 function FireTrailModule.setPreset(name)
     State.FireTrail.Preset = name
     if State.FireTrail.Enabled and GhostPart then
-        -- Remove só os efeitos (mantém ghost + loop)
         for _, inst in ipairs(ActiveInstances) do
             if inst ~= GhostPart then
                 pcall(function() if inst.Parent then inst:Destroy() end end)
@@ -396,6 +398,8 @@ end
 function FireTrailModule.reset()
     State.FireTrail.Enabled = false
     destroyEffects()
+    DebugLog = {}
+    if DebugLabel then DebugLabel.Text = "" end
     notify("Fire Trail resetado", "bad")
 end
 
@@ -423,25 +427,30 @@ do
         FireTrailModule.refresh()
     end, 3)
 
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        Text = "Usa uma part fantasma que segue a bola. Funciona mesmo com network ownership do servidor.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
+    -- Painel de debug visível na UI
+    local debugFrame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 110),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 18),
+        BorderSizePixel = 0,
         LayoutOrder = 4,
         Parent = sec,
     })
-    themed(info, "TextColor3", "Sub")
+    corner(8, debugFrame)
+    stroke(ActiveTheme.Stroke, 1, 0.4, debugFrame)
 
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Remover efeitos da bola", function()
-        FireTrailModule.reset()
-    end, 1)
+    DebugLabel = create("TextLabel", {
+        Size = UDim2.new(1, -16, 1, -16),
+        Position = UDim2.new(0, 8, 0, 8),
+        BackgroundTransparency = 1,
+        Text = "(aguardando...)",
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        TextColor3 = Color3.fromRGB(120, 255, 160),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        TextWrapped = true,
+        Parent = debugFrame,
+    })
 end
 
 --====================================================================
@@ -459,4 +468,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Módulo Fire Trail (ghost) carregado.")
+print("[VoidStrap] Fire Trail (mobile) carregado.")
