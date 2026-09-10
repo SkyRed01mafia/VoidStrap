@@ -111,7 +111,7 @@ end)
 -- FIM DA PARTE 4 — Aba "Lighting" adicionada
 --====================================================================
 print("[VoidStrap] Módulo de Iluminação carregado.")--====================================================================
--- PARTE 5 — FIRE TRAIL NA BOLA (Mobile Edition + Debug na UI)
+-- PARTE 5 — FIRE TRAIL (Mobile-Optimized)
 --====================================================================
 
 State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
@@ -125,7 +125,6 @@ local ActiveInstances = {}
 local DebugLabel      = nil
 local DebugLog        = {}
 
--- Função de debug que escreve na UI + console
 local function dbg(msg)
     table.insert(DebugLog, 1, msg)
     while #DebugLog > 8 do table.remove(DebugLog) end
@@ -160,40 +159,43 @@ local FIRE_PRESETS = {
         light=Color3.fromRGB(255,120,20), size=10 },
 }
 
--- ---------- DETECÇÃO ----------
-local function looksLikeBall(obj)
-    if not obj:IsA("BasePart") then return false end
-    local char = LP.Character
-    if char and obj:IsDescendantOf(char) then return false end
-    local n = obj.Name:lower()
-    if n == "tps" then return true end
-    if n:find("ball") or n:find("bola") or n:find("soccer") or
-       n:find("football") or n:find("pelota") then return true end
-    if obj.Shape == Enum.PartType.Ball then
-        local s = obj.Size
-        local mx = math.max(s.X, s.Y, s.Z)
-        if mx >= 1 and mx <= 6 then return true end
-    end
-    return false
-end
-
+-- ---------- BUSCA OTIMIZADA ----------
+-- Tenta por nome exato primeiro (rápido: FindFirstChild com recurse).
+-- Só faz varredura completa se não achar por nome.
 local function findBall()
-    local list = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if looksLikeBall(obj) then table.insert(list, obj) end
-    end
-    if #list == 0 then return nil end
-    table.sort(list, function(a, b)
-        local function sc(x)
-            local s = 0
-            if x.Name:lower() == "tps" then s = s + 100 end
-            if x:IsA("MeshPart") then s = s + 5 end
-            if x.Shape == Enum.PartType.Ball then s = s + 3 end
-            return s
+    -- 1) Busca rápida por nome "TPS"
+    local ball = Workspace:FindFirstChild("TPS", true)
+    if ball and ball:IsA("BasePart") then
+        local char = LP.Character
+        if not (char and ball:IsDescendantOf(char)) then
+            return ball
         end
-        return sc(a) > sc(b)
-    end)
-    return list[1]
+    end
+
+    -- 2) Busca por nome "Ball"/"Bola"
+    for _, name in ipairs({"Ball", "Bola", "SoccerBall", "Football", "Pelota"}) do
+        local b = Workspace:FindFirstChild(name, true)
+        if b and b:IsA("BasePart") then
+            local char = LP.Character
+            if not (char and b:IsDescendantOf(char)) then
+                return b
+            end
+        end
+    end
+
+    -- 3) Fallback: procura em Models comuns de bola
+    for _, container in ipairs({"Balls", "Ball", "Soccer", "Field", "Game"}) do
+        local c = Workspace:FindFirstChild(container)
+        if c then
+            for _, obj in ipairs(c:GetDescendants()) do
+                if obj:IsA("BasePart") and (obj.Shape == Enum.PartType.Ball or obj.Name:lower():find("ball") or obj.Name:lower() == "tps") then
+                    return obj
+                end
+            end
+        end
+    end
+
+    return nil
 end
 
 -- ---------- GHOST ----------
@@ -202,7 +204,6 @@ local function createGhost()
     GhostPart = Instance.new("Part")
     GhostPart.Name = "VST_Ghost"
     GhostPart.Size = Vector3.new(3, 3, 3)
-    -- Quase invisível mas ainda renderizável (Fire precisa disso no mobile)
     GhostPart.Transparency = 0.98
     GhostPart.Material = Enum.Material.SmoothPlastic
     GhostPart.Color = Color3.new(0, 0, 0)
@@ -214,18 +215,13 @@ local function createGhost()
     GhostPart.Massless = true
     GhostPart.Parent = Workspace
     table.insert(ActiveInstances, GhostPart)
-    dbg("Ghost criado")
 end
 
 -- ---------- EFEITOS ----------
 local function attachEffects(presetName)
     local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
-    if not GhostPart or not GhostPart.Parent then
-        dbg("ERRO: ghost sumiu")
-        return
-    end
+    if not GhostPart or not GhostPart.Parent then return end
 
-    -- 1) Fire
     local fire = Instance.new("Fire")
     fire.Name = "VST_Fire"
     fire.Color = p.fire
@@ -235,7 +231,6 @@ local function attachEffects(presetName)
     fire.Parent = GhostPart
     table.insert(ActiveInstances, fire)
 
-    -- 2) Attachments
     local a0 = Instance.new("Attachment")
     a0.Name = "VST_A0"
     a0.Position = Vector3.new(0, 1, 0)
@@ -248,7 +243,6 @@ local function attachEffects(presetName)
     a1.Parent = GhostPart
     table.insert(ActiveInstances, a1)
 
-    -- 3) Trail
     local trail = Instance.new("Trail")
     trail.Name = "VST_Trail"
     trail.Attachment0 = a0
@@ -275,7 +269,6 @@ local function attachEffects(presetName)
     trail.Parent = GhostPart
     table.insert(ActiveInstances, trail)
 
-    -- 4) Partículas reforçadas (visual principal no mobile)
     local sparks = Instance.new("ParticleEmitter")
     sparks.Name = "VST_Sparks"
     sparks.Color = ColorSequence.new(p.fire, p.secondary)
@@ -298,7 +291,6 @@ local function attachEffects(presetName)
     sparks.Parent = GhostPart
     table.insert(ActiveInstances, sparks)
 
-    -- 5) Luz
     local light = Instance.new("PointLight")
     light.Name = "VST_Light"
     light.Brightness = 5
@@ -307,8 +299,6 @@ local function attachEffects(presetName)
     light.Shadows = false
     light.Parent = GhostPart
     table.insert(ActiveInstances, light)
-
-    dbg("Efeitos OK")
 end
 
 local function destroyEffects()
@@ -324,24 +314,42 @@ local function destroyEffects()
     ActiveInstances = {}
     CurrentBall = nil
     GhostPart = nil
-    dbg("Efeitos removidos")
 end
 
--- ---------- LOOP ----------
+-- ---------- LOOP DE FOLLOW ----------
 local function startFollowLoop()
     if HeartbeatConn then HeartbeatConn:Disconnect() end
+    local lastSearch = 0
     HeartbeatConn = RunService.Heartbeat:Connect(function()
         if not State.FireTrail.Enabled then return end
+
+        -- Bola existe?
         if not CurrentBall or not CurrentBall.Parent then
-            CurrentBall = findBall()
-            if not CurrentBall then return end
-            dbg("Bola: " .. CurrentBall.Name)
+            local now = tick()
+            if now - lastSearch < 1 then return end
+            lastSearch = now
+
+            -- Não roda no Heartbeat direto — spawn pra não travar
+            task.spawn(function()
+                local b = findBall()
+                if b and State.FireTrail.Enabled then
+                    CurrentBall = b
+                    dbg("Bola: " .. b.Name)
+                    if not GhostPart or not GhostPart.Parent then
+                        createGhost()
+                        attachEffects(State.FireTrail.Preset)
+                    end
+                end
+            end)
+            return
         end
+
         if not GhostPart or not GhostPart.Parent then
             createGhost()
             attachEffects(State.FireTrail.Preset)
             return
         end
+
         pcall(function()
             GhostPart.CFrame = CurrentBall.CFrame
         end)
@@ -353,21 +361,29 @@ function FireTrailModule.setEnabled(on)
     State.FireTrail.Enabled = on
     if on then
         dbg("Ativando...")
-        destroyEffects()
-        createGhost()
-        CurrentBall = findBall()
-        if CurrentBall then
-            dbg("Bola: " .. CurrentBall.Name)
-            attachEffects(State.FireTrail.Preset)
-            startFollowLoop()
-            notify("Fire Trail ativado", "good")
-        else
-            dbg("Bola não achada")
-            startFollowLoop()
-            notify("Aguardando bola...", "bad")
-        end
+        task.spawn(function()
+            destroyEffects()
+            dbg("Criando ghost...")
+            createGhost()
+            dbg("Procurando bola...")
+
+            local b = findBall()
+            if b and State.FireTrail.Enabled then
+                CurrentBall = b
+                dbg("Bola: " .. b.Name)
+                attachEffects(State.FireTrail.Preset)
+                dbg("Efeitos OK")
+                startFollowLoop()
+                notify("Fire Trail ativado", "good")
+            else
+                dbg("Bola não achada — loop procura")
+                startFollowLoop()
+                notify("Aguardando bola...", "bad")
+            end
+        end)
     else
         destroyEffects()
+        dbg("Desativado")
         notify("Fire Trail desativado", "bad")
     end
 end
@@ -387,19 +403,30 @@ function FireTrailModule.setPreset(name)
 end
 
 function FireTrailModule.refresh()
-    destroyEffects()
-    if State.FireTrail.Enabled then
-        FireTrailModule.setEnabled(true)
-    else
-        notify("Ative o Fire Trail primeiro", "bad")
-    end
+    task.spawn(function()
+        destroyEffects()
+        if State.FireTrail.Enabled then
+            dbg("Re-procurando...")
+            local b = findBall()
+            if b then
+                CurrentBall = b
+                createGhost()
+                attachEffects(State.FireTrail.Preset)
+                startFollowLoop()
+                dbg("Bola: " .. b.Name)
+                notify("Bola reconectada", "good")
+            else
+                notify("Nenhuma bola encontrada", "bad")
+            end
+        end
+    end)
 end
 
 function FireTrailModule.reset()
     State.FireTrail.Enabled = false
     destroyEffects()
     DebugLog = {}
-    if DebugLabel then DebugLabel.Text = "" end
+    if DebugLabel then DebugLabel.Text = "(reset)" end
     notify("Fire Trail resetado", "bad")
 end
 
@@ -427,9 +454,8 @@ do
         FireTrailModule.refresh()
     end, 3)
 
-    -- Painel de debug visível na UI
     local debugFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 110),
+        Size = UDim2.new(1, 0, 0, 130),
         BackgroundColor3 = Color3.fromRGB(15, 15, 18),
         BorderSizePixel = 0,
         LayoutOrder = 4,
@@ -444,7 +470,7 @@ do
         BackgroundTransparency = 1,
         Text = "(aguardando...)",
         Font = Enum.Font.Code,
-        TextSize = 11,
+        TextSize = 10,
         TextColor3 = Color3.fromRGB(120, 255, 160),
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
@@ -468,4 +494,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Fire Trail (mobile) carregado.")
+print("[VoidStrap] Fire Trail (mobile optimized) carregado.")
