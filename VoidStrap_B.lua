@@ -720,4 +720,156 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Player Trail carregado.")
+print("[VoidStrap] Player Trail carregado.")--====================================================================
+-- PARTE 5C — SKYBOX TEXTURES (Skies Custom)
+-- Aplica texturas reais no céu via objeto Sky em Lighting.
+--====================================================================
+
+State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
+
+local OriginalSky = nil
+local SkyTextureModule = {}
+
+-- Lista de texturas (IDs fornecidos)
+local CUSTOM_SKIES = {
+    { name = "🌅 Céu 1", id = "8808550143" },
+    { name = "🌌 Céu 2", id = "12635340429" },
+    { name = "🌇 Céu 3", id = "13107361022" },
+    { name = "☁️ Céu 4", id = "15502592084" },
+    { name = "🌃 Céu 5", id = "8539737017" },
+    { name = "⭐ Céu 6", id = "8735253332" },
+    { name = "🌠 Céu 7", id = "136055162054954" },
+}
+
+-- Captura o Sky original (uma vez)
+local function captureOriginalSky()
+    if OriginalSky ~= nil then return end
+    local existing = Lighting:FindFirstChildOfClass("Sky")
+    if existing then
+        OriginalSky = existing:Clone()
+        OriginalSky.Name = "VST_OriginalSky"
+    else
+        OriginalSky = false  -- marcador: não havia Sky antes
+    end
+end
+
+-- Remove todos os Sky atuais
+local function clearSkies()
+    for _, s in ipairs(Lighting:GetChildren()) do
+        if s:IsA("Sky") then s:Destroy() end
+    end
+end
+
+-- Aplica textura
+local function applySkyTexture(id)
+    captureOriginalSky()
+    clearSkies()
+
+    local sky = Instance.new("Sky")
+    sky.Name = "VST_Sky"
+    sky.SkyboxBk = "rbxassetid://" .. id
+    sky.SkyboxDn = "rbxassetid://" .. id
+    sky.SkyboxFt = "rbxassetid://" .. id
+    sky.SkyboxLf = "rbxassetid://" .. id
+    sky.SkyboxRt = "rbxassetid://" .. id
+    sky.SkyboxUp = "rbxassetid://" .. id
+    sky.Parent = Lighting
+end
+
+-- Restaura o Sky original
+local function restoreOriginalSky()
+    clearSkies()
+    if OriginalSky and OriginalSky ~= false then
+        local clone = OriginalSky:Clone()
+        clone.Name = "Sky"
+        clone.Parent = Lighting
+    end
+end
+
+-- API
+function SkyTextureModule.apply(name)
+    for _, entry in ipairs(CUSTOM_SKIES) do
+        if entry.name == name then
+            State.SkyTexture.Current = name
+            State.SkyTexture.Enabled = true
+            applySkyTexture(entry.id)
+            notify("Sky: " .. name, "good")
+            return
+        end
+    end
+    notify("Sky não encontrado", "bad")
+end
+
+function SkyTextureModule.restore()
+    State.SkyTexture.Enabled = false
+    State.SkyTexture.Current = nil
+    restoreOriginalSky()
+    notify("Sky original restaurado", "good")
+end
+
+function SkyTextureModule.reset()
+    SkyTextureModule.restore()
+end
+
+--====================================================================
+-- ABA
+--====================================================================
+createTab("Skies", "🌌")
+
+do
+    local page = Tabs["Skies"].page
+    local sec = section("Texturas de Céu")
+    sec.Parent = page
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Aplica texturas customizadas no céu. Local, reversível, e restaura o original ao desativar.",
+        Font = Enum.Font.Gotham, TextSize = 11,
+        TextColor3 = ActiveTheme.Sub, TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1, Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    for i, sky in ipairs(CUSTOM_SKIES) do
+        buttonRow(sec, sky.name, function()
+            SkyTextureModule.apply(sky.name)
+        end, 10 + i)
+    end
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Restaurar céu original", function()
+        SkyTextureModule.restore()
+    end, 1)
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundTransparency = 1,
+        Text = "⚠ Se o céu parecer estranho/torto, o ID pode não ser cubemap completo. Nesse caso, use o Skybox padrão na outra aba.",
+        Font = Enum.Font.Gotham, TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2, Parent = resetSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
+end
+
+--====================================================================
+-- CLEANUP
+--====================================================================
+local _prevUnload4 = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevUnload4 then _prevUnload4() end
+    pcall(function() SkyTextureModule.restore() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() SkyTextureModule.restore() end)
+    end
+end)
+
+print("[VoidStrap] Skies Custom carregado.")
