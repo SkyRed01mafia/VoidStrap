@@ -785,96 +785,70 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 5C — SKYBOX TIPO CAIXA (6 faces, igual ao Sky original)
+-- PARTE 5C — SKYBOX (domo esfera simples)
+-- Método que FUNCIONA no The Classic Soccer
 --====================================================================
 
 State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
 
 local SkyTextureModule = {}
-local SkyBoxModel = nil
-local FollowConn = nil
+local CurrentDome = nil
+local DomeConn = nil
 
 local CUSTOM_SKIES = {
-    { name = "Sunset",   id = "1495782126" },
-    { name = "Blue Sky", id = "1478440122" },
-    { name = "Night",    id = "398409631"  },
-    { name = "Galaxy",   id = "4976299654" },
-    { name = "Clouds",   id = "4713323714" },
-    { name = "Red Sky",  id = "6056205191" },
-    { name = "Space",    id = "6066307115" },
+    { name = "Sky 1", id = "9120386436" },
+    { name = "Sky 2", id = "1495782126" },
+    { name = "Sky 3", id = "1478440122" },
+    { name = "Sky 4", id = "398409631"  },
+    { name = "Sky 5", id = "4976299654" },
+    { name = "Sky 6", id = "4713323714" },
+    { name = "Sky 7", id = "6056205191" },
 }
 
-local SIZE = 3000  -- tamanho da caixa
-
-local function destroySkyBox()
-    if FollowConn then
-        FollowConn:Disconnect()
-        FollowConn = nil
+local function destroyDome()
+    if DomeConn then
+        DomeConn:Disconnect()
+        DomeConn = nil
     end
-    if SkyBoxModel and SkyBoxModel.Parent then
-        SkyBoxModel:Destroy()
+    if CurrentDome and CurrentDome.Parent then
+        CurrentDome:Destroy()
     end
-    SkyBoxModel = nil
+    CurrentDome = nil
 end
 
--- Cria caixa com 6 faces (uma para cada direção)
-local function createSkyBox(id)
-    destroySkyBox()
+local function createDome(id)
+    destroyDome()
 
-    local model = Instance.new("Model")
-    model.Name = "VST_SkyBox"
-    model.Parent = Workspace
+    local dome = Instance.new("Part")
+    dome.Name = "VST_SkyDome"
+    dome.Size = Vector3.new(1, 1, 1)
+    dome.Anchored = true
+    dome.CanCollide = false
+    dome.CanQuery = false
+    dome.CanTouch = false
+    dome.CastShadow = false
+    dome.Transparency = 0
+    dome.Material = Enum.Material.SmoothPlastic
+    dome.Color = Color3.fromRGB(255, 255, 255)
 
-    local url = "rbxassetid://" .. id
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshType = Enum.MeshType.Sphere
+    mesh.Scale = Vector3.new(-2000, -2000, -2000)
+    mesh.TextureId = "rbxassetid://" .. id
+    mesh.Parent = dome
 
-    -- Tabela com as 6 faces: nome, offset da câmera, rotação
-    local half = SIZE / 2
-    local faces = {
-        { name = "Front",  offset = CFrame.new(0, 0, -half) * CFrame.Angles(0, math.rad(180), 0) },
-        { name = "Back",   offset = CFrame.new(0, 0,  half) },
-        { name = "Left",   offset = CFrame.new(-half, 0, 0) * CFrame.Angles(0, math.rad(90), 0) },
-        { name = "Right",  offset = CFrame.new( half, 0, 0) * CFrame.Angles(0, math.rad(-90), 0) },
-        { name = "Top",    offset = CFrame.new(0,  half, 0) * CFrame.Angles(math.rad(-90), 0, 0) },
-        { name = "Bottom", offset = CFrame.new(0, -half, 0) * CFrame.Angles(math.rad(90), 0, 0) },
-    }
+    dome.Parent = Workspace
+    CurrentDome = dome
 
-    for _, face in ipairs(faces) do
-        local part = Instance.new("Part")
-        part.Name = "VST_SkyFace_" .. face.name
-        part.Size = Vector3.new(SIZE, SIZE, 1)
-        part.Anchored = true
-        part.CanCollide = false
-        part.CanQuery = false
-        part.CanTouch = false
-        part.CastShadow = false
-        part.Material = Enum.Material.SmoothPlastic
-        part.Color = Color3.fromRGB(255, 255, 255)
-        part.Locked = true
-
-        local decal = Instance.new("Decal")
-        decal.Face = Enum.NormalId.Back
-        decal.Texture = url
-        decal.Parent = part
-
-        part.Parent = model
-    end
-
-    SkyBoxModel = model
-
-    -- Segue a câmera
-    FollowConn = RunService.RenderStepped:Connect(function()
-        if not SkyBoxModel or not SkyBoxModel.Parent or not Camera then return end
-        local baseCF = CFrame.new(Camera.CFrame.Position)
-
-        for _, face in ipairs(faces) do
-            local part = SkyBoxModel:FindFirstChild("VST_SkyFace_" .. face.name)
-            if part then
-                part.CFrame = baseCF * face.offset
-            end
+    DomeConn = RunService.RenderStepped:Connect(function()
+        if CurrentDome and CurrentDome.Parent and Camera then
+            pcall(function()
+                CurrentDome.CFrame = CFrame.new(Camera.CFrame.Position)
+            end)
         end
     end)
 
-    return model
+    return dome
 end
 
 function SkyTextureModule.apply(name)
@@ -882,7 +856,7 @@ function SkyTextureModule.apply(name)
         if entry.name == name then
             State.SkyTexture.Enabled = true
             State.SkyTexture.Current = name
-            createSkyBox(entry.id)
+            createDome(entry.id)
             notify("Sky: " .. name, "good")
             return
         end
@@ -892,7 +866,7 @@ end
 function SkyTextureModule.restore()
     State.SkyTexture.Enabled = false
     State.SkyTexture.Current = nil
-    destroySkyBox()
+    destroyDome()
     notify("Sky restaurado", "good")
 end
 
@@ -903,13 +877,13 @@ createTab("Skies", "SKY")
 
 do
     local page = Tabs["Skies"].page
-    local sec = section("Skies (Caixa 6 Faces)")
+    local sec = section("Skies Custom")
     sec.Parent = page
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Caixa gigante com 6 faces. Mesmo metodo que o Sky do Roblox usa internamente. Segue a camera.",
+        Text = "Aplica textura no ceu via domo. Sky 1 ja foi testado e funciona.",
         Font = Enum.Font.Gotham, TextSize = 11,
         TextColor3 = ActiveTheme.Sub, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -942,4 +916,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Skybox Caixa carregado.")
+print("[VoidStrap] Skies carregado.")
