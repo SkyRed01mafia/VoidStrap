@@ -520,20 +520,35 @@ local function createTab(name, iconText)
     })
     themed(txt, "TextColor3", "Sub")
 
+    -- ---------- SCROLLING FRAME MELHORADO ----------
     local page = create("ScrollingFrame", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ScrollBarThickness = 3,
-        ScrollBarImageColor3 = ActiveTheme.Stroke,
+        ScrollBarThickness = 6,
+        ScrollBarImageColor3 = ActiveTheme.Accent,
+        ScrollBarImageTransparency = 0.2,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        ScrollingEnabled = true,
+        ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
+        ClipsDescendants = true,
         Visible = false,
         Parent = Content,
     })
+
     create("UIListLayout", {
         Padding = UDim.new(0, 8),
         SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = page,
+    })
+
+    create("UIPadding", {
+        PaddingTop    = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 12),
+        PaddingLeft   = UDim.new(0, 4),
+        PaddingRight  = UDim.new(0, 4),
         Parent = page,
     })
 
@@ -939,7 +954,7 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
 end
 
 --====================================================================
--- FPS METER (único loop ativo — custo mínimo)
+-- FPS METER
 --====================================================================
 local FPSLabel
 do
@@ -957,7 +972,7 @@ do
 end
 
 --====================================================================
--- FIM DA PARTE 2 — Continue na PARTE 3 (módulos + montagem + boot)
+-- FIM DA PARTE 2 — Continue na PARTE 3A
 --====================================================================--====================================================================
 -- PARTE 3A — MÓDULOS (Skybox / Stretch / Grass / Flags)
 --====================================================================
