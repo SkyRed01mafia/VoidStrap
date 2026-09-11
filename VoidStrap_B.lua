@@ -1,5 +1,7 @@
 --====================================================================
--- FIRE TRAIL (versao corrigida — detecta "tps")
+-- PARTE 5 — FIRE TRAIL NA BOLA (The Classic Soccer)
+-- Detecta a bola automaticamente, anexa Fire + Trail + Particles + PointLight
+-- 100% local (client-only), não replica para o servidor, reversível.
 --====================================================================
 
 State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Classico" }
@@ -8,18 +10,33 @@ local FireTrailModule = {}
 local CurrentBall = nil
 local ActiveInstances = {}
 
+-- ---------- PRESETS ----------
 local FIRE_PRESETS = {
-    ["Fogo Classico"]={fire=Color3.fromRGB(255,120,30),secondary=Color3.fromRGB(255,60,0),trail=Color3.fromRGB(255,180,60),trailMid=Color3.fromRGB(255,80,20),light=Color3.fromRGB(255,140,40),size=6},
-    ["Fogo Azul"]={fire=Color3.fromRGB(80,180,255),secondary=Color3.fromRGB(30,90,220),trail=Color3.fromRGB(150,210,255),trailMid=Color3.fromRGB(50,130,255),light=Color3.fromRGB(100,180,255),size=6},
-    ["Fogo Roxo"]={fire=Color3.fromRGB(180,80,255),secondary=Color3.fromRGB(120,30,220),trail=Color3.fromRGB(210,150,255),trailMid=Color3.fromRGB(140,60,255),light=Color3.fromRGB(180,100,255),size=6},
-    ["Fogo Verde"]={fire=Color3.fromRGB(100,255,120),secondary=Color3.fromRGB(30,200,60),trail=Color3.fromRGB(160,255,180),trailMid=Color3.fromRGB(50,220,100),light=Color3.fromRGB(120,255,140),size=6},
-    ["Fogo Branco"]={fire=Color3.fromRGB(255,255,255),secondary=Color3.fromRGB(220,240,255),trail=Color3.fromRGB(255,255,255),trailMid=Color3.fromRGB(200,220,255),light=Color3.fromRGB(255,255,255),size=6},
-    ["Fogo Sombrio"]={fire=Color3.fromRGB(80,20,100),secondary=Color3.fromRGB(30,5,40),trail=Color3.fromRGB(150,50,200),trailMid=Color3.fromRGB(80,10,120),light=Color3.fromRGB(120,30,180),size=6},
-    ["Inferno"]={fire=Color3.fromRGB(255,80,0),secondary=Color3.fromRGB(255,220,60),trail=Color3.fromRGB(255,160,30),trailMid=Color3.fromRGB(255,60,0),light=Color3.fromRGB(255,120,20),size=8},
+    ["Fogo Classico"] = { fire=Color3.fromRGB(255,120,30), secondary=Color3.fromRGB(255,60,0),
+        trail=Color3.fromRGB(255,180,60), trailMid=Color3.fromRGB(255,80,20),
+        light=Color3.fromRGB(255,140,40), size=6 },
+    ["Fogo Azul"] = { fire=Color3.fromRGB(80,180,255), secondary=Color3.fromRGB(30,90,220),
+        trail=Color3.fromRGB(150,210,255), trailMid=Color3.fromRGB(50,130,255),
+        light=Color3.fromRGB(100,180,255), size=6 },
+    ["Fogo Roxo"] = { fire=Color3.fromRGB(180,80,255), secondary=Color3.fromRGB(120,30,220),
+        trail=Color3.fromRGB(210,150,255), trailMid=Color3.fromRGB(140,60,255),
+        light=Color3.fromRGB(180,100,255), size=6 },
+    ["Fogo Verde"] = { fire=Color3.fromRGB(100,255,120), secondary=Color3.fromRGB(30,200,60),
+        trail=Color3.fromRGB(160,255,180), trailMid=Color3.fromRGB(50,220,100),
+        light=Color3.fromRGB(120,255,140), size=6 },
+    ["Fogo Branco"] = { fire=Color3.fromRGB(255,255,255), secondary=Color3.fromRGB(220,240,255),
+        trail=Color3.fromRGB(255,255,255), trailMid=Color3.fromRGB(200,220,255),
+        light=Color3.fromRGB(255,255,255), size=6 },
+    ["Fogo Sombrio"] = { fire=Color3.fromRGB(80,20,100), secondary=Color3.fromRGB(30,5,40),
+        trail=Color3.fromRGB(150,50,200), trailMid=Color3.fromRGB(80,10,120),
+        light=Color3.fromRGB(120,30,180), size=6 },
+    ["Inferno"] = { fire=Color3.fromRGB(255,80,0), secondary=Color3.fromRGB(255,220,60),
+        trail=Color3.fromRGB(255,160,30), trailMid=Color3.fromRGB(255,60,0),
+        light=Color3.fromRGB(255,120,20), size=8 },
 }
 
--- Deteccao RAPIDA: procura por "TPS" primeiro
-local function findBall()
+-- ---------- DETECÇÃO DA BOLA ----------
+local function ftFindBall()
     local char = LP.Character
     local function valid(p)
         if not p or not p:IsA("BasePart") then return false end
@@ -27,19 +44,17 @@ local function findBall()
         return true
     end
 
-    -- Nomes conhecidos da bola
-    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall", "Soccer"}) do
+    -- Busca rápida por nomes conhecidos
+    for _, name in ipairs({"TPS", "ESA", "MRS", "PRS", "MPS", "Bola", "Ball", "SoccerBall", "Football"}) do
         local b = Workspace:FindFirstChild(name, true)
         if valid(b) then return b end
     end
 
     -- Fallback: esferas pequenas
     for _, obj in ipairs(Workspace:GetChildren()) do
-        if valid(obj) and obj:IsA("BasePart") then
-            if obj.Shape == Enum.PartType.Ball then
-                local mx = math.max(obj.Size.X, obj.Size.Y, obj.Size.Z)
-                if mx >= 1 and mx <= 6 then return obj end
-            end
+        if valid(obj) and obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
+            local mx = math.max(obj.Size.X, obj.Size.Y, obj.Size.Z)
+            if mx >= 1 and mx <= 6 then return obj end
         end
         if obj:IsA("Model") then
             for _, sub in ipairs(obj:GetChildren()) do
@@ -57,20 +72,26 @@ local function findBall()
     return nil
 end
 
-local function destroyEffects()
+-- ---------- CLEANUP ----------
+local function ftDestroy()
     for _, inst in ipairs(ActiveInstances) do
-        pcall(function() if inst and inst.Parent then inst:Destroy() end end)
+        pcall(function()
+            if inst and inst.Parent then inst:Destroy() end
+        end)
     end
     ActiveInstances = {}
     CurrentBall = nil
 end
 
-local function applyEffects(ball, presetName)
-    destroyEffects()
+-- ---------- APLICAR EFEITOS ----------
+local function ftApply(ball, presetName)
+    ftDestroy()
     if not ball or not ball.Parent then return end
+
     local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Classico"]
     CurrentBall = ball
 
+    -- 1) Fire
     local fire = Instance.new("Fire")
     fire.Name = "VST_Fire"
     fire.Color = p.fire
@@ -80,9 +101,8 @@ local function applyEffects(ball, presetName)
     fire.Parent = ball
     table.insert(ActiveInstances, fire)
 
-    local size = ball.Size
-    local offsetY = math.max(size.Y * 0.5, 1)
-
+    -- 2) Attachments
+    local offsetY = math.max(ball.Size.Y * 0.5, 1)
     local a0 = Instance.new("Attachment")
     a0.Name = "VST_TrailA0"
     a0.Position = Vector3.new(0, offsetY, 0)
@@ -95,6 +115,7 @@ local function applyEffects(ball, presetName)
     a1.Parent = ball
     table.insert(ActiveInstances, a1)
 
+    -- 3) Trail
     local trail = Instance.new("Trail")
     trail.Name = "VST_Trail"
     trail.Attachment0 = a0
@@ -116,6 +137,7 @@ local function applyEffects(ball, presetName)
     trail.Parent = ball
     table.insert(ActiveInstances, trail)
 
+    -- 4) Faíscas
     local sparks = Instance.new("ParticleEmitter")
     sparks.Name = "VST_Sparks"
     sparks.Color = ColorSequence.new(p.fire, p.secondary)
@@ -136,6 +158,7 @@ local function applyEffects(ball, presetName)
     sparks.Parent = ball
     table.insert(ActiveInstances, sparks)
 
+    -- 5) Luz
     local light = Instance.new("PointLight")
     light.Name = "VST_Light"
     light.Brightness = 3
@@ -146,18 +169,19 @@ local function applyEffects(ball, presetName)
     table.insert(ActiveInstances, light)
 end
 
+-- ---------- API ----------
 function FireTrailModule.setEnabled(on)
     State.FireTrail.Enabled = on
     if on then
-        local ball = findBall()
+        local ball = ftFindBall()
         if ball then
-            applyEffects(ball, State.FireTrail.Preset)
+            ftApply(ball, State.FireTrail.Preset)
             notify("Fire Trail ativado", "good")
         else
             notify("Bola nao encontrada", "bad")
         end
     else
-        destroyEffects()
+        ftDestroy()
         notify("Fire Trail desativado", "bad")
     end
 end
@@ -166,18 +190,18 @@ function FireTrailModule.setPreset(name)
     State.FireTrail.Preset = name
     if State.FireTrail.Enabled then
         local ball = CurrentBall
-        if not ball or not ball.Parent then ball = findBall() end
+        if not ball or not ball.Parent then ball = ftFindBall() end
         if ball then
-            applyEffects(ball, name)
+            ftApply(ball, name)
             notify("Rastro: " .. name, "good")
         end
     end
 end
 
 function FireTrailModule.refresh()
-    local ball = findBall()
+    local ball = ftFindBall()
     if ball then
-        applyEffects(ball, State.FireTrail.Preset)
+        ftApply(ball, State.FireTrail.Preset)
         notify("Bola reconectada", "good")
     else
         notify("Nenhuma bola encontrada", "bad")
@@ -186,22 +210,25 @@ end
 
 function FireTrailModule.reset()
     State.FireTrail.Enabled = false
-    destroyEffects()
+    ftDestroy()
     notify("Fire Trail resetado", "bad")
 end
 
--- Loop de re-deteccao (caso a bola respawne)
+-- ---------- LOOP DE RE-DETECÇÃO ----------
 task.spawn(function()
     while task.wait(1) do
         if State.FireTrail.Enabled then
             if not CurrentBall or not CurrentBall.Parent then
-                local ball = findBall()
-                if ball then applyEffects(ball, State.FireTrail.Preset) end
+                local ball = ftFindBall()
+                if ball then ftApply(ball, State.FireTrail.Preset) end
             end
         end
     end
 end)
 
+--====================================================================
+-- ABA
+--====================================================================
 createTab("Fire Trail", "FT")
 
 do
@@ -223,13 +250,44 @@ do
         FireTrailModule.refresh()
     end, 3)
 
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundTransparency = 1,
+        Text = "Anexa fogo, trail, faiscas e luz na bola. 100% local e reversivel.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 4,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Remover efeitos da bola", function()
         FireTrailModule.reset()
     end, 1)
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "AVISO: efeitos visuais sao locais. Se algum jogo bloquear, desative.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2,
+        Parent = resetSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
 end
 
+--====================================================================
+-- CLEANUP
+--====================================================================
 local _prevFT = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevFT then _prevFT() end
@@ -657,260 +715,20 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 5C — CUSTOM BALL (Cor visual)
--- Muda a cor da bola localmente. Reversivel. Nao toca em textura.
---====================================================================
-
-State.BallCustom = State.BallCustom or {
-    Enabled = false,
-    Color = nil,
-}
-
-local BallCustomModule = {}
-local BallTarget = nil
-local BallBackup = nil
-local BallConn = nil
-
--- ---------- PALETA ----------
-local BALL_COLORS = {
-    { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
-    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
-    { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
-    { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
-    { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
-    { name = "Amarelo",    color = Color3.fromRGB(240, 220, 60) },
-    { name = "Verde",      color = Color3.fromRGB(60, 200, 80) },
-    { name = "Azul",       color = Color3.fromRGB(60, 130, 220) },
-    { name = "Roxo",       color = Color3.fromRGB(150, 80, 220) },
-    { name = "Rosa",       color = Color3.fromRGB(240, 130, 200) },
-    { name = "Ciano",      color = Color3.fromRGB(80, 220, 240) },
-    { name = "Dourado",    color = Color3.fromRGB(230, 190, 50) },
-    { name = "Neon Verde", color = Color3.fromRGB(80, 255, 120) },
-    { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
-    { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
-    { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
-}
-
--- ---------- DETECCAO DA BOLA ----------
-local function findBall()
-    local char = LP.Character
-    local function valid(p)
-        if not p or not p:IsA("BasePart") then return false end
-        if char and p:IsDescendantOf(char) then return false end
-        return true
-    end
-    for _, name in ipairs({"TPS", "ESA", "MRS", "PRS", "MPS", "Bola", "Ball", "SoccerBall", "Football"}) do
-        local b = Workspace:FindFirstChild(name, true)
-        if valid(b) then return b end
-    end
-    return nil
-end
-
--- ---------- APLICAR COR ----------
-local function captureBackup(ball)
-    if BallBackup then return end
-    BallBackup = {
-        Color = ball.Color,
-        Material = ball.Material,
-    }
-end
-
-local function applyColor(ball, color)
-    if not ball then return end
-    captureBackup(ball)
-    pcall(function()
-        ball.Color = color
-    end)
-end
-
--- ---------- RESTAURAR ----------
-local function restoreBall()
-    if BallTarget and BallTarget.Parent and BallBackup then
-        pcall(function()
-            BallTarget.Color = BallBackup.Color
-            BallTarget.Material = BallBackup.Material
-        end)
-    end
-    BallBackup = nil
-end
-
--- ---------- MONITOR DE RESPAWN ----------
-local function startMonitor()
-    if BallConn then BallConn:Disconnect() end
-    local lastSearch = 0
-
-    BallConn = RunService.Heartbeat:Connect(function()
-        if not State.BallCustom.Enabled then return end
-        if not BallTarget or not BallTarget.Parent then
-            local now = tick()
-            if now - lastSearch < 1.5 then return end
-            lastSearch = now
-
-            task.spawn(function()
-                local b = findBall()
-                if b and State.BallCustom.Enabled then
-                    BallTarget = b
-                    BallBackup = nil
-                    if State.BallCustom.Color then
-                        applyColor(b, State.BallCustom.Color)
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ---------- API ----------
-function BallCustomModule.setEnabled(on)
-    State.BallCustom.Enabled = on
-    if on then
-        task.spawn(function()
-            BallTarget = findBall()
-            if BallTarget then
-                if State.BallCustom.Color then
-                    applyColor(BallTarget, State.BallCustom.Color)
-                end
-                notify("Ball Custom ativado", "good")
-            else
-                notify("Bola nao encontrada", "bad")
-            end
-            startMonitor()
-        end)
-    else
-        restoreBall()
-        if BallConn then BallConn:Disconnect(); BallConn = nil end
-        BallTarget = nil
-        notify("Ball Custom desativado", "bad")
-    end
-end
-
-function BallCustomModule.setColor(name)
-    for _, e in ipairs(BALL_COLORS) do
-        if e.name == name then
-            State.BallCustom.Color = e.color
-            if BallTarget and BallTarget.Parent then
-                applyColor(BallTarget, e.color)
-            end
-            notify("Cor: " .. name, "good")
-            return
-        end
-    end
-end
-
-function BallCustomModule.refresh()
-    task.spawn(function()
-        local b = findBall()
-        if b then
-            BallTarget = b
-            BallBackup = nil
-            if State.BallCustom.Color then
-                applyColor(b, State.BallCustom.Color)
-            end
-            notify("Bola reconectada", "good")
-        else
-            notify("Nenhuma bola encontrada", "bad")
-        end
-    end)
-end
-
-function BallCustomModule.reset()
-    State.BallCustom.Enabled = false
-    State.BallCustom.Color = nil
-    restoreBall()
-    if BallConn then BallConn:Disconnect(); BallConn = nil end
-    BallTarget = nil
-    notify("Bola restaurada", "bad")
-end
-
---====================================================================
--- ABA
---====================================================================
-createTab("Ball", "BALL")
-
-do
-    local page = Tabs["Ball"].page
-
-    local mainSec = section("Cor da Bola")
-    mainSec.Parent = page
-
-    toggleRow(mainSec, "Ativar Cor Custom", State.BallCustom.Enabled, function(on)
-        BallCustomModule.setEnabled(on)
-    end, 1)
-
-    buttonRow(mainSec, "Reconectar Bola", function()
-        BallCustomModule.refresh()
-    end, 2)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Muda a cor da bola visualmente. Apenas voce ve. Reversivel.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = mainSec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local colorSec = section("Cores")
-    colorSec.Parent = page
-
-    for i, e in ipairs(BALL_COLORS) do
-        local row = buttonRow(colorSec, e.name, function()
-            BallCustomModule.setColor(e.name)
-        end, i)
-
-        local swatch = create("Frame", {
-            Size = UDim2.fromOffset(18, 18),
-            Position = UDim2.new(0, 8, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundColor3 = e.color,
-            BorderSizePixel = 0,
-            Parent = row,
-        })
-        corner(4, swatch)
-
-        local lbl = row:FindFirstChildOfClass("TextLabel")
-        if lbl then
-            lbl.Position = UDim2.new(0, 34, 0, 0)
-        end
-    end
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar cor original", function()
-        BallCustomModule.reset()
-    end, 1)
-end
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevBall = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevBall then _prevBall() end
-    pcall(function() BallCustomModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() BallCustomModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Ball Custom carregado.")--====================================================================
--- PARTE 6 — AUTO FOLLOW (Seguir Bola)
--- Aplica BodyVelocity no seu HumanoidRootPart pra te mover até a bola.
--- Local, reversível, sem tocar na bola (só leitura de posição).
+-- PARTE 6 — AUTO FOLLOW + BOTÃO FLUTUANTE
+-- Aplica BodyVelocity no seu HumanoidRootPart pra seguir a bola.
+-- Botão flutuante arrastável pra ativar/desativar.
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
     Enabled = false,
     Speed = 16,
     StopDistance = 2.5,
+}
+
+State.AutoFollowBtn = State.AutoFollowBtn or {
+    Visible = false,
+    Position = UDim2.new(0, 20, 0.3, 0),
 }
 
 local AutoFollowModule = {}
@@ -950,7 +768,22 @@ local function afCleanup()
     AF_BodyVel = nil
 end
 
--- ---------- LOOP PRINCIPAL ----------
+-- ---------- ATUALIZAR VISUAL DO BOTÃO FLUTUANTE ----------
+local FloatingBtn = nil
+
+local function updateFloatingBtnVisual()
+    if not FloatingBtn or not FloatingBtn.Parent then return end
+    local active = State.AutoFollow and State.AutoFollow.Enabled
+    if active then
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 100)
+        FloatingBtn.Text = "AF ON"
+    else
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        FloatingBtn.Text = "AF OFF"
+    end
+end
+
+-- ---------- LOOP PRINCIPAL DO AUTO FOLLOW ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
@@ -958,10 +791,7 @@ local function afStart()
         if not State.AutoFollow.Enabled then return end
 
         local char = LP.Character
-        if not char then
-            afCleanup()
-            return
-        end
+        if not char then afCleanup() return end
 
         local root = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -971,17 +801,12 @@ local function afStart()
         end
 
         local ball = afFindBall()
-        if not ball then
-            afCleanup()
-            return
-        end
+        if not ball then afCleanup() return end
 
-        -- Alvo: mesma altura do player, na posição XZ da bola
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
         if distance > State.AutoFollow.StopDistance then
-            -- Cria BodyVelocity se não existir
             if not AF_BodyVel or AF_BodyVel.Parent ~= root then
                 afCleanup()
                 AF_BodyVel = Instance.new("BodyVelocity")
@@ -991,21 +816,16 @@ local function afStart()
                 AF_BodyVel.Parent = root
             end
 
-            -- Direção do movimento
             local direction = (targetPos - root.Position).Unit
             local speed = math.max(humanoid.WalkSpeed, State.AutoFollow.Speed)
 
-            -- Orientação (olhar pra bola)
             pcall(function()
                 root.CFrame = CFrame.lookAt(root.Position, targetPos)
             end)
-
-            -- Aplica velocidade
             pcall(function()
                 AF_BodyVel.Velocity = direction * speed
             end)
         else
-            -- Perto o suficiente: para
             afCleanup()
         end
     end)
@@ -1022,11 +842,11 @@ function AutoFollowModule.setEnabled(on)
         if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
         notify("Auto Follow desativado", "bad")
     end
+    updateFloatingBtnVisual()
 end
 
 function AutoFollowModule.setSpeed(v)
     State.AutoFollow.Speed = v
-    -- Não precisa reiniciar o loop, só atualiza a variável
 end
 
 function AutoFollowModule.setStopDistance(v)
@@ -1037,10 +857,118 @@ function AutoFollowModule.reset()
     State.AutoFollow.Enabled = false
     afCleanup()
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
+    updateFloatingBtnVisual()
     notify("Auto Follow resetado", "bad")
 end
 
--- ---------- ABA ----------
+-- ---------- BOTÃO FLUTUANTE ----------
+local AutoFollowBtnModule = {}
+local IsDragging = false
+local DragStart = nil
+local StartPos = nil
+local PressStartTime = 0
+local PressStartPos = nil
+
+local function createFloatingBtn()
+    if FloatingBtn and FloatingBtn.Parent then
+        FloatingBtn.Visible = true
+        return
+    end
+
+    FloatingBtn = create("TextButton", {
+        Name = "VST_AutoFollowBtn",
+        Size = UDim2.fromOffset(64, 64),
+        Position = State.AutoFollowBtn.Position,
+        BackgroundColor3 = Color3.fromRGB(40, 40, 50),
+        BorderSizePixel = 0,
+        Text = "AF OFF",
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = Color3.new(1, 1, 1),
+        AutoButtonColor = false,
+        ZIndex = 99999,
+        Parent = ScreenOverlay,
+    })
+    corner(32, FloatingBtn)
+    stroke(ActiveTheme.Accent, 2, 0.3, FloatingBtn)
+
+    updateFloatingBtnVisual()
+
+    FloatingBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            IsDragging = true
+            DragStart = input.Position
+            StartPos = FloatingBtn.Position
+            PressStartTime = tick()
+            PressStartPos = input.Position
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if not IsDragging then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - DragStart
+            if math.abs(delta.X) > 8 or math.abs(delta.Y) > 8 then
+                FloatingBtn.Position = UDim2.new(
+                    StartPos.X.Scale, StartPos.X.Offset + delta.X,
+                    StartPos.Y.Scale, StartPos.Y.Offset + delta.Y
+                )
+                State.AutoFollowBtn.Position = FloatingBtn.Position
+            end
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            IsDragging = false
+            if PressStartPos then
+                local finalDelta = input.Position - PressStartPos
+                local moved = math.abs(finalDelta.X) + math.abs(finalDelta.Y)
+                local elapsed = tick() - PressStartTime
+                if moved < 12 and elapsed < 0.5 then
+                    -- Clique: alterna
+                    AutoFollowModule.setEnabled(not State.AutoFollow.Enabled)
+                end
+            end
+            PressStartPos = nil
+        end
+    end)
+
+    FloatingBtn.MouseEnter:Connect(function()
+        tween(FloatingBtn, 0.15, { Size = UDim2.fromOffset(72, 72) })
+    end)
+    FloatingBtn.MouseLeave:Connect(function()
+        tween(FloatingBtn, 0.15, { Size = UDim2.fromOffset(64, 64) })
+    end)
+end
+
+function AutoFollowBtnModule.show()
+    createFloatingBtn()
+    State.AutoFollowBtn.Visible = true
+    notify("Botao flutuante criado", "good")
+end
+
+function AutoFollowBtnModule.hide()
+    if FloatingBtn and FloatingBtn.Parent then
+        FloatingBtn:Destroy()
+        FloatingBtn = nil
+    end
+    State.AutoFollowBtn.Visible = false
+    notify("Botao flutuante removido", "bad")
+end
+
+function AutoFollowBtnModule.toggle()
+    if State.AutoFollowBtn.Visible then
+        AutoFollowBtnModule.hide()
+    else
+        AutoFollowBtnModule.show()
+    end
+end
+
+-- ---------- ABA AUTO FOLLOW ----------
 createTab("Auto Follow", "AF")
 
 do
@@ -1064,7 +992,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "Aplica BodyVelocity no seu personagem pra te mover ate a bola. Nao altera a bola. Local, reversivel.",
+        Text = "Aplica BodyVelocity no seu personagem pra te mover ate a bola. Local, reversivel.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1075,13 +1003,36 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
+    -- Seção do botão flutuante
+    local floatSec = section("Botao Flutuante")
+    floatSec.Parent = page
+
+    local infoBtn = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Cria um botao flutuante na tela. Arraste pra mover, toque pra ativar/desativar o Auto Follow.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = floatSec,
+    })
+    themed(infoBtn, "TextColor3", "Sub")
+
+    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
+        AutoFollowBtnModule.toggle()
+    end, 2)
+
+    -- Aviso
     local warnSec = section("Aviso")
     warnSec.Parent = page
 
     local warnLbl = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "AVISO: Auto Follow da vantagem competitiva e pode ser detectado por anti-cheats server-side. Use por sua conta e risco, prefira em alt.",
+        Text = "AVISO: Auto Follow da vantagem competitiva. Use por sua conta e risco.",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = ActiveTheme.Bad,
@@ -1092,26 +1043,32 @@ do
     })
     themed(warnLbl, "TextColor3", "Bad")
 
-    buttonRow(warnSec, "Desativar Auto Follow", function()
+    buttonRow(warnSec, "Desativar e Remover Botao", function()
         AutoFollowModule.reset()
+        AutoFollowBtnModule.hide()
     end, 2)
 end
 
--- ---------- CLEANUP GLOBAL ----------
+-- ---------- CLEANUP ----------
 local _prevAF = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAF then _prevAF() end
-    pcall(function() AutoFollowModule.reset() end)
+    pcall(function()
+        AutoFollowModule.reset()
+        AutoFollowBtnModule.hide()
+    end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function() AutoFollowModule.reset() end)
+        pcall(function()
+            AutoFollowModule.reset()
+            AutoFollowBtnModule.hide()
+        end)
     end
 end)
 
-print("[VoidStrap] Auto Follow carregado.")
---====================================================================
+print("[VoidStrap] Auto Follow + Botao Flutuante carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
@@ -1119,6 +1076,7 @@ State.Chars = State.Chars or { Enabled = true }
 
 local CharsModule = {}
 
+-- ---------- LISTA DE CHARS ----------
 local CHAR_LIST = {
     "MiguelCalebeGamer202",
     "guto785662",
@@ -1154,6 +1112,7 @@ local CHAR_LIST = {
     "mica1203ely5",
 }
 
+-- ---------- ENVIAR MENSAGEM NO CHAT ----------
 local function sendChat(msg)
     local ok = false
 
@@ -1188,40 +1147,96 @@ local function sendChat(msg)
     return ok
 end
 
+-- ---------- API ----------
 function CharsModule.apply(charName)
     if not charName or charName == "" then return end
     local cmd = ":char " .. charName
-    local sent = sendChat(cmd)
-    if sent then
+    if sendChat(cmd) then
         notify("Char: " .. charName, "good")
     else
         notify("Falha ao enviar chat", "bad")
     end
 end
 
-createTab("Chars", "CHARS")
+function CharsModule.applyById(id)
+    if not id or id == "" then return end
+    local cmd = ":char " .. id
+    if sendChat(cmd) then
+        notify("Char ID: " .. id, "good")
+    else
+        notify("Falha ao enviar chat", "bad")
+    end
+end
+
+--====================================================================
+-- ABA CHARS
+--====================================================================
+createTab("Chars", "CH")
 
 do
     local page = Tabs["Chars"].page
 
-    local sec = section("Aplicar Char via Chat")
-    sec.Parent = page
+    -- Secao de info
+    local secInfo = section("Aplicar Char via Chat")
+    secInfo.Parent = page
 
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "Ao clicar num char, o script envia \":char NOME\" no chat automaticamente.",
+        Text = "Clique num char pra enviar :char NOME no chat automaticamente.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
         LayoutOrder = 1,
-        Parent = sec,
+        Parent = secInfo,
     })
     themed(info, "TextColor3", "Sub")
 
-    local charSec = section("Lista de Chars (" .. #CHAR_LIST .. ")")
+    -- Secao de ID custom
+    local secId = section("Char por ID")
+    secId.Parent = page
+
+    -- Input de texto simples
+    local inputFrame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = ActiveTheme.Surface2,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = secId,
+    })
+    themed(inputFrame, "BackgroundColor3", "Surface2")
+    corner(8, inputFrame)
+
+    local textBox = create("TextBox", {
+        Size = UDim2.new(1, -100, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Digite o ID do char...",
+        PlaceholderColor3 = ActiveTheme.Sub,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextColor3 = ActiveTheme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = inputFrame,
+    })
+    themed(textBox, "TextColor3", "Text")
+    themed(textBox, "PlaceholderColor3", "Sub")
+
+    buttonRow(secId, "Aplicar ID do Char", function()
+        local id = textBox.Text
+        if id and id ~= "" then
+            CharsModule.applyById(id)
+        else
+            notify("Digite um ID primeiro", "bad")
+        end
+    end, 2)
+
+    -- Secao da lista
+    local charSec = section("Lista de Chars")
     charSec.Parent = page
 
     for i, name in ipairs(CHAR_LIST) do
@@ -1231,169 +1246,12 @@ do
     end
 end
 
+--====================================================================
+-- CLEANUP
+--====================================================================
 local _prevChars = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevChars then _prevChars() end
 end
 
 print("[VoidStrap] Chars carregado.")
---====================================================================
--- PARTE 6C — APARÊNCIA (Fundo customizável)
--- Permite trocar a imagem de fundo da janela em tempo real.
---====================================================================
-
-State.Appearance = State.Appearance or {
-    CurrentBg = "Padrão",
-}
-
-local AppearanceModule = {}
-local CurrentBgImage = nil  -- ImageLabel ativo
-
--- ---------- LISTA DE FUNDOS ----------
-local BG_LIST = {
-    { name = "Padrão",  id = nil },                    -- fundo escuro padrão
-    { name = "Fundo 1", id = "104886621751354" },      -- primeira imagem (que você já testou)
-    { name = "Fundo 2", id = "99887975337982" },
-    { name = "Fundo 3", id = "12966451218" },
-    { name = "Fundo 4", id = "136657758302420" },
-    { name = "Sem Fundo", id = "transparent" },        -- transparente total
-}
-
--- ---------- APLICAR FUNDO ----------
-local function findMainBg()
-    -- Procura por um ImageLabel de fundo em qualquer GUI do VoidStrap
-    local PG = LP:WaitForChild("PlayerGui")
-    for _, gui in ipairs(PG:GetChildren()) do
-        if gui.Name:find("VoidStrap") then
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if obj.Name == "VST_MainBg" and obj:IsA("ImageLabel") then
-                    return obj
-                end
-            end
-        end
-    end
-    return nil
-end
-
-function AppearanceModule.applyBg(name)
-    for _, entry in ipairs(BG_LIST) do
-        if entry.name == name then
-            State.Appearance.CurrentBg = name
-
-            local bg = findMainBg()
-            if not bg then
-                -- Cria o ImageLabel se não existir
-                local PG = LP:WaitForChild("PlayerGui")
-                for _, gui in ipairs(PG:GetChildren()) do
-                    if gui.Name:find("VoidStrap") then
-                        for _, obj in ipairs(gui:GetDescendants()) do
-                            if obj.Name == "Main" and obj:IsA("Frame") then
-                                bg = Instance.new("ImageLabel")
-                                bg.Name = "VST_MainBg"
-                                bg.Size = UDim2.fromScale(1, 1)
-                                bg.BackgroundTransparency = 1
-                                bg.ZIndex = -1
-                                bg.Parent = obj
-                                local c = Instance.new("UICorner")
-                                c.CornerRadius = UDim.new(0, 14)
-                                c.Parent = bg
-                                break
-                            end
-                        end
-                        break
-                    end
-                end
-            end
-
-            if bg then
-                if entry.id == nil then
-                    -- Padrão: só esconde
-                    bg.Image = ""
-                    bg.Visible = false
-                elseif entry.id == "transparent" then
-                    -- Sem fundo: mostra vazio
-                    bg.Image = ""
-                    bg.Visible = true
-                    bg.ImageTransparency = 1
-                else
-                    bg.Image = "rbxassetid://" .. entry.id
-                    bg.ImageTransparency = 0.75
-                    bg.Visible = true
-                    bg.ScaleType = Enum.ScaleType.Crop
-                end
-            end
-
-            notify("Fundo: " .. name, "good")
-            return
-        end
-    end
-end
-
-function AppearanceModule.reset()
-    AppearanceModule.applyBg("Padrão")
-end
-
---====================================================================
--- ABA APARÊNCIA
---====================================================================
-createTab("Aparência", "AP")
-
-do
-    local page = Tabs["Aparência"].page
-
-    local mainSec = section("Fundo da Interface")
-    mainSec.Parent = page
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Troca a imagem de fundo da janela. Aplicado em tempo real, sem precisar reiniciar.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = mainSec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    for i, bg in ipairs(BG_LIST) do
-        buttonRow(mainSec, bg.name, function()
-            AppearanceModule.applyBg(bg.name)
-        end, 10 + i)
-    end
-
-    local opacitySec = section("Opacidade")
-    opacitySec.Parent = page
-
-    sliderRow(opacitySec, "Transparência (%)", 0, 100, 25, function(v)
-        local bg = findMainBg()
-        if bg and bg.Visible then
-            bg.ImageTransparency = 1 - (v / 100)
-        end
-    end, 1)
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Voltar ao fundo padrão", function()
-        AppearanceModule.reset()
-    end, 1)
-end
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevApp = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevApp then _prevApp() end
-    pcall(function() AppearanceModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() AppearanceModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Aparencia carregado.")
