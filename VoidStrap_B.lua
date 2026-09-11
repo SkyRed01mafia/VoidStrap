@@ -657,7 +657,8 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- BALL COLOR — Apenas cor da bola
+-- PARTE 5C — CUSTOM BALL (Cor visual)
+-- Muda a cor da bola localmente. Reversivel. Nao toca em textura.
 --====================================================================
 
 State.BallCustom = State.BallCustom or {
@@ -670,10 +671,11 @@ local BallTarget = nil
 local BallBackup = nil
 local BallConn = nil
 
--- ---------- CORES ----------
+-- ---------- PALETA ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
     { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
+    { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
     { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
     { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
     { name = "Amarelo",    color = Color3.fromRGB(240, 220, 60) },
@@ -687,10 +689,9 @@ local BALL_COLORS = {
     { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
     { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
     { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
-    { name = "Metalico",   color = Color3.fromRGB(180, 180, 190) },
 }
 
--- ---------- DETECCAO ----------
+-- ---------- DETECCAO DA BOLA ----------
 local function findBall()
     local char = LP.Character
     local function valid(p)
@@ -698,27 +699,31 @@ local function findBall()
         if char and p:IsDescendantOf(char) then return false end
         return true
     end
-    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall", "Soccer"}) do
+    for _, name in ipairs({"TPS", "ESA", "MRS", "PRS", "MPS", "Bola", "Ball", "SoccerBall", "Football"}) do
         local b = Workspace:FindFirstChild(name, true)
         if valid(b) then return b end
     end
     return nil
 end
 
--- ---------- APLICAR ----------
+-- ---------- APLICAR COR ----------
+local function captureBackup(ball)
+    if BallBackup then return end
+    BallBackup = {
+        Color = ball.Color,
+        Material = ball.Material,
+    }
+end
+
 local function applyColor(ball, color)
     if not ball then return end
-    if not BallBackup then
-        BallBackup = {
-            Color = ball.Color,
-            Material = ball.Material,
-        }
-    end
+    captureBackup(ball)
     pcall(function()
         ball.Color = color
     end)
 end
 
+-- ---------- RESTAURAR ----------
 local function restoreBall()
     if BallTarget and BallTarget.Parent and BallBackup then
         pcall(function()
@@ -733,12 +738,14 @@ end
 local function startMonitor()
     if BallConn then BallConn:Disconnect() end
     local lastSearch = 0
+
     BallConn = RunService.Heartbeat:Connect(function()
         if not State.BallCustom.Enabled then return end
         if not BallTarget or not BallTarget.Parent then
             local now = tick()
             if now - lastSearch < 1.5 then return end
             lastSearch = now
+
             task.spawn(function()
                 local b = findBall()
                 if b and State.BallCustom.Enabled then
@@ -763,7 +770,7 @@ function BallCustomModule.setEnabled(on)
                 if State.BallCustom.Color then
                     applyColor(BallTarget, State.BallCustom.Color)
                 end
-                notify("Ball Color ativado", "good")
+                notify("Ball Custom ativado", "good")
             else
                 notify("Bola nao encontrada", "bad")
             end
@@ -771,12 +778,9 @@ function BallCustomModule.setEnabled(on)
         end)
     else
         restoreBall()
-        if BallConn then
-            BallConn:Disconnect()
-            BallConn = nil
-        end
+        if BallConn then BallConn:Disconnect(); BallConn = nil end
         BallTarget = nil
-        notify("Ball Color desativado", "bad")
+        notify("Ball Custom desativado", "bad")
     end
 end
 
@@ -813,10 +817,7 @@ function BallCustomModule.reset()
     State.BallCustom.Enabled = false
     State.BallCustom.Color = nil
     restoreBall()
-    if BallConn then
-        BallConn:Disconnect()
-        BallConn = nil
-    end
+    if BallConn then BallConn:Disconnect(); BallConn = nil end
     BallTarget = nil
     notify("Bola restaurada", "bad")
 end
@@ -836,14 +837,14 @@ do
         BallCustomModule.setEnabled(on)
     end, 1)
 
-    buttonRow(mainSec, "Reconectar a bola", function()
+    buttonRow(mainSec, "Reconectar Bola", function()
         BallCustomModule.refresh()
     end, 2)
 
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Muda a cor da bola. Apenas local - outros nao veem.",
+        Text = "Muda a cor da bola visualmente. Apenas voce ve. Reversivel.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -856,6 +857,7 @@ do
 
     local colorSec = section("Cores")
     colorSec.Parent = page
+
     for i, e in ipairs(BALL_COLORS) do
         local row = buttonRow(colorSec, e.name, function()
             BallCustomModule.setColor(e.name)
@@ -890,17 +892,222 @@ end
 local _prevBall = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevBall then _prevBall() end
-    pcall(function()
-        BallCustomModule.reset()
-    end)
+    pcall(function() BallCustomModule.reset() end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function()
-            BallCustomModule.reset()
-        end)
+        pcall(function() BallCustomModule.reset() end)
     end
 end)
 
-print("[VoidStrap] Ball Color carregado.")
+print("[VoidStrap] Ball Custom carregado.")--====================================================================
+-- PARTE 6 — AUTO FOLLOW (Seguir Bola)
+-- Aplica BodyVelocity no seu HumanoidRootPart pra te mover até a bola.
+-- Local, reversível, sem tocar na bola (só leitura de posição).
+--====================================================================
+
+State.AutoFollow = State.AutoFollow or {
+    Enabled = false,
+    Speed = 16,
+    StopDistance = 2.5,
+}
+
+local AutoFollowModule = {}
+local AF_BodyVel = nil
+local AF_Conn = nil
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function afFindBall()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n = obj.Name
+            for _, name in ipairs(BALL_NAMES) do
+                if n == name then
+                    if char and obj:IsDescendantOf(char) then
+                        -- ignora acessórios do character
+                    else
+                        return obj
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- CLEANUP ----------
+local function afCleanup()
+    if AF_BodyVel and AF_BodyVel.Parent then
+        pcall(function() AF_BodyVel:Destroy() end)
+    end
+    AF_BodyVel = nil
+end
+
+-- ---------- LOOP PRINCIPAL ----------
+local function afStart()
+    if AF_Conn then AF_Conn:Disconnect() end
+
+    AF_Conn = RunService.RenderStepped:Connect(function()
+        if not State.AutoFollow.Enabled then return end
+
+        local char = LP.Character
+        if not char then
+            afCleanup()
+            return
+        end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not root or not humanoid or humanoid.Health <= 0 then
+            afCleanup()
+            return
+        end
+
+        local ball = afFindBall()
+        if not ball then
+            afCleanup()
+            return
+        end
+
+        -- Alvo: mesma altura do player, na posição XZ da bola
+        local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
+        local distance = (root.Position - targetPos).Magnitude
+
+        if distance > State.AutoFollow.StopDistance then
+            -- Cria BodyVelocity se não existir
+            if not AF_BodyVel or AF_BodyVel.Parent ~= root then
+                afCleanup()
+                AF_BodyVel = Instance.new("BodyVelocity")
+                AF_BodyVel.Name = "VST_AutoFollow"
+                AF_BodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+                AF_BodyVel.Velocity = Vector3.zero
+                AF_BodyVel.Parent = root
+            end
+
+            -- Direção do movimento
+            local direction = (targetPos - root.Position).Unit
+            local speed = math.max(humanoid.WalkSpeed, State.AutoFollow.Speed)
+
+            -- Orientação (olhar pra bola)
+            pcall(function()
+                root.CFrame = CFrame.lookAt(root.Position, targetPos)
+            end)
+
+            -- Aplica velocidade
+            pcall(function()
+                AF_BodyVel.Velocity = direction * speed
+            end)
+        else
+            -- Perto o suficiente: para
+            afCleanup()
+        end
+    end)
+end
+
+-- ---------- API ----------
+function AutoFollowModule.setEnabled(on)
+    State.AutoFollow.Enabled = on
+    if on then
+        afStart()
+        notify("Auto Follow ativado", "good")
+    else
+        afCleanup()
+        if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
+        notify("Auto Follow desativado", "bad")
+    end
+end
+
+function AutoFollowModule.setSpeed(v)
+    State.AutoFollow.Speed = v
+    -- Não precisa reiniciar o loop, só atualiza a variável
+end
+
+function AutoFollowModule.setStopDistance(v)
+    State.AutoFollow.StopDistance = v
+end
+
+function AutoFollowModule.reset()
+    State.AutoFollow.Enabled = false
+    afCleanup()
+    if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
+    notify("Auto Follow resetado", "bad")
+end
+
+-- ---------- ABA ----------
+createTab("Auto Follow", "AF")
+
+do
+    local page = Tabs["Auto Follow"].page
+
+    local sec = section("Seguir Bola")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on)
+        AutoFollowModule.setEnabled(on)
+    end, 1)
+
+    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
+        AutoFollowModule.setSpeed(v)
+    end, 2)
+
+    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
+        AutoFollowModule.setStopDistance(v)
+    end, 3)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Aplica BodyVelocity no seu personagem pra te mover ate a bola. Nao altera a bola. Local, reversivel.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 4,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local warnSec = section("Aviso")
+    warnSec.Parent = page
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "AVISO: Auto Follow da vantagem competitiva e pode ser detectado por anti-cheats server-side. Use por sua conta e risco, prefira em alt.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = warnSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
+
+    buttonRow(warnSec, "Desativar Auto Follow", function()
+        AutoFollowModule.reset()
+    end, 2)
+end
+
+-- ---------- CLEANUP GLOBAL ----------
+local _prevAF = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevAF then _prevAF() end
+    pcall(function() AutoFollowModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() AutoFollowModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Auto Follow carregado.")
