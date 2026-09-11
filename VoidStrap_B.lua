@@ -1237,3 +1237,163 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")
+--====================================================================
+-- PARTE 6C — APARÊNCIA (Fundo customizável)
+-- Permite trocar a imagem de fundo da janela em tempo real.
+--====================================================================
+
+State.Appearance = State.Appearance or {
+    CurrentBg = "Padrão",
+}
+
+local AppearanceModule = {}
+local CurrentBgImage = nil  -- ImageLabel ativo
+
+-- ---------- LISTA DE FUNDOS ----------
+local BG_LIST = {
+    { name = "Padrão",  id = nil },                    -- fundo escuro padrão
+    { name = "Fundo 1", id = "104886621751354" },      -- primeira imagem (que você já testou)
+    { name = "Fundo 2", id = "99887975337982" },
+    { name = "Fundo 3", id = "12966451218" },
+    { name = "Fundo 4", id = "136657758302420" },
+    { name = "Sem Fundo", id = "transparent" },        -- transparente total
+}
+
+-- ---------- APLICAR FUNDO ----------
+local function findMainBg()
+    -- Procura por um ImageLabel de fundo em qualquer GUI do VoidStrap
+    local PG = LP:WaitForChild("PlayerGui")
+    for _, gui in ipairs(PG:GetChildren()) do
+        if gui.Name:find("VoidStrap") then
+            for _, obj in ipairs(gui:GetDescendants()) do
+                if obj.Name == "VST_MainBg" and obj:IsA("ImageLabel") then
+                    return obj
+                end
+            end
+        end
+    end
+    return nil
+end
+
+function AppearanceModule.applyBg(name)
+    for _, entry in ipairs(BG_LIST) do
+        if entry.name == name then
+            State.Appearance.CurrentBg = name
+
+            local bg = findMainBg()
+            if not bg then
+                -- Cria o ImageLabel se não existir
+                local PG = LP:WaitForChild("PlayerGui")
+                for _, gui in ipairs(PG:GetChildren()) do
+                    if gui.Name:find("VoidStrap") then
+                        for _, obj in ipairs(gui:GetDescendants()) do
+                            if obj.Name == "Main" and obj:IsA("Frame") then
+                                bg = Instance.new("ImageLabel")
+                                bg.Name = "VST_MainBg"
+                                bg.Size = UDim2.fromScale(1, 1)
+                                bg.BackgroundTransparency = 1
+                                bg.ZIndex = -1
+                                bg.Parent = obj
+                                local c = Instance.new("UICorner")
+                                c.CornerRadius = UDim.new(0, 14)
+                                c.Parent = bg
+                                break
+                            end
+                        end
+                        break
+                    end
+                end
+            end
+
+            if bg then
+                if entry.id == nil then
+                    -- Padrão: só esconde
+                    bg.Image = ""
+                    bg.Visible = false
+                elseif entry.id == "transparent" then
+                    -- Sem fundo: mostra vazio
+                    bg.Image = ""
+                    bg.Visible = true
+                    bg.ImageTransparency = 1
+                else
+                    bg.Image = "rbxassetid://" .. entry.id
+                    bg.ImageTransparency = 0.75
+                    bg.Visible = true
+                    bg.ScaleType = Enum.ScaleType.Crop
+                end
+            end
+
+            notify("Fundo: " .. name, "good")
+            return
+        end
+    end
+end
+
+function AppearanceModule.reset()
+    AppearanceModule.applyBg("Padrão")
+end
+
+--====================================================================
+-- ABA APARÊNCIA
+--====================================================================
+createTab("Aparência", "AP")
+
+do
+    local page = Tabs["Aparência"].page
+
+    local mainSec = section("Fundo da Interface")
+    mainSec.Parent = page
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Troca a imagem de fundo da janela. Aplicado em tempo real, sem precisar reiniciar.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = mainSec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    for i, bg in ipairs(BG_LIST) do
+        buttonRow(mainSec, bg.name, function()
+            AppearanceModule.applyBg(bg.name)
+        end, 10 + i)
+    end
+
+    local opacitySec = section("Opacidade")
+    opacitySec.Parent = page
+
+    sliderRow(opacitySec, "Transparência (%)", 0, 100, 25, function(v)
+        local bg = findMainBg()
+        if bg and bg.Visible then
+            bg.ImageTransparency = 1 - (v / 100)
+        end
+    end, 1)
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Voltar ao fundo padrão", function()
+        AppearanceModule.reset()
+    end, 1)
+end
+
+--====================================================================
+-- CLEANUP
+--====================================================================
+local _prevApp = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevApp then _prevApp() end
+    pcall(function() AppearanceModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() AppearanceModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Aparencia carregado.")
