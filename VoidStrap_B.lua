@@ -1,141 +1,76 @@
 --====================================================================
--- PARTE 5 — MÓDULO: FIRE TRAIL NA BOLA (The Classic Soccer)
--- Detecta a bola automaticamente, anexa Fire + Trail + Particles + PointLight
--- 100% local (client-only), não replica para o servidor, reversível.
+-- FIRE TRAIL (versao corrigida — detecta "tps")
 --====================================================================
 
-State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
+State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Classico" }
 
---====================================================================
--- MÓDULO
---====================================================================
 local FireTrailModule = {}
+local CurrentBall = nil
+local ActiveInstances = {}
 
-local CurrentBall     = nil
-local ActiveInstances = {}  -- lista de instâncias criadas para cleanup
-
--- ---------- PRESETS DE COR ----------
 local FIRE_PRESETS = {
-    ["Fogo Clássico"] = {
-        fire      = Color3.fromRGB(255, 120, 30),
-        secondary = Color3.fromRGB(255, 60, 0),
-        trail     = Color3.fromRGB(255, 180, 60),
-        trailMid  = Color3.fromRGB(255, 80, 20),
-        light     = Color3.fromRGB(255, 140, 40),
-        size      = 6,
-    },
-    ["Fogo Azul"] = {
-        fire      = Color3.fromRGB(80, 180, 255),
-        secondary = Color3.fromRGB(30, 90, 220),
-        trail     = Color3.fromRGB(150, 210, 255),
-        trailMid  = Color3.fromRGB(50, 130, 255),
-        light     = Color3.fromRGB(100, 180, 255),
-        size      = 6,
-    },
-    ["Fogo Roxo"] = {
-        fire      = Color3.fromRGB(180, 80, 255),
-        secondary = Color3.fromRGB(120, 30, 220),
-        trail     = Color3.fromRGB(210, 150, 255),
-        trailMid  = Color3.fromRGB(140, 60, 255),
-        light     = Color3.fromRGB(180, 100, 255),
-        size      = 6,
-    },
-    ["Fogo Verde"] = {
-        fire      = Color3.fromRGB(100, 255, 120),
-        secondary = Color3.fromRGB(30, 200, 60),
-        trail     = Color3.fromRGB(160, 255, 180),
-        trailMid  = Color3.fromRGB(50, 220, 100),
-        light     = Color3.fromRGB(120, 255, 140),
-        size      = 6,
-    },
-    ["Fogo Branco"] = {
-        fire      = Color3.fromRGB(255, 255, 255),
-        secondary = Color3.fromRGB(220, 240, 255),
-        trail     = Color3.fromRGB(255, 255, 255),
-        trailMid  = Color3.fromRGB(200, 220, 255),
-        light     = Color3.fromRGB(255, 255, 255),
-        size      = 6,
-    },
-    ["Fogo Sombrio"] = {
-        fire      = Color3.fromRGB(80, 20, 100),
-        secondary = Color3.fromRGB(30, 5, 40),
-        trail     = Color3.fromRGB(150, 50, 200),
-        trailMid  = Color3.fromRGB(80, 10, 120),
-        light     = Color3.fromRGB(120, 30, 180),
-        size      = 6,
-    },
-    ["Inferno"] = {
-        fire      = Color3.fromRGB(255, 80, 0),
-        secondary = Color3.fromRGB(255, 220, 60),
-        trail     = Color3.fromRGB(255, 160, 30),
-        trailMid  = Color3.fromRGB(255, 60, 0),
-        light     = Color3.fromRGB(255, 120, 20),
-        size      = 8,
-    },
+    ["Fogo Classico"]={fire=Color3.fromRGB(255,120,30),secondary=Color3.fromRGB(255,60,0),trail=Color3.fromRGB(255,180,60),trailMid=Color3.fromRGB(255,80,20),light=Color3.fromRGB(255,140,40),size=6},
+    ["Fogo Azul"]={fire=Color3.fromRGB(80,180,255),secondary=Color3.fromRGB(30,90,220),trail=Color3.fromRGB(150,210,255),trailMid=Color3.fromRGB(50,130,255),light=Color3.fromRGB(100,180,255),size=6},
+    ["Fogo Roxo"]={fire=Color3.fromRGB(180,80,255),secondary=Color3.fromRGB(120,30,220),trail=Color3.fromRGB(210,150,255),trailMid=Color3.fromRGB(140,60,255),light=Color3.fromRGB(180,100,255),size=6},
+    ["Fogo Verde"]={fire=Color3.fromRGB(100,255,120),secondary=Color3.fromRGB(30,200,60),trail=Color3.fromRGB(160,255,180),trailMid=Color3.fromRGB(50,220,100),light=Color3.fromRGB(120,255,140),size=6},
+    ["Fogo Branco"]={fire=Color3.fromRGB(255,255,255),secondary=Color3.fromRGB(220,240,255),trail=Color3.fromRGB(255,255,255),trailMid=Color3.fromRGB(200,220,255),light=Color3.fromRGB(255,255,255),size=6},
+    ["Fogo Sombrio"]={fire=Color3.fromRGB(80,20,100),secondary=Color3.fromRGB(30,5,40),trail=Color3.fromRGB(150,50,200),trailMid=Color3.fromRGB(80,10,120),light=Color3.fromRGB(120,30,180),size=6},
+    ["Inferno"]={fire=Color3.fromRGB(255,80,0),secondary=Color3.fromRGB(255,220,60),trail=Color3.fromRGB(255,160,30),trailMid=Color3.fromRGB(255,60,0),light=Color3.fromRGB(255,120,20),size=8},
 }
 
--- ---------- DETECÇÃO DA BOLA ----------
--- Heurística: nome contém "ball"/"bola" e é BasePart, não é do Character.
-local function looksLikeBall(obj)
-    if not obj:IsA("BasePart") then return false end
-    local n = obj.Name:lower()
-    if not (n:find("ball") or n:find("bola") or n == "soccer" or n:find("football")) then
-        return false
-    end
-    -- Descarta se estiver dentro do Character (evita pegar acessórios)
-    local char = LP.Character
-    if char and obj:IsDescendantOf(char) then return false end
-    return true
-end
-
+-- Deteccao RAPIDA: procura por "TPS" primeiro
 local function findBall()
-    -- Primeiro tenta por nome exato (mais rápido)
-    local candidates = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if looksLikeBall(obj) then
-            table.insert(candidates, obj)
+    local char = LP.Character
+    local function valid(p)
+        if not p or not p:IsA("BasePart") then return false end
+        if char and p:IsDescendantOf(char) then return false end
+        return true
+    end
+
+    -- Nomes conhecidos da bola
+    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall", "Soccer"}) do
+        local b = Workspace:FindFirstChild(name, true)
+        if valid(b) then return b end
+    end
+
+    -- Fallback: esferas pequenas
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if valid(obj) and obj:IsA("BasePart") then
+            if obj.Shape == Enum.PartType.Ball then
+                local mx = math.max(obj.Size.X, obj.Size.Y, obj.Size.Z)
+                if mx >= 1 and mx <= 6 then return obj end
+            end
+        end
+        if obj:IsA("Model") then
+            for _, sub in ipairs(obj:GetChildren()) do
+                if valid(sub) and sub:IsA("BasePart") then
+                    if sub.Shape == Enum.PartType.Ball then
+                        local mx = math.max(sub.Size.X, sub.Size.Y, sub.Size.Z)
+                        if mx >= 1 and mx <= 6 then return sub end
+                    end
+                    if sub.Name:lower() == "tps" then return sub end
+                end
+            end
         end
     end
-    if #candidates == 0 then return nil end
 
-    -- Prioriza bolas com MeshPart, com esfera, ou maiores
-    table.sort(candidates, function(a, b)
-        local scoreA, scoreB = 0, 0
-        if a:IsA("MeshPart") then scoreA = scoreA + 2 end
-        if b:IsA("MeshPart") then scoreB = scoreB + 2 end
-        if a.Shape == Enum.PartType.Ball then scoreA = scoreA + 3 end
-        if b.Shape == Enum.PartType.Ball then scoreB = scoreB + 3 end
-        scoreA = scoreA + a.Size.Magnitude
-        scoreB = scoreB + b.Size.Magnitude
-        return scoreA > scoreB
-    end)
-
-    return candidates[1]
+    return nil
 end
 
--- ---------- CLEANUP ----------
 local function destroyEffects()
     for _, inst in ipairs(ActiveInstances) do
-        pcall(function()
-            if inst and inst.Parent then inst:Destroy() end
-        end)
+        pcall(function() if inst and inst.Parent then inst:Destroy() end end)
     end
     ActiveInstances = {}
     CurrentBall = nil
 end
 
--- ---------- APLICAR EFEITOS ----------
 local function applyEffects(ball, presetName)
     destroyEffects()
     if not ball or not ball.Parent then return end
-
-    local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
+    local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Classico"]
     CurrentBall = ball
 
-    -- Guarda flag para pular o Character (evita detecção desnecessária)
-    -- Como só decoramos a bola, não há risco direto de anti-cheat.
-
-    -- 1) Fire clássico
     local fire = Instance.new("Fire")
     fire.Name = "VST_Fire"
     fire.Color = p.fire
@@ -145,7 +80,6 @@ local function applyEffects(ball, presetName)
     fire.Parent = ball
     table.insert(ActiveInstances, fire)
 
-    -- 2) Attachments para o Trail (topo e base da bola)
     local size = ball.Size
     local offsetY = math.max(size.Y * 0.5, 1)
 
@@ -161,7 +95,6 @@ local function applyEffects(ball, presetName)
     a1.Parent = ball
     table.insert(ActiveInstances, a1)
 
-    -- 3) Trail em gradiente (fogo → transparente)
     local trail = Instance.new("Trail")
     trail.Name = "VST_Trail"
     trail.Attachment0 = a0
@@ -177,14 +110,12 @@ local function applyEffects(ball, presetName)
         NumberSequenceKeypoint.new(1.0, 1.0),
     })
     trail.Lifetime = 0.7
-    trail.MinLength = 0
     trail.LightEmission = 1
     trail.LightInfluence = 0
     trail.FaceCamera = true
     trail.Parent = ball
     table.insert(ActiveInstances, trail)
 
-    -- 4) Faíscas (ParticleEmitter)
     local sparks = Instance.new("ParticleEmitter")
     sparks.Name = "VST_Sparks"
     sparks.Color = ColorSequence.new(p.fire, p.secondary)
@@ -200,35 +131,30 @@ local function applyEffects(ball, presetName)
     sparks.Rate = 45
     sparks.Speed = NumberRange.new(3, 7)
     sparks.SpreadAngle = Vector2.new(180, 180)
-    sparks.Rotation = NumberRange.new(0, 360)
-    sparks.RotSpeed = NumberRange.new(-180, 180)
     sparks.LightEmission = 1
     sparks.LightInfluence = 0
     sparks.Parent = ball
     table.insert(ActiveInstances, sparks)
 
-    -- 5) Brilho ambiente (PointLight)
     local light = Instance.new("PointLight")
     light.Name = "VST_Light"
     light.Brightness = 3
     light.Range = 14
     light.Color = p.light
-    light.Shadows = false   -- menos custo + menos "pesado" para anti-cheat
+    light.Shadows = false
     light.Parent = ball
     table.insert(ActiveInstances, light)
 end
 
--- ---------- API PÚBLICA ----------
 function FireTrailModule.setEnabled(on)
     State.FireTrail.Enabled = on
     if on then
         local ball = findBall()
         if ball then
             applyEffects(ball, State.FireTrail.Preset)
-            notify("Fire Trail ativado na bola", "good")
+            notify("Fire Trail ativado", "good")
         else
-            notify("Bola não encontrada ainda...", "bad")
-            -- continua tentando via loop
+            notify("Bola nao encontrada", "bad")
         end
     else
         destroyEffects()
@@ -240,9 +166,7 @@ function FireTrailModule.setPreset(name)
     State.FireTrail.Preset = name
     if State.FireTrail.Enabled then
         local ball = CurrentBall
-        if not ball or not ball.Parent then
-            ball = findBall()
-        end
+        if not ball or not ball.Parent then ball = findBall() end
         if ball then
             applyEffects(ball, name)
             notify("Rastro: " .. name, "good")
@@ -266,111 +190,59 @@ function FireTrailModule.reset()
     notify("Fire Trail resetado", "bad")
 end
 
---====================================================================
--- LOOP DE RE-DETECÇÃO (leve, 1s)
--- Se a bola sumir (fim de rodada) e reaparecer, reanexa automaticamente.
---====================================================================
+-- Loop de re-deteccao (caso a bola respawne)
 task.spawn(function()
     while task.wait(1) do
         if State.FireTrail.Enabled then
             if not CurrentBall or not CurrentBall.Parent then
                 local ball = findBall()
-                if ball then
-                    applyEffects(ball, State.FireTrail.Preset)
-                end
+                if ball then applyEffects(ball, State.FireTrail.Preset) end
             end
         end
     end
 end)
 
---====================================================================
--- NOVA ABA
---====================================================================
-createTab("Fire Trail", "🔥")
+createTab("Fire Trail", "FT")
 
 do
     local page = Tabs["Fire Trail"].page
-
     local sec = section("Rastro de Fogo na Bola")
     sec.Parent = page
 
-    -- Toggle
     toggleRow(sec, "Ativar Fire Trail", State.FireTrail.Enabled, function(on)
         FireTrailModule.setEnabled(on)
     end, 1)
 
-    -- Dropdown de preset
     dropdownRow(sec, "Estilo",
-        { "Fogo Clássico", "Fogo Azul", "Fogo Roxo", "Fogo Verde",
+        { "Fogo Classico", "Fogo Azul", "Fogo Roxo", "Fogo Verde",
           "Fogo Branco", "Fogo Sombrio", "Inferno" },
         State.FireTrail.Preset,
         function(opt) FireTrailModule.setPreset(opt) end, 2)
 
-    -- Botão de reconectar manualmente
-    buttonRow(sec, "🔄 Forçar busca da bola", function()
+    buttonRow(sec, "Forcar busca da bola", function()
         FireTrailModule.refresh()
     end, 3)
 
-    -- Info
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 48),
-        BackgroundTransparency = 1,
-        Text = "Anexa fogo, trail, faíscas e luz na bola. 100% local, reversível e detecta respawn da bola automaticamente.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 4,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Restaurar
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Remover efeitos da bola", function()
         FireTrailModule.reset()
     end, 1)
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "⚠ Efeitos visuais são locais. Se algum jogo bloquear criação de instâncias em partes replicadas, desative.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 2,
-        Parent = resetSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
 end
 
---====================================================================
--- HOOK NO UNLOAD / CLEANUP (encadeia com o que já existe)
---====================================================================
-local _prevUnload2 = _G.VoidStrapUnload
+local _prevFT = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
-    if _prevUnload2 then _prevUnload2() end
-    pcall(function()
-        FireTrailModule.reset()
-    end)
+    if _prevFT then _prevFT() end
+    pcall(function() FireTrailModule.reset() end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function()
-            FireTrailModule.reset()
-        end)
+        pcall(function() FireTrailModule.reset() end)
     end
 end)
 
---====================================================================
--- FIM DA PARTE 5 — Aba "Fire Trail" adicionada
---====================================================================
-print("[VoidStrap] Módulo Fire Trail carregado.")--====================================================================
+print("[VoidStrap] Fire Trail carregado.")--====================================================================
 -- PARTE 5B — PLAYER TRAIL / BEAM
 -- Rastro (Trail) ou feixe (Beam) no personagem. Local, reversível.
 --====================================================================
@@ -784,9 +656,15 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Player Trail carregado.")-- VoidStrap B5D — Ball Color + Texture
+print("[VoidStrap] Player Trail carregado.")--====================================================================
+-- BALL CUSTOM — Cor + Textura
+--====================================================================
 
-State.BallCustom = State.BallCustom or { Enabled = false, Color = nil, Texture = nil }
+State.BallCustom = State.BallCustom or {
+    Enabled = false,
+    Color = nil,
+    Texture = nil,
+}
 
 local BallCustomModule = {}
 local BallTarget = nil
@@ -794,6 +672,7 @@ local BallBackup = nil
 local BallConn = nil
 local BallDecal = nil
 
+-- ---------- CORES ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
     { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
@@ -809,21 +688,32 @@ local BALL_COLORS = {
     { name = "Neon Verde", color = Color3.fromRGB(80, 255, 120) },
     { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
     { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
+    { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
+    { name = "Metalico",   color = Color3.fromRGB(180, 180, 190) },
 }
 
+-- ---------- TEXTURAS ----------
 local BALL_TEXTURES = {
-    { name = "Nenhuma",   id = nil },
-    { name = "Futebol",   id = "6032070661" },
-    { name = "Futebol 2", id = "9031559598" },
-    { name = "Basquete",  id = "6530639668" },
-    { name = "Volei",     id = "6148384067" },
-    { name = "Lava",      id = "4412768175" },
-    { name = "Gelo",      id = "4065711018" },
-    { name = "Chamas",    id = "5098707773" },
-    { name = "Olhos",     id = "4661112903" },
-    { name = "Smile",     id = "5286845688" },
+    { name = "Nenhuma",    id = nil },
+    { name = "Champions",  id = "71915788537664" },
+    { name = "Penalti",    id = "9986373763" },
+    { name = "Jabulani",   id = "20345506" },
+    { name = "Futebol",    id = "6032070661" },
+    { name = "Futebol 2",  id = "9031559598" },
+    { name = "Futebol 3",  id = "6021192037" },
+    { name = "Futebol 4",  id = "4980781374" },
+    { name = "Basquete",   id = "6530639668" },
+    { name = "Volei",      id = "6148384067" },
+    { name = "Lava",       id = "4412768175" },
+    { name = "Gelo",       id = "4065711018" },
+    { name = "Chamas",     id = "5098707773" },
+    { name = "Olhos",      id = "4661112903" },
+    { name = "Smile",      id = "5286845688" },
+    { name = "Disco",      id = "11379384074" },
+    { name = "Xadrez",     id = "6050547289" },
 }
 
+-- ---------- DETECCAO DA BOLA ----------
 local function findBall()
     local char = LP.Character
     local function valid(p)
@@ -831,29 +721,40 @@ local function findBall()
         if char and p:IsDescendantOf(char) then return false end
         return true
     end
-    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall"}) do
+
+    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall", "Soccer"}) do
         local b = Workspace:FindFirstChild(name, true)
         if valid(b) then return b end
     end
     return nil
 end
 
+-- ---------- BACKUP ----------
 local function captureBackup(ball)
     if BallBackup then return end
-    BallBackup = { Color = ball.Color, Material = ball.Material }
+    BallBackup = {
+        Color = ball.Color,
+        Material = ball.Material,
+    }
 end
 
+-- ---------- APLICAR COR ----------
 local function applyColor(ball, color)
     if not ball then return end
     captureBackup(ball)
-    pcall(function() ball.Color = color end)
+    pcall(function()
+        ball.Color = color
+    end)
 end
 
+-- ---------- APLICAR TEXTURA ----------
 local function applyTexture(ball, id)
     if not ball then return end
     captureBackup(ball)
 
-    if BallDecal and BallDecal.Parent then BallDecal:Destroy() end
+    if BallDecal and BallDecal.Parent then
+        BallDecal:Destroy()
+    end
 
     for _, d in ipairs(ball:GetChildren()) do
         if d:IsA("Decal") and d.Name ~= "VST_BallTexture" then
@@ -876,6 +777,7 @@ local function applyTexture(ball, id)
     end
 end
 
+-- ---------- RESTAURAR ----------
 local function restoreBall()
     if BallTarget and BallTarget.Parent and BallBackup then
         pcall(function()
@@ -883,41 +785,55 @@ local function restoreBall()
             BallTarget.Material = BallBackup.Material
         end)
     end
-    if BallDecal and BallDecal.Parent then BallDecal:Destroy() end
+    if BallDecal and BallDecal.Parent then
+        BallDecal:Destroy()
+    end
     BallDecal = nil
     BallBackup = nil
 end
 
+-- ---------- MONITOR DE RESPAWN ----------
 local function startMonitor()
     if BallConn then BallConn:Disconnect() end
     local lastSearch = 0
+
     BallConn = RunService.Heartbeat:Connect(function()
         if not State.BallCustom.Enabled then return end
         if not BallTarget or not BallTarget.Parent then
             local now = tick()
             if now - lastSearch < 1.5 then return end
             lastSearch = now
+
             task.spawn(function()
                 local b = findBall()
                 if b and State.BallCustom.Enabled then
                     BallTarget = b
                     BallBackup = nil
-                    if State.BallCustom.Color then applyColor(b, State.BallCustom.Color) end
-                    if State.BallCustom.Texture then applyTexture(b, State.BallCustom.Texture) end
+                    if State.BallCustom.Color then
+                        applyColor(b, State.BallCustom.Color)
+                    end
+                    if State.BallCustom.Texture then
+                        applyTexture(b, State.BallCustom.Texture)
+                    end
                 end
             end)
         end
     end)
 end
 
+-- ---------- API ----------
 function BallCustomModule.setEnabled(on)
     State.BallCustom.Enabled = on
     if on then
         task.spawn(function()
             BallTarget = findBall()
             if BallTarget then
-                if State.BallCustom.Color then applyColor(BallTarget, State.BallCustom.Color) end
-                if State.BallCustom.Texture then applyTexture(BallTarget, State.BallCustom.Texture) end
+                if State.BallCustom.Color then
+                    applyColor(BallTarget, State.BallCustom.Color)
+                end
+                if State.BallCustom.Texture then
+                    applyTexture(BallTarget, State.BallCustom.Texture)
+                end
                 notify("Ball Custom ativado", "good")
             else
                 notify("Bola nao encontrada", "bad")
@@ -926,7 +842,10 @@ function BallCustomModule.setEnabled(on)
         end)
     else
         restoreBall()
-        if BallConn then BallConn:Disconnect(); BallConn = nil end
+        if BallConn then
+            BallConn:Disconnect()
+            BallConn = nil
+        end
         BallTarget = nil
         notify("Ball Custom desativado", "bad")
     end
@@ -936,7 +855,9 @@ function BallCustomModule.setColor(name)
     for _, e in ipairs(BALL_COLORS) do
         if e.name == name then
             State.BallCustom.Color = e.color
-            if BallTarget and BallTarget.Parent then applyColor(BallTarget, e.color) end
+            if BallTarget and BallTarget.Parent then
+                applyColor(BallTarget, e.color)
+            end
             notify("Cor: " .. name, "good")
             return
         end
@@ -947,7 +868,9 @@ function BallCustomModule.setTexture(name)
     for _, e in ipairs(BALL_TEXTURES) do
         if e.name == name then
             State.BallCustom.Texture = e.id
-            if BallTarget and BallTarget.Parent then applyTexture(BallTarget, e.id) end
+            if BallTarget and BallTarget.Parent then
+                applyTexture(BallTarget, e.id)
+            end
             notify("Textura: " .. name, "good")
             return
         end
@@ -960,8 +883,12 @@ function BallCustomModule.refresh()
         if b then
             BallTarget = b
             BallBackup = nil
-            if State.BallCustom.Color then applyColor(b, State.BallCustom.Color) end
-            if State.BallCustom.Texture then applyTexture(b, State.BallCustom.Texture) end
+            if State.BallCustom.Color then
+                applyColor(b, State.BallCustom.Color)
+            end
+            if State.BallCustom.Texture then
+                applyTexture(b, State.BallCustom.Texture)
+            end
             notify("Bola reconectada", "good")
         else
             notify("Nenhuma bola encontrada", "bad")
@@ -974,35 +901,73 @@ function BallCustomModule.reset()
     State.BallCustom.Color = nil
     State.BallCustom.Texture = nil
     restoreBall()
-    if BallConn then BallConn:Disconnect(); BallConn = nil end
+    if BallConn then
+        BallConn:Disconnect()
+        BallConn = nil
+    end
     BallTarget = nil
     notify("Bola restaurada", "bad")
 end
 
+--====================================================================
+-- ABA
+--====================================================================
 createTab("Ball", "BALL")
 
 do
     local page = Tabs["Ball"].page
 
-    local mainSec = section("Cor e Textura")
+    -- Secao principal
+    local mainSec = section("Cor e Textura da Bola")
     mainSec.Parent = page
 
-    toggleRow(mainSec, "Ativar Custom", State.BallCustom.Enabled, function(on)
+    toggleRow(mainSec, "Ativar Customizacao", State.BallCustom.Enabled, function(on)
         BallCustomModule.setEnabled(on)
     end, 1)
 
-    buttonRow(mainSec, "Reconectar bola", function()
+    buttonRow(mainSec, "Reconectar a bola", function()
         BallCustomModule.refresh()
     end, 2)
 
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Cor + textura da bola. Apenas local - outros nao veem.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = mainSec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Cores
     local colorSec = section("Cores")
     colorSec.Parent = page
     for i, e in ipairs(BALL_COLORS) do
-        buttonRow(colorSec, e.name, function()
+        local row = buttonRow(colorSec, e.name, function()
             BallCustomModule.setColor(e.name)
         end, i)
+
+        local swatch = create("Frame", {
+            Size = UDim2.fromOffset(18, 18),
+            Position = UDim2.new(0, 8, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundColor3 = e.color,
+            BorderSizePixel = 0,
+            Parent = row,
+        })
+        corner(4, swatch)
+
+        local lbl = row:FindFirstChildOfClass("TextLabel")
+        if lbl then
+            lbl.Position = UDim2.new(0, 34, 0, 0)
+        end
     end
 
+    -- Texturas
     local texSec = section("Texturas")
     texSec.Parent = page
     for i, e in ipairs(BALL_TEXTURES) do
@@ -1011,6 +976,7 @@ do
         end, i)
     end
 
+    -- Reset
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Restaurar bola original", function()
@@ -1018,15 +984,22 @@ do
     end, 1)
 end
 
-local _prevB = _G.VoidStrapUnload
+--====================================================================
+-- CLEANUP
+--====================================================================
+local _prevBall = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
-    if _prevB then _prevB() end
-    pcall(function() BallCustomModule.reset() end)
+    if _prevBall then _prevBall() end
+    pcall(function()
+        BallCustomModule.reset()
+    end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function() BallCustomModule.reset() end)
+        pcall(function()
+            BallCustomModule.reset()
+        end)
     end
 end)
 
