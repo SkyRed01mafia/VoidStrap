@@ -305,8 +305,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Fire Trail (direct) carregado.")
---====================================================================
+print("[VoidStrap] Fire Trail (direct) carregado.")--====================================================================
 -- PARTE 5B — PLAYER TRAIL / BEAM
 -- Rastro (Trail) ou feixe (Beam) no personagem. Local, reversível.
 --====================================================================
@@ -720,111 +719,77 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Player Trail carregado."))
---====================================================================
--- PARTE 5C — SKIES VISUAL (força o céu a aparecer)
+print("[VoidStrap] Player Trail carregado.")--====================================================================
+-- PARTE 5C — SKIES VISUAL via DOMO INVERTIDO
+-- Cria uma esfera gigante invertida que segue a câmera.
+-- Funciona com qualquer ID de imagem válido.
 --====================================================================
 
 State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
 
 local SkyTextureModule = {}
-local OriginalSkyBackup = nil
+local CurrentDome = nil
+local DomeConn = nil
 
 local CUSTOM_SKIES = {
-    { name = "🌅 Céu 1", id = "8808550143" },
-    { name = "🌌 Céu 2", id = "12635340429" },
-    { name = "🌇 Céu 3", id = "13107361022" },
-    { name = "☁️ Céu 4", id = "15502592084" },
-    { name = "🌃 Céu 5", id = "8539737017" },
-    { name = "⭐ Céu 6", id = "8735253332" },
-    { name = "🌠 Céu 7", id = "136055162054954" },
+    { name = "Ce1", id = "8808550143" },
+    { name = "Ce2", id = "12635340429" },
+    { name = "Ce3", id = "13107361022" },
+    { name = "Ce4", id = "15502592084" },
+    { name = "Ce5", id = "8539737017" },
+    { name = "Ce6", id = "8735253332" },
+    { name = "Ce7", id = "136055162054954" },
 }
 
--- Backup do estado original de Lighting
-local function captureOriginal()
-    if OriginalSkyBackup then return end
-    local sky = Lighting:FindFirstChildOfClass("Sky")
-    OriginalSkyBackup = {
-        Sky = sky and sky:Clone() or false,
-        Atmosphere = nil,
-        ClockTime = Lighting.ClockTime,
-        Brightness = Lighting.Brightness,
-        Ambient = Lighting.Ambient,
-        OutdoorAmbient = Lighting.OutdoorAmbient,
-        FogEnd = Lighting.FogEnd,
-    }
-    local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-    if atmo then
-        OriginalSkyBackup.Atmosphere = atmo:Clone()
+-- Remove domo antigo
+local function destroyDome()
+    if DomeConn then
+        DomeConn:Disconnect()
+        DomeConn = nil
     end
+    if CurrentDome and CurrentDome.Parent then
+        CurrentDome:Destroy()
+    end
+    CurrentDome = nil
 end
 
--- Remove tudo que atrapalha o céu
-local function removeObstructions()
-    for _, c in ipairs(Lighting:GetChildren()) do
-        if c:IsA("Sky") then
-            c:Destroy()
-        elseif c:IsA("Atmosphere") then
-            c:Destroy()
-        elseif c:IsA("Clouds") then
-            c:Destroy()
+-- Cria o domo invertido
+local function createDome(id)
+    destroyDome()
+
+    local dome = Instance.new("Part")
+    dome.Name = "VST_SkyDome"
+    dome.Size = Vector3.new(1, 1, 1)
+    dome.Anchored = true
+    dome.CanCollide = false
+    dome.CanQuery = false
+    dome.CanTouch = false
+    dome.CastShadow = false
+    dome.Transparency = 0
+    dome.Material = Enum.Material.SmoothPlastic
+    dome.Color = Color3.new(1, 1, 1)
+    dome.Locked = true
+
+    -- SpecialMesh invertido (escala negativa = olha de dentro pra fora)
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshType = Enum.MeshType.Sphere
+    mesh.Scale = Vector3.new(-7000, -7000, -7000)
+    mesh.TextureId = "rbxassetid://" .. id
+    mesh.Parent = dome
+
+    dome.Parent = Workspace
+    CurrentDome = dome
+
+    -- Segue a câmera em tempo real
+    DomeConn = RunService.RenderStepped:Connect(function()
+        if CurrentDome and CurrentDome.Parent and Camera then
+            pcall(function()
+                CurrentDome.CFrame = CFrame.new(Camera.CFrame.Position)
+            end)
         end
-    end
-end
-
--- Aplica a textura como Sky + ajusta lighting pra aparecer
-local function applySkyTexture(id)
-    captureOriginal()
-    removeObstructions()
-
-    local sky = Instance.new("Sky")
-    sky.Name = "VST_Sky"
-    sky.SkyboxBk = "rbxassetid://" .. id
-    sky.SkyboxDn = "rbxassetid://" .. id
-    sky.SkyboxFt = "rbxassetid://" .. id
-    sky.SkyboxLf = "rbxassetid://" .. id
-    sky.SkyboxRt = "rbxassetid://" .. id
-    sky.SkyboxUp = "rbxassetid://" .. id
-    sky.SunAngularSize = 0
-    sky.MoonAngularSize = 0
-    sky.StarCount = 0
-    sky.Parent = Lighting
-
-    -- Ajustes pra forçar o céu a aparecer
-    pcall(function()
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.Ambient = Color3.fromRGB(150, 150, 150)
-        Lighting.OutdoorAmbient = Color3.fromRGB(180, 180, 180)
-        Lighting.FogEnd = 100000
-        Lighting.FogStart = 0
     end)
-end
 
--- Restaura tudo
-local function restoreOriginal()
-    for _, c in ipairs(Lighting:GetChildren()) do
-        if c:IsA("Sky") or c:IsA("Atmosphere") or c:IsA("Clouds") then
-            c:Destroy()
-        end
-    end
-    if OriginalSkyBackup then
-        if OriginalSkyBackup.Sky then
-            local s = OriginalSkyBackup.Sky:Clone()
-            s.Name = "Sky"
-            s.Parent = Lighting
-        end
-        if OriginalSkyBackup.Atmosphere then
-            OriginalSkyBackup.Atmosphere:Clone().Parent = Lighting
-        end
-        pcall(function()
-            Lighting.ClockTime = OriginalSkyBackup.ClockTime
-            Lighting.Brightness = OriginalSkyBackup.Brightness
-            Lighting.Ambient = OriginalSkyBackup.Ambient
-            Lighting.OutdoorAmbient = OriginalSkyBackup.OutdoorAmbient
-            Lighting.FogEnd = OriginalSkyBackup.FogEnd
-        end)
-    end
+    return dome
 end
 
 function SkyTextureModule.apply(name)
@@ -832,7 +797,7 @@ function SkyTextureModule.apply(name)
         if entry.name == name then
             State.SkyTexture.Enabled = true
             State.SkyTexture.Current = name
-            applySkyTexture(entry.id)
+            createDome(entry.id)
             notify("Sky: " .. name, "good")
             return
         end
@@ -842,7 +807,7 @@ end
 function SkyTextureModule.restore()
     State.SkyTexture.Enabled = false
     State.SkyTexture.Current = nil
-    restoreOriginal()
+    destroyDome()
     notify("Sky restaurado", "good")
 end
 
@@ -853,18 +818,18 @@ end
 --====================================================================
 -- ABA
 --====================================================================
-createTab("Skies", "🌌")
+createTab("Skies", "SKY")
 
 do
     local page = Tabs["Skies"].page
 
-    local sec = section("Texturas de Céu")
+    local sec = section("Texturas de Ceu (Domo)")
     sec.Parent = page
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 60),
         BackgroundTransparency = 1,
-        Text = "Remove Atmosphere/Clouds e aplica a textura no Sky. Ajusta Brightness automaticamente pra ficar visível.",
+        Text = "Cria uma esfera gigante invertida que segue sua camera. Funciona com qualquer ID de imagem.",
         Font = Enum.Font.Gotham, TextSize = 11,
         TextColor3 = ActiveTheme.Sub, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -880,7 +845,7 @@ do
 
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar céu original", function()
+    buttonRow(resetSec, "Remover domo customizado", function()
         SkyTextureModule.restore()
     end, 1)
 end
@@ -897,4 +862,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Skies Custom (visual) carregado.")
+print("[VoidStrap] Skies Custom (domo) carregado.")
