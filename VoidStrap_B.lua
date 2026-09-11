@@ -785,14 +785,14 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 5C — SKYBOX PANORAMICO (domo invertido + texturas 2:1)
+-- PARTE 5C — SKYBOX TIPO CAIXA (6 faces, igual ao Sky original)
 --====================================================================
 
 State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
 
 local SkyTextureModule = {}
-local CurrentDome = nil
-local DomeConn = nil
+local SkyBoxModel = nil
+local FollowConn = nil
 
 local CUSTOM_SKIES = {
     { name = "Sunset",   id = "1495782126" },
@@ -804,51 +804,77 @@ local CUSTOM_SKIES = {
     { name = "Space",    id = "6066307115" },
 }
 
-local function destroyDome()
-    if DomeConn then
-        DomeConn:Disconnect()
-        DomeConn = nil
+local SIZE = 3000  -- tamanho da caixa
+
+local function destroySkyBox()
+    if FollowConn then
+        FollowConn:Disconnect()
+        FollowConn = nil
     end
-    if CurrentDome and CurrentDome.Parent then
-        CurrentDome:Destroy()
+    if SkyBoxModel and SkyBoxModel.Parent then
+        SkyBoxModel:Destroy()
     end
-    CurrentDome = nil
+    SkyBoxModel = nil
 end
 
-local function createDome(id)
-    destroyDome()
+-- Cria caixa com 6 faces (uma para cada direção)
+local function createSkyBox(id)
+    destroySkyBox()
 
-    local dome = Instance.new("Part")
-    dome.Name = "VST_SkyDome"
-    dome.Size = Vector3.new(1, 1, 1)
-    dome.Anchored = true
-    dome.CanCollide = false
-    dome.CanQuery = false
-    dome.CanTouch = false
-    dome.CastShadow = false
-    dome.Transparency = 0
-    dome.Material = Enum.Material.SmoothPlastic
-    dome.Color = Color3.fromRGB(255, 255, 255)
+    local model = Instance.new("Model")
+    model.Name = "VST_SkyBox"
+    model.Parent = Workspace
 
-    local mesh = Instance.new("SpecialMesh")
-    mesh.MeshType = Enum.MeshType.Sphere
-    -- Escala ligeiramente achatada pra mapear 2:1 corretamente
-    mesh.Scale = Vector3.new(-5000, -2500, -5000)
-    mesh.TextureId = "rbxassetid://" .. id
-    mesh.Parent = dome
+    local url = "rbxassetid://" .. id
 
-    dome.Parent = Workspace
-    CurrentDome = dome
+    -- Tabela com as 6 faces: nome, offset da câmera, rotação
+    local half = SIZE / 2
+    local faces = {
+        { name = "Front",  offset = CFrame.new(0, 0, -half) * CFrame.Angles(0, math.rad(180), 0) },
+        { name = "Back",   offset = CFrame.new(0, 0,  half) },
+        { name = "Left",   offset = CFrame.new(-half, 0, 0) * CFrame.Angles(0, math.rad(90), 0) },
+        { name = "Right",  offset = CFrame.new( half, 0, 0) * CFrame.Angles(0, math.rad(-90), 0) },
+        { name = "Top",    offset = CFrame.new(0,  half, 0) * CFrame.Angles(math.rad(-90), 0, 0) },
+        { name = "Bottom", offset = CFrame.new(0, -half, 0) * CFrame.Angles(math.rad(90), 0, 0) },
+    }
 
-    DomeConn = RunService.RenderStepped:Connect(function()
-        if CurrentDome and CurrentDome.Parent and Camera then
-            pcall(function()
-                CurrentDome.CFrame = CFrame.new(Camera.CFrame.Position)
-            end)
+    for _, face in ipairs(faces) do
+        local part = Instance.new("Part")
+        part.Name = "VST_SkyFace_" .. face.name
+        part.Size = Vector3.new(SIZE, SIZE, 1)
+        part.Anchored = true
+        part.CanCollide = false
+        part.CanQuery = false
+        part.CanTouch = false
+        part.CastShadow = false
+        part.Material = Enum.Material.SmoothPlastic
+        part.Color = Color3.fromRGB(255, 255, 255)
+        part.Locked = true
+
+        local decal = Instance.new("Decal")
+        decal.Face = Enum.NormalId.Back
+        decal.Texture = url
+        decal.Parent = part
+
+        part.Parent = model
+    end
+
+    SkyBoxModel = model
+
+    -- Segue a câmera
+    FollowConn = RunService.RenderStepped:Connect(function()
+        if not SkyBoxModel or not SkyBoxModel.Parent or not Camera then return end
+        local baseCF = CFrame.new(Camera.CFrame.Position)
+
+        for _, face in ipairs(faces) do
+            local part = SkyBoxModel:FindFirstChild("VST_SkyFace_" .. face.name)
+            if part then
+                part.CFrame = baseCF * face.offset
+            end
         end
     end)
 
-    return dome
+    return model
 end
 
 function SkyTextureModule.apply(name)
@@ -856,7 +882,7 @@ function SkyTextureModule.apply(name)
         if entry.name == name then
             State.SkyTexture.Enabled = true
             State.SkyTexture.Current = name
-            createDome(entry.id)
+            createSkyBox(entry.id)
             notify("Sky: " .. name, "good")
             return
         end
@@ -866,7 +892,7 @@ end
 function SkyTextureModule.restore()
     State.SkyTexture.Enabled = false
     State.SkyTexture.Current = nil
-    destroyDome()
+    destroySkyBox()
     notify("Sky restaurado", "good")
 end
 
@@ -877,13 +903,13 @@ createTab("Skies", "SKY")
 
 do
     local page = Tabs["Skies"].page
-    local sec = section("Skies Panoramicos")
+    local sec = section("Skies (Caixa 6 Faces)")
     sec.Parent = page
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
+        Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "Texturas 2:1 mapeadas em domo achatado. Sem quadrado aparente.",
+        Text = "Caixa gigante com 6 faces. Mesmo metodo que o Sky do Roblox usa internamente. Segue a camera.",
         Font = Enum.Font.Gotham, TextSize = 11,
         TextColor3 = ActiveTheme.Sub, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -916,4 +942,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Skies Panoramicos carregado.")
+print("[VoidStrap] Skybox Caixa carregado.")
