@@ -720,7 +720,8 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Player Trail carregado."))--====================================================================
+print("[VoidStrap] Player Trail carregado."))
+--====================================================================
 -- PARTE 5C — SKIES VISUAL (força o céu a aparecer)
 --====================================================================
 
