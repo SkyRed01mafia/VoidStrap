@@ -1,23 +1,6 @@
 --[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap • v1.1.0 — Delta-Compatible Edition
-    LocalScript único — StarterPlayer/StarterPlayerScripts
-
-    ▸ UI premium (temas, animações, minimize/maximize)
-    ▸ Skybox local (Default/Noite/Espaço/Vermelho/Roxo/Custom)
-    ▸ Stretch Screen via FieldOfView (com jitter anti-assinatura)
-    ▸ Flags de Performance (Ultra/Balanced/Performance/Potato)
-    ▸ FPS meter, notificações, configurações persistentes
-    ▸ Anti-detecção: gethui(), pcall, ordem segura, exclusão do Character
-    ▸ 100% reversível em runtime
-
-    AVISO: nenhum script elimina risco de ban. Use em conta alternativa.
+    VoidStrap v1.1.0 — Parte 1
+    Serviços + Temas + State + Helpers + ScreenGui + Topbar + Sidebar + Content
 ]]
 
 --====================================================================
@@ -36,16 +19,12 @@ local LP     = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 --====================================================================
--- DETECÇÃO DE EXECUTOR (safe)
+-- DETECÇÃO DE EXECUTOR
 --====================================================================
 local ExecutorInfo = { Name = "Unknown", Mobile = false, HasGethui = false, InStudio = false }
-
 pcall(function()
-    if identifyexecutor then
-        ExecutorInfo.Name = identifyexecutor()
-    elseif getexecutorname then
-        ExecutorInfo.Name = getexecutorname()
-    end
+    if identifyexecutor then ExecutorInfo.Name = identifyexecutor()
+    elseif getexecutorname then ExecutorInfo.Name = getexecutorname() end
 end)
 ExecutorInfo.Mobile    = UIS.TouchEnabled and not UIS.KeyboardEnabled
 ExecutorInfo.HasGethui = (type(gethui) == "function")
@@ -56,7 +35,7 @@ print(("[VoidStrap] Executor=%s | Mobile=%s | gethui=%s | Studio=%s")
             tostring(ExecutorInfo.HasGethui), tostring(ExecutorInfo.InStudio)))
 
 --====================================================================
--- SAFE GUI PARENT (gethui evita varredura em PlayerGui/CoreGui)
+-- SAFE GUI PARENT
 --====================================================================
 local function getSafeGuiParent()
     if ExecutorInfo.HasGethui then
@@ -65,7 +44,6 @@ local function getSafeGuiParent()
     end
     return LP:WaitForChild("PlayerGui")
 end
-
 local GuiParent = getSafeGuiParent()
 
 --====================================================================
@@ -118,18 +96,13 @@ local ActiveTheme = Themes.Void
 -- ESTADO PERSISTENTE
 --====================================================================
 local State = {
-    Settings = {
-        AnimationsEnabled = true,
-        SoundsEnabled = true,
-        ThemeName = "Void",
-    },
+    Settings = { AnimationsEnabled = true, SoundsEnabled = true, ThemeName = "Void" },
     Window = { Minimized = false },
     Skybox = { Enabled = false, Current = "Default" },
     Stretch = { Enabled = false, Intensity = 0, BaseFOV = 70 },
     Flags = { Enabled = false, Preset = "Balanced" },
 }
 
--- Guarda valores originais para reversão total
 local Originals = { Instances = {} }
 
 local function track(inst, prop)
@@ -298,7 +271,7 @@ local function notify(text, kind)
 end
 
 --====================================================================
--- SCREEN GUI (parent seguro)
+-- SCREEN GUI
 --====================================================================
 local ScreenGui = create("ScreenGui", {
     Name = "VoidStrapGui_" .. tostring(math.random(1000, 9999)),
@@ -315,7 +288,7 @@ local ScreenOverlay = create("Frame", {
     Parent = ScreenGui,
 })
 
--- ---------- JANELA PRINCIPAL ----------
+-- JANELA PRINCIPAL
 local Main = create("Frame", {
     Name = "Main",
     Size = UDim2.fromOffset(620, 420),
@@ -338,7 +311,7 @@ create("UIStroke", {
     Parent = Main,
 })
 
--- ---------- TOPBAR ----------
+-- TOPBAR
 local TopBar = create("Frame", {
     Size = UDim2.new(1, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Surface,
@@ -428,15 +401,24 @@ local function topbarButton(iconText, offsetRight)
     return btn
 end
 
-local CloseBtn    = topbarButton("✕", -38)
-local MinimizeBtn = topbarButton("−", -72)
+local CloseBtn    = topbarButton("X", -38)
+local MinimizeBtn = topbarButton("-", -72)
 
--- ---------- SIDEBAR ----------
-local Sidebar = create("Frame", {
+-- SIDEBAR (com scroll)
+local Sidebar = create("ScrollingFrame", {
     Size = UDim2.new(0, 150, 1, -44),
     Position = UDim2.new(0, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Background,
     BorderSizePixel = 0,
+    ScrollBarThickness = 4,
+    ScrollBarImageColor3 = ActiveTheme.Accent,
+    ScrollBarImageTransparency = 0.3,
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    ScrollingEnabled = true,
+    ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
+    ClipsDescendants = true,
     Parent = Main,
 })
 themed(Sidebar, "BackgroundColor3", "Background")
@@ -447,7 +429,7 @@ create("UIListLayout", {
     Parent = Sidebar,
 })
 
--- ---------- CONTENT ----------
+-- CONTENT
 local Content = create("Frame", {
     Size = UDim2.new(1, -150, 1, -44),
     Position = UDim2.new(0, 150, 0, 44),
@@ -459,7 +441,7 @@ themed(Content, "BackgroundColor3", "Background")
 padding(14, Content)
 
 --====================================================================
--- FIM DA PARTE 1 — Continue na PARTE 2 (abas + componentes)
+-- FIM DA PARTE 1
 --====================================================================--====================================================================
 -- PARTE 2 — ABAS + COMPONENTES REUTILIZÁVEIS + FPS METER
 --====================================================================
