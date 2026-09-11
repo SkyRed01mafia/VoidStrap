@@ -1,6 +1,6 @@
 --[[
     VoidStrap v1.1.0 — Arquivo A
-    Parte 1: Serviços + Temas + State + Helpers + UI base
+    Parte 1: Serviços + Temas + State + Helpers + UI base + Fundo customizável
 ]]
 
 local Players      = game:GetService("Players")
@@ -261,6 +261,7 @@ local ScreenOverlay = create("Frame", {
     Parent = ScreenGui,
 })
 
+-- JANELA PRINCIPAL
 local Main = create("Frame", {
     Name = "Main",
     Size = UDim2.fromOffset(620, 420),
@@ -274,14 +275,16 @@ local Main = create("Frame", {
 themed(Main, "BackgroundColor3", "Background")
 corner(14, Main)
 
+-- FUNDO PERSONALIZÁVEL
 local MainBgImage = create("ImageLabel", {
     Name = "VST_MainBg",
     Size = UDim2.fromScale(1, 1),
     BackgroundTransparency = 1,
-    Image = "rbxassetid://104886621751354",
+    Image = "",
     ImageTransparency = 0.75,
     ScaleType = Enum.ScaleType.Crop,
     ZIndex = -1,
+    Visible = false,
     Parent = Main,
 })
 corner(14, MainBgImage)
@@ -296,6 +299,7 @@ create("UIStroke", {
     Parent = Main,
 })
 
+-- TOPBAR
 local TopBar = create("Frame", {
     Size = UDim2.new(1, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Surface,
@@ -414,6 +418,7 @@ create("UIListLayout", {
     Parent = Sidebar,
 })
 
+-- CONTENT
 local Content = create("Frame", {
     Size = UDim2.new(1, -150, 1, -44),
     Position = UDim2.new(0, 150, 0, 44),
@@ -1722,4 +1727,116 @@ end
 --====================================================================
 -- FIM — VoidStrap v1.1.0
 --====================================================================
-print(("[VoidStrap] %s inicializado com sucesso."):format(VERSION))
+print(("[VoidStrap] %s inicializado com sucesso."):format(VERSION))--====================================================================
+-- PARTE 4 — MÓDULO: ILUMINAÇÃO (ClockTime, slider 1–30)
+-- Adiciona aba "Lighting" sem alterar as demais.
+--====================================================================
+
+-- Estado do módulo (aproveita a tabela State da Parte 1)
+State.Lighting = State.Lighting or { Enabled = true, Hour = 12 }
+
+--====================================================================
+-- MÓDULO
+--====================================================================
+local LightingModule = {}
+local OriginalClockTime = nil
+
+local function captureClock()
+    if OriginalClockTime then return end
+    OriginalClockTime = Lighting.ClockTime
+end
+
+-- Slider 1..30 → ClockTime. Roblox aceita 0..24 com wrap suave
+-- (valores >24 reiniciam o ciclo dia/noite automaticamente).
+function LightingModule.setHour(h)
+    captureClock()
+    pcall(function()
+        Lighting.ClockTime = h
+    end)
+end
+
+function LightingModule.restore()
+    if OriginalClockTime then
+        pcall(function()
+            Lighting.ClockTime = OriginalClockTime
+        end)
+    end
+end
+
+--====================================================================
+-- NOVA ABA
+--====================================================================
+createTab("Lighting", "☀")
+
+do
+    local page = Tabs["Lighting"].page
+
+    local sec = section("Iluminação")
+    sec.Parent = page
+
+    -- Toggle de ativação
+    toggleRow(sec, "Ativar Iluminação", State.Lighting.Enabled, function(on)
+        State.Lighting.Enabled = on
+        if on then
+            LightingModule.setHour(State.Lighting.Hour)
+            notify("Iluminação ativada", "good")
+        else
+            LightingModule.restore()
+            notify("Iluminação desativada", "bad")
+        end
+    end, 1)
+
+    -- Slider 1–30
+    sliderRow(sec, "Hora (1–30)", 1, 30, State.Lighting.Hour, function(v)
+        State.Lighting.Hour = v
+        if State.Lighting.Enabled then
+            LightingModule.setHour(v)
+        end
+    end, 2)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Controla o horário do dia (ClockTime). Valores acima de 24 reiniciam o ciclo automaticamente.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Restaurar
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Restaurar iluminação original", function()
+        LightingModule.restore()
+        notify("Iluminação restaurada", "good")
+    end, 1)
+end
+
+--====================================================================
+-- HOOK NO UNLOAD / CLEANUP (encadeia com o que já existe)
+--====================================================================
+local _prevUnload = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevUnload then _prevUnload() end
+    pcall(function()
+        LightingModule.restore()
+    end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function()
+            LightingModule.restore()
+        end)
+    end
+end)
+
+--====================================================================
+-- FIM DA PARTE 4 — Aba "Lighting" adicionada
+--====================================================================
+print("[VoidStrap] Módulo de Iluminação carregado.")
