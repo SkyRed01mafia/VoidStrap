@@ -1111,3 +1111,129 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Auto Follow carregado.")
+--====================================================================
+-- PARTE 6B — CHARS (Aplica skin via comando de chat)
+--====================================================================
+
+State.Chars = State.Chars or { Enabled = true }
+
+local CharsModule = {}
+
+local CHAR_LIST = {
+    "MiguelCalebeGamer202",
+    "guto785662",
+    "beastsxc",
+    "89felip3",
+    "guto_01games",
+    "feliou23",
+    "LeozzinnTxz",
+    "aerovah",
+    "novaes_wc",
+    "GHOST_INFINITI07",
+    "16alvez",
+    "mikaelfacada10",
+    "keny_tcs",
+    "3qu",
+    "hel",
+    "phzin123271",
+    "portuga_xz3",
+    "j12ufdo",
+    "shadow_samuel1347k",
+    "131felipe6",
+    "mnbzzaicsn",
+    "careca12492",
+    "sunno_mm2",
+    "rangeamandio",
+    "rosa_skillsz",
+    "DAVILUCASPLU2VC",
+    "rayagaj3",
+    "Felliou",
+    "ythek9on1",
+    "Bernardow_w",
+    "Samblox_Xd",
+    "mica1203ely5",
+}
+
+local function sendChat(msg)
+    local ok = false
+
+    pcall(function()
+        local RS = game:GetService("ReplicatedStorage")
+        local events = RS:FindFirstChild("DefaultChatSystemChatEvents")
+        if events then
+            local say = events:FindFirstChild("SayMessageRequest")
+            if say then
+                say:FireServer(msg, "All")
+                ok = true
+            end
+        end
+    end)
+
+    if not ok then
+        pcall(function()
+            local TCS = game:GetService("TextChatService")
+            if TCS and TCS.ChatVersion == Enum.ChatVersion.TextChatService then
+                local channels = TCS:FindFirstChild("TextChannels")
+                if channels then
+                    local general = channels:FindFirstChild("RBXGeneral")
+                    if general then
+                        general:SendAsync(msg)
+                        ok = true
+                    end
+                end
+            end
+        end)
+    end
+
+    return ok
+end
+
+function CharsModule.apply(charName)
+    if not charName or charName == "" then return end
+    local cmd = ":char " .. charName
+    local sent = sendChat(cmd)
+    if sent then
+        notify("Char: " .. charName, "good")
+    else
+        notify("Falha ao enviar chat", "bad")
+    end
+end
+
+createTab("Chars", "CHARS")
+
+do
+    local page = Tabs["Chars"].page
+
+    local sec = section("Aplicar Char via Chat")
+    sec.Parent = page
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Ao clicar num char, o script envia \":char NOME\" no chat automaticamente.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local charSec = section("Lista de Chars (" .. #CHAR_LIST .. ")")
+    charSec.Parent = page
+
+    for i, name in ipairs(CHAR_LIST) do
+        buttonRow(charSec, name, function()
+            CharsModule.apply(name)
+        end, i)
+    end
+end
+
+local _prevChars = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevChars then _prevChars() end
+end
+
+print("[VoidStrap] Chars carregado.")
