@@ -785,55 +785,78 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 5C — SKYBOX COM IDs (simples e direto)
+-- PARTE 5C — SKYBOX PANORAMICO (domo invertido + texturas 2:1)
 --====================================================================
 
+State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
+
 local SkyTextureModule = {}
-local SkyBackup = nil
+local CurrentDome = nil
+local DomeConn = nil
 
 local CUSTOM_SKIES = {
-    { name = "Sky 1", id = "8808550143" },
-    { name = "Sky 2", id = "12635340429" },
-    { name = "Sky 3", id = "13107361022" },
-    { name = "Sky 4", id = "15502592084" },
-    { name = "Sky 5", id = "8539737017" },
-    { name = "Sky 6", id = "8735253332" },
-    { name = "Sky 7", id = "136055162054954" },
+    { name = "Sunset",   id = "1495782126" },
+    { name = "Blue Sky", id = "1478440122" },
+    { name = "Night",    id = "398409631"  },
+    { name = "Galaxy",   id = "4976299654" },
+    { name = "Clouds",   id = "4713323714" },
+    { name = "Red Sky",  id = "6056205191" },
+    { name = "Space",    id = "6066307115" },
 }
 
-local function captureBackup()
-    if SkyBackup then return end
-    local existing = Lighting:FindFirstChildOfClass("Sky")
-    SkyBackup = existing and existing:Clone() or false
-end
-
-local function destroyAllSkies()
-    for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("Sky") then v:Destroy() end
+local function destroyDome()
+    if DomeConn then
+        DomeConn:Disconnect()
+        DomeConn = nil
     end
+    if CurrentDome and CurrentDome.Parent then
+        CurrentDome:Destroy()
+    end
+    CurrentDome = nil
 end
 
-local function applySkyID(id)
-    captureBackup()
-    destroyAllSkies()
+local function createDome(id)
+    destroyDome()
 
-    local sky = Instance.new("Sky")
-    sky.Name = "VST_Sky"
-    sky.SkyboxBk = "rbxassetid://" .. id
-    sky.SkyboxDn = "rbxassetid://" .. id
-    sky.SkyboxFt = "rbxassetid://" .. id
-    sky.SkyboxLf = "rbxassetid://" .. id
-    sky.SkyboxRt = "rbxassetid://" .. id
-    sky.SkyboxUp = "rbxassetid://" .. id
-    sky.Parent = Lighting
+    local dome = Instance.new("Part")
+    dome.Name = "VST_SkyDome"
+    dome.Size = Vector3.new(1, 1, 1)
+    dome.Anchored = true
+    dome.CanCollide = false
+    dome.CanQuery = false
+    dome.CanTouch = false
+    dome.CastShadow = false
+    dome.Transparency = 0
+    dome.Material = Enum.Material.SmoothPlastic
+    dome.Color = Color3.fromRGB(255, 255, 255)
 
-    return sky
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshType = Enum.MeshType.Sphere
+    -- Escala ligeiramente achatada pra mapear 2:1 corretamente
+    mesh.Scale = Vector3.new(-5000, -2500, -5000)
+    mesh.TextureId = "rbxassetid://" .. id
+    mesh.Parent = dome
+
+    dome.Parent = Workspace
+    CurrentDome = dome
+
+    DomeConn = RunService.RenderStepped:Connect(function()
+        if CurrentDome and CurrentDome.Parent and Camera then
+            pcall(function()
+                CurrentDome.CFrame = CFrame.new(Camera.CFrame.Position)
+            end)
+        end
+    end)
+
+    return dome
 end
 
 function SkyTextureModule.apply(name)
     for _, entry in ipairs(CUSTOM_SKIES) do
         if entry.name == name then
-            applySkyID(entry.id)
+            State.SkyTexture.Enabled = true
+            State.SkyTexture.Current = name
+            createDome(entry.id)
             notify("Sky: " .. name, "good")
             return
         end
@@ -841,10 +864,9 @@ function SkyTextureModule.apply(name)
 end
 
 function SkyTextureModule.restore()
-    destroyAllSkies()
-    if SkyBackup then
-        SkyBackup:Clone().Parent = Lighting
-    end
+    State.SkyTexture.Enabled = false
+    State.SkyTexture.Current = nil
+    destroyDome()
     notify("Sky restaurado", "good")
 end
 
@@ -855,13 +877,13 @@ createTab("Skies", "SKY")
 
 do
     local page = Tabs["Skies"].page
-    local sec = section("Skies Custom")
+    local sec = section("Skies Panoramicos")
     sec.Parent = page
 
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Aplica textura no ceu. Funciona como os outros scripts.",
+        Text = "Texturas 2:1 mapeadas em domo achatado. Sem quadrado aparente.",
         Font = Enum.Font.Gotham, TextSize = 11,
         TextColor3 = ActiveTheme.Sub, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -875,33 +897,9 @@ do
         end, 10 + i)
     end
 
-    -- Botão de diagnóstico
-    buttonRow(sec, "Diagnostico", function()
-        print("=== SKIES DEBUG ===")
-        local skies = {}
-        for _, v in ipairs(Lighting:GetChildren()) do
-            if v:IsA("Sky") then
-                table.insert(skies, v)
-                print("Sky:", v.Name)
-                print("  Bk:", v.SkyboxBk)
-                print("  Dn:", v.SkyboxDn)
-                print("  Ft:", v.SkyboxFt)
-                print("  Lf:", v.SkyboxLf)
-                print("  Rt:", v.SkyboxRt)
-                print("  Up:", v.SkyboxUp)
-            end
-        end
-        if #skies == 0 then
-            print("Nenhum Sky em Lighting")
-        end
-        print("Atmosphere:", tostring(Lighting:FindFirstChildOfClass("Atmosphere")))
-        print("Clouds:", tostring(Lighting:FindFirstChildOfClass("Clouds")))
-        notify("Diagnostico no console", "good")
-    end, 30)
-
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar Sky original", function()
+    buttonRow(resetSec, "Remover Sky", function()
         SkyTextureModule.restore()
     end, 1)
 end
@@ -912,6 +910,10 @@ _G.VoidStrapUnload = function()
     pcall(function() SkyTextureModule.restore() end)
 end
 
-print("[VoidStrap] Skies carregado.")--====================================================================
--- PARTE 5C — SKYBOX COM IDs (simples e direto)
---====================================================================
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() SkyTextureModule.restore() end)
+    end
+end)
+
+print("[VoidStrap] Skies Panoramicos carregado.")
