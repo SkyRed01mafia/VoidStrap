@@ -1,6 +1,6 @@
 --[[
     VoidStrap v1.1.0 — Arquivo A
-    Parte 1: Serviços + Temas + State + Helpers + UI base + Fundo customizável
+    Parte 1: Serviços + Temas + State + Helpers + UI base
 ]]
 
 local Players      = game:GetService("Players")
@@ -261,7 +261,6 @@ local ScreenOverlay = create("Frame", {
     Parent = ScreenGui,
 })
 
--- JANELA PRINCIPAL
 local Main = create("Frame", {
     Name = "Main",
     Size = UDim2.fromOffset(620, 420),
@@ -275,7 +274,6 @@ local Main = create("Frame", {
 themed(Main, "BackgroundColor3", "Background")
 corner(14, Main)
 
--- FUNDO PERSONALIZÁVEL
 local MainBgImage = create("ImageLabel", {
     Name = "VST_MainBg",
     Size = UDim2.fromScale(1, 1),
@@ -299,7 +297,6 @@ create("UIStroke", {
     Parent = Main,
 })
 
--- TOPBAR
 local TopBar = create("Frame", {
     Size = UDim2.new(1, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Surface,
@@ -318,7 +315,6 @@ local TopBarFill = create("Frame", {
 })
 themed(TopBarFill, "BackgroundColor3", "Surface")
 
--- LOGO COM IMAGEM
 local Logo = create("Frame", {
     Size = UDim2.fromOffset(28, 28),
     Position = UDim2.new(0, 12, 0, 8),
@@ -392,7 +388,6 @@ end
 local CloseBtn    = topbarButton("X", -38)
 local MinimizeBtn = topbarButton("-", -72)
 
--- SIDEBAR (com scroll)
 local Sidebar = create("ScrollingFrame", {
     Size = UDim2.new(0, 150, 1, -44),
     Position = UDim2.new(0, 0, 0, 44),
@@ -418,7 +413,6 @@ create("UIListLayout", {
     Parent = Sidebar,
 })
 
--- CONTENT
 local Content = create("Frame", {
     Size = UDim2.new(1, -150, 1, -44),
     Position = UDim2.new(0, 150, 0, 44),
@@ -920,9 +914,6 @@ print("[VoidStrap] Parte 2 OK")--===============================================
 -- PARTE 3A — MÓDULOS (Skybox / Stretch / Grass / Flags)
 --====================================================================
 
---====================================================================
--- MÓDULO: SKYBOX
---====================================================================
 local SkyboxModule = {}
 local OriginalLighting = nil
 
@@ -1050,9 +1041,6 @@ function SkyboxModule.setEnabled(on)
     end
 end
 
---====================================================================
--- MÓDULO: STRETCH SCREEN
---====================================================================
 local StretchModule = {}
 local FOV_JITTER = 0
 
@@ -1088,23 +1076,17 @@ function StretchModule.reset()
     end
 end
 
---====================================================================
--- MÓDULO: GRASS COLOR
---====================================================================
 local GrassModule = {}
-
 local OriginalGrassColor = nil
-local RecoloredParts     = {}
+local RecoloredParts = {}
 
 local function isGrassPart(part)
     if not part:IsA("BasePart") then return false end
     local mat = part.Material
-    if mat == Enum.Material.Grass or mat == Enum.Material.LeafyGrass then
-        return true
-    end
+    if mat == Enum.Material.Grass or mat == Enum.Material.LeafyGrass then return true end
     local c = part.Color
     local isGreen = c.G > 0.45 and c.R < 0.45 and c.B < 0.45
-    local isBig   = part.Size.X >= 30 and part.Size.Z >= 30
+    local isBig = part.Size.X >= 30 and part.Size.Z >= 30
     return isGreen and isBig
 end
 
@@ -1130,14 +1112,10 @@ end
 
 function GrassModule.setColor(color)
     captureGrass()
-
     pcall(function()
         Workspace.Terrain:SetMaterialColor(Enum.Material.Grass, color)
-    end)
-    pcall(function()
         Workspace.Terrain:SetMaterialColor(Enum.Material.LeafyGrass, color)
     end)
-
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if isGrassPart(obj) and not shouldSkip(obj) then
             if RecoloredParts[obj] == nil then
@@ -1162,28 +1140,20 @@ function GrassModule.restore()
     end
     for part, original in pairs(RecoloredParts) do
         pcall(function()
-            if part and part.Parent then
-                part.Color = original
-            end
+            if part and part.Parent then part.Color = original end
         end)
     end
     RecoloredParts = {}
 end
 
 local GRASS_PRESETS = {
-    ["Verde Padrão"] = Color3.fromRGB(91, 154, 76),
-    ["Verde Escuro"] = Color3.fromRGB(45, 90, 40),
-    ["Verde Neon"]   = Color3.fromRGB(80, 255, 120),
-    ["Verde Água"]   = Color3.fromRGB(120, 220, 180),
-    ["Azul"]         = Color3.fromRGB(60, 130, 220),
-    ["Roxo"]         = Color3.fromRGB(120, 70, 200),
-    ["Vermelho"]     = Color3.fromRGB(200, 60, 60),
-    ["Rosa"]         = Color3.fromRGB(240, 130, 200),
-    ["Amarelo"]      = Color3.fromRGB(230, 210, 70),
-    ["Cinza"]        = Color3.fromRGB(120, 120, 125),
-    ["Branco"]       = Color3.fromRGB(240, 240, 245),
-    ["Preto"]        = Color3.fromRGB(25, 25, 28),
-    ["Gelo"]         = Color3.fromRGB(190, 220, 255),
+    ["Verde Padrao"]=Color3.fromRGB(91,154,76), ["Verde Escuro"]=Color3.fromRGB(45,90,40),
+    ["Verde Neon"]=Color3.fromRGB(80,255,120), ["Verde Agua"]=Color3.fromRGB(120,220,180),
+    ["Azul"]=Color3.fromRGB(60,130,220), ["Roxo"]=Color3.fromRGB(120,70,200),
+    ["Vermelho"]=Color3.fromRGB(200,60,60), ["Rosa"]=Color3.fromRGB(240,130,200),
+    ["Amarelo"]=Color3.fromRGB(230,210,70), ["Cinza"]=Color3.fromRGB(120,120,125),
+    ["Branco"]=Color3.fromRGB(240,240,245), ["Preto"]=Color3.fromRGB(25,25,28),
+    ["Gelo"]=Color3.fromRGB(190,220,255),
 }
 
 function GrassModule.applyPreset(name)
@@ -1198,9 +1168,6 @@ function GrassModule.reset()
     notify("Grama restaurada", "bad")
 end
 
---====================================================================
--- MÓDULO: FLAGS / PERFORMANCE
---====================================================================
 local FlagsModule = {}
 
 local PRESETS = {
@@ -1217,7 +1184,6 @@ function FlagsModule.applyPreset(preset)
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if char and obj:IsDescendantOf(char) then continue end
-
         if c.particles and (
             obj:IsA("ParticleEmitter") or obj:IsA("Trail") or
             obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles")
@@ -1225,7 +1191,6 @@ function FlagsModule.applyPreset(preset)
             track(obj, "Enabled")
             pcall(function() obj.Enabled = false end)
         end
-
         if c.shadows and obj:IsA("BasePart") then
             track(obj, "CastShadow")
             pcall(function() obj.CastShadow = false end)
@@ -1271,38 +1236,29 @@ function FlagsModule.setPreset(preset)
     end
 end
 
---====================================================================
--- FIM DA PARTE 3A — Continue na PARTE 3B
---====================================================================--====================================================================
+print("[VoidStrap] Parte 3A OK")--====================================================================
 -- PARTE 3B — MONTAGEM DAS ABAS + BOOT + CLEANUP
 --====================================================================
 
---====================================================================
--- CRIAÇÃO DAS ABAS
---====================================================================
-createTab("Skybox",      "◈")
-createTab("Stretch",     "▣")
-createTab("Grass",       "❖")
-createTab("Performance", "▶")
-createTab("Settings",    "⚙")
+createTab("Skybox",      "SKY")
+createTab("Stretch",     "STR")
+createTab("Grass",       "GRS")
+createTab("Performance", "PRF")
+createTab("Settings",    "CFG")
 
--- -------------------- ABA SKYBOX --------------------
+-- ABA SKYBOX
 do
     local page = Tabs["Skybox"].page
-
     local mainSec = section("Skybox Local")
     mainSec.Parent = page
     toggleRow(mainSec, "Ativar Skybox", State.Skybox.Enabled, function(on)
         SkyboxModule.setEnabled(on)
     end, 1)
-
-    local names = { "Default", "Night", "Space", "Red", "Purple", "Custom" }
-    for i, name in ipairs(names) do
+    for i, name in ipairs({ "Default", "Night", "Space", "Red", "Purple", "Custom" }) do
         buttonRow(mainSec, "• " .. name, function()
             SkyboxModule.apply(name)
         end, 10 + i)
     end
-
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Restaurar Skybox original", function()
@@ -1311,35 +1267,17 @@ do
     end, 1)
 end
 
--- -------------------- ABA STRETCH --------------------
+-- ABA STRETCH
 do
     local page = Tabs["Stretch"].page
-
     local sec = section("Stretch Screen (FOV)")
     sec.Parent = page
-
     toggleRow(sec, "Ativar Stretch", State.Stretch.Enabled, function(on)
         StretchModule.setEnabled(on)
     end, 1)
-
     sliderRow(sec, "Intensidade", 0, 100, State.Stretch.Intensity, function(v)
         StretchModule.setIntensity(v)
     end, 2)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Altera apenas o FieldOfView da câmera local. Reversível e seguro.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
     local resetSec = section("Reset")
     resetSec.Parent = page
     buttonRow(resetSec, "Resetar Stretch", function()
@@ -1348,139 +1286,83 @@ do
     end, 1)
 end
 
--- -------------------- ABA GRASS --------------------
+-- ABA GRASS
 do
     local page = Tabs["Grass"].page
-
     local mainSec = section("Cor da Grama")
     mainSec.Parent = page
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        Text = "Funciona em campos de Terrain e em partes com material Grass. Local e reversível.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = mainSec,
-    })
-    themed(info, "TextColor3", "Sub")
-
     local presets = {
-        "Verde Padrão", "Verde Escuro", "Verde Neon", "Verde Água",
+        "Verde Padrao", "Verde Escuro", "Verde Neon", "Verde Agua",
         "Azul", "Roxo", "Vermelho", "Rosa",
         "Amarelo", "Cinza", "Branco", "Preto", "Gelo",
     }
     for i, name in ipairs(presets) do
-        buttonRow(mainSec, "🌿 " .. name, function()
+        buttonRow(mainSec, name, function()
             GrassModule.applyPreset(name)
         end, 10 + i)
     end
-
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar cor original da grama", function()
+    buttonRow(resetSec, "Restaurar cor original", function()
         GrassModule.reset()
     end, 1)
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "⚠ Em jogos com anti-cheat rigoroso, prefira presets que afetam apenas o Terrain.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 2,
-        Parent = resetSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
 end
 
--- -------------------- ABA PERFORMANCE --------------------
+-- ABA PERFORMANCE
 do
     local page = Tabs["Performance"].page
-
     local sec = section("Flags de Performance")
     sec.Parent = page
-
     toggleRow(sec, "Ativar Flags", State.Flags.Enabled, function(on)
         FlagsModule.setEnabled(on)
     end, 1)
-
     dropdownRow(sec, "Preset",
         { "Ultra", "Balanced", "Performance", "Potato" },
         State.Flags.Preset,
         function(opt) FlagsModule.setPreset(opt) end, 2)
-
     local fpsSec = section("Monitor")
     fpsSec.Parent = page
-
     local fpsRow = create("Frame", {
         Size = UDim2.new(1, 0, 0, 36),
         BackgroundColor3 = ActiveTheme.Surface2,
-        BorderSizePixel = 0,
-        LayoutOrder = 1,
-        Parent = fpsSec,
+        BorderSizePixel = 0, LayoutOrder = 1, Parent = fpsSec,
     })
     themed(fpsRow, "BackgroundColor3", "Surface2")
     corner(8, fpsRow)
-
     local fpsLbl = create("TextLabel", {
-        Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "FPS atual",
-        Font = Enum.Font.GothamMedium,
-        TextSize = 13,
+        Size = UDim2.new(1, -100, 1, 0), Position = UDim2.new(0, 12, 0, 0),
+        BackgroundTransparency = 1, Text = "FPS atual",
+        Font = Enum.Font.GothamMedium, TextSize = 13,
         TextColor3 = ActiveTheme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = fpsRow,
+        TextXAlignment = Enum.TextXAlignment.Left, Parent = fpsRow,
     })
     themed(fpsLbl, "TextColor3", "Text")
-
     FPSLabel = create("TextLabel", {
-        Size = UDim2.fromOffset(80, 22),
-        Position = UDim2.new(1, -92, 0.5, 0),
+        Size = UDim2.fromOffset(80, 22), Position = UDim2.new(1, -92, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = ActiveTheme.Accent,
-        BorderSizePixel = 0,
-        Text = "— FPS",
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = Color3.new(1, 1, 1),
-        Parent = fpsRow,
+        BackgroundColor3 = ActiveTheme.Accent, BorderSizePixel = 0,
+        Text = "— FPS", Font = Enum.Font.GothamBold, TextSize = 12,
+        TextColor3 = Color3.new(1, 1, 1), Parent = fpsRow,
     })
     themed(FPSLabel, "BackgroundColor3", "Accent")
     corner(6, FPSLabel)
 end
 
--- -------------------- ABA SETTINGS --------------------
+-- ABA SETTINGS
 do
     local page = Tabs["Settings"].page
-
     local sec = section("Interface")
     sec.Parent = page
-
-    toggleRow(sec, "Animações da UI", State.Settings.AnimationsEnabled, function(on)
+    toggleRow(sec, "Animacoes da UI", State.Settings.AnimationsEnabled, function(on)
         State.Settings.AnimationsEnabled = on
-        notify(on and "Animações ativadas" or "Animações desativadas",
-               on and "good" or "bad")
+        notify(on and "Animacoes ativadas" or "Animacoes desativadas", on and "good" or "bad")
     end, 1)
-
     toggleRow(sec, "Sons da UI", State.Settings.SoundsEnabled, function(on)
         State.Settings.SoundsEnabled = on
-        notify(on and "Sons ativados" or "Sons desativados",
-               on and "good" or "bad")
+        notify(on and "Sons ativados" or "Sons desativados", on and "good" or "bad")
     end, 2)
-
     local themeSec = section("Tema")
     themeSec.Parent = page
-
     dropdownRow(themeSec, "Tema",
         { "Void", "Midnight", "Ember" },
         State.Settings.ThemeName,
@@ -1489,33 +1371,26 @@ do
             applyTheme(opt)
             notify("Tema: " .. opt, "good")
         end, 1)
-
     local resetSec = section("Reset")
     resetSec.Parent = page
-
-    buttonRow(resetSec, "Resetar configurações", function()
+    buttonRow(resetSec, "Resetar configuracoes", function()
         SkyboxModule.restore()
         State.Skybox.Enabled = false
         State.Skybox.Current = "Default"
-
         StretchModule.reset()
         GrassModule.restore()
         restoreAll()
         State.Flags.Enabled = false
         State.Flags.Preset = "Balanced"
-
         State.Settings.AnimationsEnabled = true
         State.Settings.SoundsEnabled = true
         State.Settings.ThemeName = "Void"
         applyTheme("Void")
-
-        notify("Configurações resetadas", "good")
+        notify("Configuracoes resetadas", "good")
     end, 1)
 end
 
---====================================================================
--- MINIMIZAR / FECHAR / BOTÃO FLUTUANTE
---====================================================================
+-- MINIMIZE / CLOSE / MINI BUTTON
 local MiniButton
 
 local function setMinimized(minimized)
@@ -1546,19 +1421,15 @@ CloseBtn.MouseButton1Click:Connect(function()
     setMinimized(true)
 end)
 
--- Botão flutuante "V" para reabrir
 do
     MiniButton = create("TextButton", {
         Size = UDim2.fromOffset(52, 52),
         Position = UDim2.new(0, 20, 0.5, -26),
         BackgroundColor3 = ActiveTheme.Accent,
-        BorderSizePixel = 0,
-        Text = "V",
-        Font = Enum.Font.GothamBold,
-        TextSize = 20,
+        BorderSizePixel = 0, Text = "V",
+        Font = Enum.Font.GothamBold, TextSize = 20,
         TextColor3 = Color3.new(1, 1, 1),
-        AutoButtonColor = false,
-        Visible = false,
+        AutoButtonColor = false, Visible = false,
         Parent = ScreenOverlay,
     })
     themed(MiniButton, "BackgroundColor3", "Accent")
@@ -1569,18 +1440,6 @@ do
     MiniButton.MouseButton1Click:Connect(function()
         playClick()
         setMinimized(false)
-    end)
-    MiniButton.MouseEnter:Connect(function()
-        tween(MiniButton, 0.15, {
-            Size = UDim2.fromOffset(58, 58),
-            Position = UDim2.new(0, 17, 0.5, -29),
-        })
-    end)
-    MiniButton.MouseLeave:Connect(function()
-        tween(MiniButton, 0.15, {
-            Size = UDim2.fromOffset(52, 52),
-            Position = UDim2.new(0, 20, 0.5, -26),
-        })
     end)
 
     local dragging, dragStart, startPos
@@ -1610,9 +1469,7 @@ do
     end)
 end
 
---====================================================================
--- ARRASTAR JANELA PELA TOPBAR
---====================================================================
+-- ARRASTAR JANELA
 do
     local dragging, dragStart, startPos
     TopBar.InputBegan:Connect(function(input)
@@ -1641,9 +1498,6 @@ do
     end)
 end
 
---====================================================================
--- HOLDER DE NOTIFICAÇÕES
---====================================================================
 NotifyHolder = create("Frame", {
     Size = UDim2.fromOffset(300, 240),
     Position = UDim2.new(1, -320, 1, -260),
@@ -1658,9 +1512,6 @@ create("UIListLayout", {
     Parent = NotifyHolder,
 })
 
---====================================================================
--- RESPONSIVIDADE
---====================================================================
 local function applyResponsive()
     if State.Window.Minimized then return end
     local vp = Camera.ViewportSize
@@ -1672,9 +1523,6 @@ end
 applyResponsive()
 Camera:GetPropertyChangedSignal("ViewportSize"):Connect(applyResponsive)
 
---====================================================================
--- ANIMAÇÃO DE ABERTURA + BOOT
---====================================================================
 do
     local vp = Camera.ViewportSize
     local w = math.min(620, vp.X - 40)
@@ -1691,9 +1539,6 @@ selectTab("Skybox")
 applyTheme(State.Settings.ThemeName)
 notify(TITLE .. " " .. VERSION .. " carregado", "good")
 
---====================================================================
--- CLEANUP AUTOMÁTICO
---====================================================================
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
         pcall(function()
@@ -1705,10 +1550,6 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
---====================================================================
--- UNLOAD MANUAL
--- Execute em runtime:  _G.VoidStrapUnload()
---====================================================================
 _G.VoidStrapUnload = function()
     pcall(function()
         SkyboxModule.restore()
@@ -1724,20 +1565,13 @@ _G.VoidStrapUnload = function()
     print("[VoidStrap] Unloaded.")
 end
 
---====================================================================
--- FIM — VoidStrap v1.1.0
---====================================================================
+print("[VoidStrap] Parte 3B OK")
 print(("[VoidStrap] %s inicializado com sucesso."):format(VERSION))--====================================================================
--- PARTE 4 — MÓDULO: ILUMINAÇÃO (ClockTime, slider 1–30)
--- Adiciona aba "Lighting" sem alterar as demais.
+-- PARTE 4 — ILUMINAÇÃO (ClockTime 1-30)
 --====================================================================
 
--- Estado do módulo (aproveita a tabela State da Parte 1)
 State.Lighting = State.Lighting or { Enabled = true, Hour = 12 }
 
---====================================================================
--- MÓDULO
---====================================================================
 local LightingModule = {}
 local OriginalClockTime = nil
 
@@ -1746,8 +1580,6 @@ local function captureClock()
     OriginalClockTime = Lighting.ClockTime
 end
 
--- Slider 1..30 → ClockTime. Roblox aceita 0..24 com wrap suave
--- (valores >24 reiniciam o ciclo dia/noite automaticamente).
 function LightingModule.setHour(h)
     captureClock()
     pcall(function()
@@ -1763,63 +1595,39 @@ function LightingModule.restore()
     end
 end
 
---====================================================================
--- NOVA ABA
---====================================================================
-createTab("Lighting", "☀")
+createTab("Lighting", "LGT")
 
 do
     local page = Tabs["Lighting"].page
-
-    local sec = section("Iluminação")
+    local sec = section("Iluminacao")
     sec.Parent = page
 
-    -- Toggle de ativação
-    toggleRow(sec, "Ativar Iluminação", State.Lighting.Enabled, function(on)
+    toggleRow(sec, "Ativar Iluminacao", State.Lighting.Enabled, function(on)
         State.Lighting.Enabled = on
         if on then
             LightingModule.setHour(State.Lighting.Hour)
-            notify("Iluminação ativada", "good")
+            notify("Iluminacao ativada", "good")
         else
             LightingModule.restore()
-            notify("Iluminação desativada", "bad")
+            notify("Iluminacao desativada", "bad")
         end
     end, 1)
 
-    -- Slider 1–30
-    sliderRow(sec, "Hora (1–30)", 1, 30, State.Lighting.Hour, function(v)
+    sliderRow(sec, "Hora (1-30)", 1, 30, State.Lighting.Hour, function(v)
         State.Lighting.Hour = v
         if State.Lighting.Enabled then
             LightingModule.setHour(v)
         end
     end, 2)
 
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Controla o horário do dia (ClockTime). Valores acima de 24 reiniciam o ciclo automaticamente.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Restaurar
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar iluminação original", function()
+    buttonRow(resetSec, "Restaurar iluminacao original", function()
         LightingModule.restore()
-        notify("Iluminação restaurada", "good")
+        notify("Iluminacao restaurada", "good")
     end, 1)
 end
 
---====================================================================
--- HOOK NO UNLOAD / CLEANUP (encadeia com o que já existe)
---====================================================================
 local _prevUnload = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevUnload then _prevUnload() end
@@ -1836,7 +1644,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
---====================================================================
--- FIM DA PARTE 4 — Aba "Lighting" adicionada
---====================================================================
-print("[VoidStrap] Módulo de Iluminação carregado.")
+print("[VoidStrap] Parte 4 OK")
