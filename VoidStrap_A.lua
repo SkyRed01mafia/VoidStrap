@@ -1,5 +1,6 @@
 --[[
-    VoidStrap v1.2.0 — Interface redesenhada (estilo Kirtium)
+    VoidStrap v1.2.0 — Parte 1 (Kirtium Style)
+    Serviços + Temas + State + Helpers + UI base + Fundo cósmico
 ]]
 
 local Players      = game:GetService("Players")
@@ -39,8 +40,20 @@ local GuiParent = getSafeGuiParent()
 local VERSION = "v1.2.0"
 local TITLE   = "VoidStrap"
 
--- ---------- TEMA ----------
+-- ---------- TEMAS ----------
 local Themes = {
+    Kirtium = {
+        Background = Color3.fromRGB(12, 12, 15),
+        Surface    = Color3.fromRGB(22, 22, 26),
+        Surface2   = Color3.fromRGB(32, 32, 38),
+        Accent     = Color3.fromRGB(80, 220, 130),
+        AccentDim  = Color3.fromRGB(40, 130, 70),
+        Text       = Color3.fromRGB(245, 245, 250),
+        Sub        = Color3.fromRGB(150, 155, 165),
+        Stroke     = Color3.fromRGB(48, 48, 55),
+        Good       = Color3.fromRGB(80, 220, 130),
+        Bad        = Color3.fromRGB(230, 90, 90),
+    },
     Void = {
         Background = Color3.fromRGB(15, 15, 18),
         Surface    = Color3.fromRGB(25, 25, 30),
@@ -50,20 +63,8 @@ local Themes = {
         Text       = Color3.fromRGB(240, 240, 245),
         Sub        = Color3.fromRGB(150, 150, 165),
         Stroke     = Color3.fromRGB(50, 50, 60),
-        Good       = Color3.fromRGB(80, 200, 130),  -- verde do toggle
+        Good       = Color3.fromRGB(80, 200, 130),
         Bad        = Color3.fromRGB(220, 80, 80),
-    },
-    Kirtium = {
-        Background = Color3.fromRGB(12, 12, 15),
-        Surface    = Color3.fromRGB(22, 22, 26),
-        Surface2   = Color3.fromRGB(32, 32, 38),
-        Accent     = Color3.fromRGB(80, 220, 130),  -- verde
-        AccentDim  = Color3.fromRGB(40, 130, 70),
-        Text       = Color3.fromRGB(245, 245, 250),
-        Sub        = Color3.fromRGB(150, 155, 165),
-        Stroke     = Color3.fromRGB(48, 48, 55),
-        Good       = Color3.fromRGB(80, 220, 130),
-        Bad        = Color3.fromRGB(230, 90, 90),
     },
     Midnight = {
         Background = Color3.fromRGB(8, 12, 20),
@@ -206,12 +207,13 @@ local function notify(text, kind)
 
     local frame = create("Frame", {
         Size = UDim2.fromOffset(280, 44),
-        BackgroundColor3 = ActiveTheme.Surface,
+        BackgroundColor3 = Color3.fromRGB(25, 25, 30),
+        BackgroundTransparency = 0.15,
         BorderSizePixel = 0,
         Parent = NotifyHolder,
     })
     corner(8, frame)
-    stroke(ActiveTheme.Stroke, 1, 0.2, frame)
+    stroke(ActiveTheme.Stroke, 1, 0.3, frame)
 
     create("Frame", {
         Size = UDim2.new(0, 3, 1, -12),
@@ -275,33 +277,33 @@ local Main = create("Frame", {
 })
 corner(14, Main)
 
--- Fundo com imagem (opcional, com blur-like)
+-- Imagem de fundo cósmica (ID 943463390956)
 local MainBgImage = create("ImageLabel", {
     Name = "VST_MainBg",
     Size = UDim2.fromScale(1, 1),
     BackgroundTransparency = 1,
-    Image = "",
-    ImageTransparency = 0.4,
+    Image = "rbxassetid://943463390956",
+    ImageTransparency = 0.35,
     ScaleType = Enum.ScaleType.Crop,
     ZIndex = 0,
-    Visible = false,
+    Visible = true,
     Parent = Main,
 })
 corner(14, MainBgImage)
 
--- Overlay escuro por cima da imagem pra deixar legível
+-- Overlay escuro pra deixar texto legível
 local MainOverlay = create("Frame", {
     Name = "VST_MainOverlay",
     Size = UDim2.fromScale(1, 1),
     BackgroundColor3 = Color3.fromRGB(8, 8, 12),
-    BackgroundTransparency = 0.35,
+    BackgroundTransparency = 0.4,
     BorderSizePixel = 0,
     ZIndex = 1,
     Parent = Main,
 })
 corner(14, MainOverlay)
 
-stroke(ActiveTheme.Stroke, 1, 0.4, Main)
+stroke(Color3.fromRGB(60, 60, 70), 1, 0.5, Main)
 
 -- TOPBAR
 local TopBar = create("Frame", {
@@ -314,7 +316,7 @@ local TopBar = create("Frame", {
 })
 corner(14, TopBar)
 
--- Logo pequena
+-- Logo
 local Logo = create("Frame", {
     Size = UDim2.fromOffset(28, 28),
     Position = UDim2.new(0, 16, 0, 12),
@@ -351,10 +353,10 @@ local TitleLabel = create("TextLabel", {
 })
 themed(TitleLabel, "TextColor3", "Text")
 
--- Badge de versão (estilo Kirtium)
+-- Badge de versão
 local VersionBadge = create("Frame", {
     Size = UDim2.fromOffset(70, 24),
-    Position = UDim2.new(0, 170, 0.5, -12),
+    Position = UDim2.new(0, 175, 0.5, -12),
     BackgroundColor3 = Color3.fromRGB(25, 25, 30),
     BackgroundTransparency = 0.2,
     BorderSizePixel = 0,
@@ -376,7 +378,7 @@ local VersionLabel = create("TextLabel", {
 })
 themed(VersionLabel, "TextColor3", "Text")
 
--- Botões da topbar (minimizar, fechar)
+-- Botões da topbar
 local function topbarButton(iconText, offsetRight)
     local btn = create("TextButton", {
         Size = UDim2.fromOffset(32, 32),
@@ -444,7 +446,7 @@ local Content = create("Frame", {
 })
 padding(14, Content)
 
-print("[VoidStrap] Parte 1 (Kirtium style) OK")--====================================================================
+print("[VoidStrap] Parte 1 (com fundo cosmico) OK")--====================================================================
 -- PARTE 2 — ABAS + COMPONENTES (estilo Kirtium)
 --====================================================================
 
