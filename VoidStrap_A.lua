@@ -1,11 +1,8 @@
 --[[
-    VoidStrap v1.1.0 — Parte 1
-    Serviços + Temas + State + Helpers + ScreenGui + Topbar + Sidebar + Content
+    VoidStrap v1.1.0 — Arquivo A
+    Parte 1: Serviços + Temas + State + Helpers + UI base
 ]]
 
---====================================================================
--- SERVIÇOS
---====================================================================
 local Players      = game:GetService("Players")
 local UIS          = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -18,9 +15,6 @@ local CoreGui      = game:GetService("CoreGui")
 local LP     = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
---====================================================================
--- DETECÇÃO DE EXECUTOR
---====================================================================
 local ExecutorInfo = { Name = "Unknown", Mobile = false, HasGethui = false, InStudio = false }
 pcall(function()
     if identifyexecutor then ExecutorInfo.Name = identifyexecutor()
@@ -34,9 +28,6 @@ print(("[VoidStrap] Executor=%s | Mobile=%s | gethui=%s | Studio=%s")
     :format(ExecutorInfo.Name, tostring(ExecutorInfo.Mobile),
             tostring(ExecutorInfo.HasGethui), tostring(ExecutorInfo.InStudio)))
 
---====================================================================
--- SAFE GUI PARENT
---====================================================================
 local function getSafeGuiParent()
     if ExecutorInfo.HasGethui then
         local ok, hui = pcall(gethui)
@@ -46,9 +37,6 @@ local function getSafeGuiParent()
 end
 local GuiParent = getSafeGuiParent()
 
---====================================================================
--- CONSTANTES / TEMAS
---====================================================================
 local VERSION = "v1.1.0"
 local TITLE   = "VoidStrap"
 
@@ -92,9 +80,6 @@ local Themes = {
 }
 local ActiveTheme = Themes.Void
 
---====================================================================
--- ESTADO PERSISTENTE
---====================================================================
 local State = {
     Settings = { AnimationsEnabled = true, SoundsEnabled = true, ThemeName = "Void" },
     Window = { Minimized = false },
@@ -127,9 +112,6 @@ local function restoreAll()
     Originals.Instances = {}
 end
 
---====================================================================
--- HELPERS DE UI
---====================================================================
 local function create(class, props, children)
     local inst = Instance.new(class)
     for k, v in pairs(props or {}) do
@@ -195,9 +177,6 @@ local function playClick()
     pcall(function() ClickSound:Play() end)
 end
 
---====================================================================
--- SISTEMA DE TEMA DINÂMICO
---====================================================================
 local ThemedElements = {}
 
 local function themed(inst, prop, themeKey)
@@ -215,9 +194,6 @@ local function applyTheme(themeName)
     end
 end
 
---====================================================================
--- NOTIFICAÇÕES
---====================================================================
 local NotifyHolder
 
 local function notify(text, kind)
@@ -270,9 +246,6 @@ local function notify(text, kind)
     end)
 end
 
---====================================================================
--- SCREEN GUI
---====================================================================
 local ScreenGui = create("ScreenGui", {
     Name = "VoidStrapGui_" .. tostring(math.random(1000, 9999)),
     ResetOnSpawn = false,
@@ -288,7 +261,6 @@ local ScreenOverlay = create("Frame", {
     Parent = ScreenGui,
 })
 
--- JANELA PRINCIPAL
 local Main = create("Frame", {
     Name = "Main",
     Size = UDim2.fromOffset(620, 420),
@@ -301,6 +273,19 @@ local Main = create("Frame", {
 })
 themed(Main, "BackgroundColor3", "Background")
 corner(14, Main)
+
+local MainBgImage = create("ImageLabel", {
+    Name = "VST_MainBg",
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://104886621751354",
+    ImageTransparency = 0.75,
+    ScaleType = Enum.ScaleType.Crop,
+    ZIndex = -1,
+    Parent = Main,
+})
+corner(14, MainBgImage)
+
 stroke(ActiveTheme.Stroke, 1, 0.3, Main)
 
 create("UIStroke", {
@@ -311,7 +296,6 @@ create("UIStroke", {
     Parent = Main,
 })
 
--- TOPBAR
 local TopBar = create("Frame", {
     Size = UDim2.new(1, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Surface,
@@ -330,29 +314,29 @@ local TopBarFill = create("Frame", {
 })
 themed(TopBarFill, "BackgroundColor3", "Surface")
 
+-- LOGO COM IMAGEM
 local Logo = create("Frame", {
-    Size = UDim2.fromOffset(24, 24),
-    Position = UDim2.new(0, 14, 0, 10),
+    Size = UDim2.fromOffset(28, 28),
+    Position = UDim2.new(0, 12, 0, 8),
     BackgroundColor3 = ActiveTheme.Accent,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
     Parent = TopBar,
 })
-themed(Logo, "BackgroundColor3", "Accent")
 corner(8, Logo)
-gradient(ActiveTheme.Accent, ActiveTheme.AccentDim, 45, Logo)
 
-create("Frame", {
-    Size = UDim2.fromOffset(8, 8),
-    Position = UDim2.fromScale(0.5, 0.5),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = Color3.new(1, 1, 1),
-    BorderSizePixel = 0,
+local LogoImage = create("ImageLabel", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://99887975337982",
+    ScaleType = Enum.ScaleType.Fit,
     Parent = Logo,
 })
+corner(8, LogoImage)
 
 local TitleLabel = create("TextLabel", {
     Size = UDim2.new(0, 200, 1, 0),
-    Position = UDim2.new(0, 46, 0, 0),
+    Position = UDim2.new(0, 50, 0, 0),
     BackgroundTransparency = 1,
     Text = TITLE,
     Font = Enum.Font.GothamBold,
@@ -365,7 +349,7 @@ themed(TitleLabel, "TextColor3", "Text")
 
 local VersionLabel = create("TextLabel", {
     Size = UDim2.new(0, 80, 1, 0),
-    Position = UDim2.new(0, 130, 0, 0),
+    Position = UDim2.new(0, 134, 0, 0),
     BackgroundTransparency = 1,
     Text = VERSION,
     Font = Enum.Font.GothamMedium,
@@ -409,6 +393,7 @@ local Sidebar = create("ScrollingFrame", {
     Size = UDim2.new(0, 150, 1, -44),
     Position = UDim2.new(0, 0, 0, 44),
     BackgroundColor3 = ActiveTheme.Background,
+    BackgroundTransparency = 0.3,
     BorderSizePixel = 0,
     ScrollBarThickness = 4,
     ScrollBarImageColor3 = ActiveTheme.Accent,
@@ -429,26 +414,20 @@ create("UIListLayout", {
     Parent = Sidebar,
 })
 
--- CONTENT
 local Content = create("Frame", {
     Size = UDim2.new(1, -150, 1, -44),
     Position = UDim2.new(0, 150, 0, 44),
     BackgroundColor3 = ActiveTheme.Background,
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
     Parent = Main,
 })
-themed(Content, "BackgroundColor3", "Background")
 padding(14, Content)
 
---====================================================================
--- FIM DA PARTE 1
---====================================================================--====================================================================
--- PARTE 2 — ABAS + COMPONENTES REUTILIZÁVEIS + FPS METER
+print("[VoidStrap] Parte 1 OK")--====================================================================
+-- PARTE 2 — ABAS + COMPONENTES
 --====================================================================
 
---====================================================================
--- SISTEMA DE ABAS
---====================================================================
 local Tabs = {}
 local CurrentTab = nil
 
@@ -502,7 +481,6 @@ local function createTab(name, iconText)
     })
     themed(txt, "TextColor3", "Sub")
 
-    -- ---------- SCROLLING FRAME MELHORADO ----------
     local page = create("ScrollingFrame", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
@@ -519,13 +497,11 @@ local function createTab(name, iconText)
         Visible = false,
         Parent = Content,
     })
-
     create("UIListLayout", {
         Padding = UDim.new(0, 8),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = page,
     })
-
     create("UIPadding", {
         PaddingTop    = UDim.new(0, 4),
         PaddingBottom = UDim.new(0, 12),
@@ -552,9 +528,6 @@ local function createTab(name, iconText)
     end)
 end
 
---====================================================================
--- COMPONENTE: SECTION (container com título)
---====================================================================
 local function section(title)
     local frame = create("Frame", {
         Size = UDim2.new(1, 0, 0, 0),
@@ -586,9 +559,6 @@ local function section(title)
     return frame
 end
 
---====================================================================
--- COMPONENTE: BUTTON ROW
---====================================================================
 local function buttonRow(parent, label, onClick, order)
     local row = create("TextButton", {
         Size = UDim2.new(1, 0, 0, 36),
@@ -643,9 +613,6 @@ local function buttonRow(parent, label, onClick, order)
     return row, badge
 end
 
---====================================================================
--- COMPONENTE: TOGGLE ROW
---====================================================================
 local function toggleRow(parent, label, initial, onChange, order)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, 36),
@@ -725,9 +692,6 @@ local function toggleRow(parent, label, initial, onChange, order)
     return row, set, function() return state end
 end
 
---====================================================================
--- COMPONENTE: SLIDER ROW
---====================================================================
 local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, 56),
@@ -835,9 +799,6 @@ local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     return row, function() return value end
 end
 
---====================================================================
--- COMPONENTE: DROPDOWN ROW
---====================================================================
 local function dropdownRow(parent, label, options, initial, onChange, order)
     local row = create("Frame", {
         Size = UDim2.new(1, 0, 0, 36),
@@ -935,9 +896,6 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
     return row
 end
 
---====================================================================
--- FPS METER
---====================================================================
 local FPSLabel
 do
     local frames, lastT = 0, tick()
@@ -953,9 +911,7 @@ do
     end)
 end
 
---====================================================================
--- FIM DA PARTE 2 — Continue na PARTE 3A
---====================================================================--====================================================================
+print("[VoidStrap] Parte 2 OK")--====================================================================
 -- PARTE 3A — MÓDULOS (Skybox / Stretch / Grass / Flags)
 --====================================================================
 
