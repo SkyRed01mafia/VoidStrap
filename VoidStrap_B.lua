@@ -657,20 +657,18 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- BALL CUSTOM — Cor + Textura
+-- BALL COLOR — Apenas cor da bola
 --====================================================================
 
 State.BallCustom = State.BallCustom or {
     Enabled = false,
     Color = nil,
-    Texture = nil,
 }
 
 local BallCustomModule = {}
 local BallTarget = nil
 local BallBackup = nil
 local BallConn = nil
-local BallDecal = nil
 
 -- ---------- CORES ----------
 local BALL_COLORS = {
@@ -692,28 +690,7 @@ local BALL_COLORS = {
     { name = "Metalico",   color = Color3.fromRGB(180, 180, 190) },
 }
 
--- ---------- TEXTURAS ----------
-local BALL_TEXTURES = {
-    { name = "Nenhuma",    id = nil },
-    { name = "Champions",  id = "71915788537664" },
-    { name = "Penalti",    id = "9986373763" },
-    { name = "Jabulani",   id = "20345506" },
-    { name = "Futebol",    id = "6032070661" },
-    { name = "Futebol 2",  id = "9031559598" },
-    { name = "Futebol 3",  id = "6021192037" },
-    { name = "Futebol 4",  id = "4980781374" },
-    { name = "Basquete",   id = "6530639668" },
-    { name = "Volei",      id = "6148384067" },
-    { name = "Lava",       id = "4412768175" },
-    { name = "Gelo",       id = "4065711018" },
-    { name = "Chamas",     id = "5098707773" },
-    { name = "Olhos",      id = "4661112903" },
-    { name = "Smile",      id = "5286845688" },
-    { name = "Disco",      id = "11379384074" },
-    { name = "Xadrez",     id = "6050547289" },
-}
-
--- ---------- DETECCAO DA BOLA ----------
+-- ---------- DETECCAO ----------
 local function findBall()
     local char = LP.Character
     local function valid(p)
@@ -721,7 +698,6 @@ local function findBall()
         if char and p:IsDescendantOf(char) then return false end
         return true
     end
-
     for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall", "Soccer"}) do
         local b = Workspace:FindFirstChild(name, true)
         if valid(b) then return b end
@@ -729,55 +705,20 @@ local function findBall()
     return nil
 end
 
--- ---------- BACKUP ----------
-local function captureBackup(ball)
-    if BallBackup then return end
-    BallBackup = {
-        Color = ball.Color,
-        Material = ball.Material,
-    }
-end
-
--- ---------- APLICAR COR ----------
+-- ---------- APLICAR ----------
 local function applyColor(ball, color)
     if not ball then return end
-    captureBackup(ball)
+    if not BallBackup then
+        BallBackup = {
+            Color = ball.Color,
+            Material = ball.Material,
+        }
+    end
     pcall(function()
         ball.Color = color
     end)
 end
 
--- ---------- APLICAR TEXTURA ----------
-local function applyTexture(ball, id)
-    if not ball then return end
-    captureBackup(ball)
-
-    if BallDecal and BallDecal.Parent then
-        BallDecal:Destroy()
-    end
-
-    for _, d in ipairs(ball:GetChildren()) do
-        if d:IsA("Decal") and d.Name ~= "VST_BallTexture" then
-            d.Transparency = 1
-        end
-    end
-
-    if id then
-        BallDecal = Instance.new("Decal")
-        BallDecal.Name = "VST_BallTexture"
-        BallDecal.Face = Enum.NormalId.Front
-        BallDecal.Texture = "rbxassetid://" .. id
-        BallDecal.Parent = ball
-    else
-        for _, d in ipairs(ball:GetChildren()) do
-            if d:IsA("Decal") and d.Name ~= "VST_BallTexture" then
-                d.Transparency = 0
-            end
-        end
-    end
-end
-
--- ---------- RESTAURAR ----------
 local function restoreBall()
     if BallTarget and BallTarget.Parent and BallBackup then
         pcall(function()
@@ -785,10 +726,6 @@ local function restoreBall()
             BallTarget.Material = BallBackup.Material
         end)
     end
-    if BallDecal and BallDecal.Parent then
-        BallDecal:Destroy()
-    end
-    BallDecal = nil
     BallBackup = nil
 end
 
@@ -796,14 +733,12 @@ end
 local function startMonitor()
     if BallConn then BallConn:Disconnect() end
     local lastSearch = 0
-
     BallConn = RunService.Heartbeat:Connect(function()
         if not State.BallCustom.Enabled then return end
         if not BallTarget or not BallTarget.Parent then
             local now = tick()
             if now - lastSearch < 1.5 then return end
             lastSearch = now
-
             task.spawn(function()
                 local b = findBall()
                 if b and State.BallCustom.Enabled then
@@ -811,9 +746,6 @@ local function startMonitor()
                     BallBackup = nil
                     if State.BallCustom.Color then
                         applyColor(b, State.BallCustom.Color)
-                    end
-                    if State.BallCustom.Texture then
-                        applyTexture(b, State.BallCustom.Texture)
                     end
                 end
             end)
@@ -831,10 +763,7 @@ function BallCustomModule.setEnabled(on)
                 if State.BallCustom.Color then
                     applyColor(BallTarget, State.BallCustom.Color)
                 end
-                if State.BallCustom.Texture then
-                    applyTexture(BallTarget, State.BallCustom.Texture)
-                end
-                notify("Ball Custom ativado", "good")
+                notify("Ball Color ativado", "good")
             else
                 notify("Bola nao encontrada", "bad")
             end
@@ -847,7 +776,7 @@ function BallCustomModule.setEnabled(on)
             BallConn = nil
         end
         BallTarget = nil
-        notify("Ball Custom desativado", "bad")
+        notify("Ball Color desativado", "bad")
     end
 end
 
@@ -864,19 +793,6 @@ function BallCustomModule.setColor(name)
     end
 end
 
-function BallCustomModule.setTexture(name)
-    for _, e in ipairs(BALL_TEXTURES) do
-        if e.name == name then
-            State.BallCustom.Texture = e.id
-            if BallTarget and BallTarget.Parent then
-                applyTexture(BallTarget, e.id)
-            end
-            notify("Textura: " .. name, "good")
-            return
-        end
-    end
-end
-
 function BallCustomModule.refresh()
     task.spawn(function()
         local b = findBall()
@@ -885,9 +801,6 @@ function BallCustomModule.refresh()
             BallBackup = nil
             if State.BallCustom.Color then
                 applyColor(b, State.BallCustom.Color)
-            end
-            if State.BallCustom.Texture then
-                applyTexture(b, State.BallCustom.Texture)
             end
             notify("Bola reconectada", "good")
         else
@@ -899,7 +812,6 @@ end
 function BallCustomModule.reset()
     State.BallCustom.Enabled = false
     State.BallCustom.Color = nil
-    State.BallCustom.Texture = nil
     restoreBall()
     if BallConn then
         BallConn:Disconnect()
@@ -917,11 +829,10 @@ createTab("Ball", "BALL")
 do
     local page = Tabs["Ball"].page
 
-    -- Secao principal
-    local mainSec = section("Cor e Textura da Bola")
+    local mainSec = section("Cor da Bola")
     mainSec.Parent = page
 
-    toggleRow(mainSec, "Ativar Customizacao", State.BallCustom.Enabled, function(on)
+    toggleRow(mainSec, "Ativar Cor Custom", State.BallCustom.Enabled, function(on)
         BallCustomModule.setEnabled(on)
     end, 1)
 
@@ -932,7 +843,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Cor + textura da bola. Apenas local - outros nao veem.",
+        Text = "Muda a cor da bola. Apenas local - outros nao veem.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -943,7 +854,6 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
-    -- Cores
     local colorSec = section("Cores")
     colorSec.Parent = page
     for i, e in ipairs(BALL_COLORS) do
@@ -967,19 +877,9 @@ do
         end
     end
 
-    -- Texturas
-    local texSec = section("Texturas")
-    texSec.Parent = page
-    for i, e in ipairs(BALL_TEXTURES) do
-        buttonRow(texSec, e.name, function()
-            BallCustomModule.setTexture(e.name)
-        end, i)
-    end
-
-    -- Reset
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar bola original", function()
+    buttonRow(resetSec, "Restaurar cor original", function()
         BallCustomModule.reset()
     end, 1)
 end
@@ -1003,4 +903,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Custom carregado.")
+print("[VoidStrap] Ball Color carregado.")
