@@ -1,240 +1,282 @@
 --====================================================================
--- PARTE 5 — FIRE TRAIL NA BOLA (versão SIMPLES e direta)
--- Anexa Trail + Fire DIRETO na bola, como os scripts de rastro de player.
+-- PARTE 5 — MÓDULO: FIRE TRAIL NA BOLA (The Classic Soccer)
+-- Detecta a bola automaticamente, anexa Fire + Trail + Particles + PointLight
+-- 100% local (client-only), não replica para o servidor, reversível.
 --====================================================================
 
 State.FireTrail = State.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
 
+--====================================================================
+-- MÓDULO
+--====================================================================
 local FireTrailModule = {}
 
-local CurrentBall   = nil
-local ActiveEffects = {}
-local DebugLabel    = nil
-local DebugLog      = {}
+local CurrentBall     = nil
+local ActiveInstances = {}  -- lista de instâncias criadas para cleanup
 
-local function dbg(msg)
-    table.insert(DebugLog, 1, msg)
-    while #DebugLog > 10 do table.remove(DebugLog) end
-    if DebugLabel then DebugLabel.Text = table.concat(DebugLog, "\n") end
-    print("[FireTrail] " .. msg)
-end
-
--- ---------- PRESETS ----------
-local PRESETS = {
-    ["Fogo Clássico"] = { c1=Color3.fromRGB(255,120,30), c2=Color3.fromRGB(255,60,0) },
-    ["Fogo Azul"]     = { c1=Color3.fromRGB(80,180,255), c2=Color3.fromRGB(30,90,220) },
-    ["Fogo Roxo"]     = { c1=Color3.fromRGB(180,80,255), c2=Color3.fromRGB(120,30,220) },
-    ["Fogo Verde"]    = { c1=Color3.fromRGB(100,255,120), c2=Color3.fromRGB(30,200,60) },
-    ["Fogo Branco"]   = { c1=Color3.fromRGB(255,255,255), c2=Color3.fromRGB(220,240,255) },
-    ["Fogo Sombrio"]  = { c1=Color3.fromRGB(80,20,100), c2=Color3.fromRGB(30,5,40) },
-    ["Inferno"]       = { c1=Color3.fromRGB(255,80,0), c2=Color3.fromRGB(255,220,60) },
+-- ---------- PRESETS DE COR ----------
+local FIRE_PRESETS = {
+    ["Fogo Clássico"] = {
+        fire      = Color3.fromRGB(255, 120, 30),
+        secondary = Color3.fromRGB(255, 60, 0),
+        trail     = Color3.fromRGB(255, 180, 60),
+        trailMid  = Color3.fromRGB(255, 80, 20),
+        light     = Color3.fromRGB(255, 140, 40),
+        size      = 6,
+    },
+    ["Fogo Azul"] = {
+        fire      = Color3.fromRGB(80, 180, 255),
+        secondary = Color3.fromRGB(30, 90, 220),
+        trail     = Color3.fromRGB(150, 210, 255),
+        trailMid  = Color3.fromRGB(50, 130, 255),
+        light     = Color3.fromRGB(100, 180, 255),
+        size      = 6,
+    },
+    ["Fogo Roxo"] = {
+        fire      = Color3.fromRGB(180, 80, 255),
+        secondary = Color3.fromRGB(120, 30, 220),
+        trail     = Color3.fromRGB(210, 150, 255),
+        trailMid  = Color3.fromRGB(140, 60, 255),
+        light     = Color3.fromRGB(180, 100, 255),
+        size      = 6,
+    },
+    ["Fogo Verde"] = {
+        fire      = Color3.fromRGB(100, 255, 120),
+        secondary = Color3.fromRGB(30, 200, 60),
+        trail     = Color3.fromRGB(160, 255, 180),
+        trailMid  = Color3.fromRGB(50, 220, 100),
+        light     = Color3.fromRGB(120, 255, 140),
+        size      = 6,
+    },
+    ["Fogo Branco"] = {
+        fire      = Color3.fromRGB(255, 255, 255),
+        secondary = Color3.fromRGB(220, 240, 255),
+        trail     = Color3.fromRGB(255, 255, 255),
+        trailMid  = Color3.fromRGB(200, 220, 255),
+        light     = Color3.fromRGB(255, 255, 255),
+        size      = 6,
+    },
+    ["Fogo Sombrio"] = {
+        fire      = Color3.fromRGB(80, 20, 100),
+        secondary = Color3.fromRGB(30, 5, 40),
+        trail     = Color3.fromRGB(150, 50, 200),
+        trailMid  = Color3.fromRGB(80, 10, 120),
+        light     = Color3.fromRGB(120, 30, 180),
+        size      = 6,
+    },
+    ["Inferno"] = {
+        fire      = Color3.fromRGB(255, 80, 0),
+        secondary = Color3.fromRGB(255, 220, 60),
+        trail     = Color3.fromRGB(255, 160, 30),
+        trailMid  = Color3.fromRGB(255, 60, 0),
+        light     = Color3.fromRGB(255, 120, 20),
+        size      = 8,
+    },
 }
 
--- ---------- BUSCA A BOLA ----------
--- Busca rápida: só "tps" e nomes comuns, sem varrer o Workspace inteiro.
-local function findBall()
+-- ---------- DETECÇÃO DA BOLA ----------
+-- Heurística: nome contém "ball"/"bola" e é BasePart, não é do Character.
+local function looksLikeBall(obj)
+    if not obj:IsA("BasePart") then return false end
+    local n = obj.Name:lower()
+    if not (n:find("ball") or n:find("bola") or n == "soccer" or n:find("football")) then
+        return false
+    end
+    -- Descarta se estiver dentro do Character (evita pegar acessórios)
     local char = LP.Character
-
-    local function isValid(p)
-        if not p or not p:IsA("BasePart") then return false end
-        if char and p:IsDescendantOf(char) then return false end
-        return true
-    end
-
-    -- Prioridade 1: "TPS" ou "Bola"
-    for _, name in ipairs({"TPS", "Bola", "Ball", "SoccerBall"}) do
-        local b = Workspace:FindFirstChild(name, true)
-        if isValid(b) then return b end
-    end
-
-    -- Prioridade 2: qualquer coisa com "ball"/"bola"
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if obj:IsA("BasePart") and obj.Name:lower():find("ball") then
-            if isValid(obj) then return obj end
-        end
-        if obj:IsA("Model") then
-            for _, sub in ipairs(obj:GetChildren()) do
-                if sub:IsA("BasePart") then
-                    local n = sub.Name:lower()
-                    if n:find("ball") or n:find("bola") or n == "tps" then
-                        if isValid(sub) then return sub end
-                    end
-                end
-            end
-        end
-    end
-
-    return nil
+    if char and obj:IsDescendantOf(char) then return false end
+    return true
 end
 
--- ---------- LIMPA EFEITOS ----------
-local function clearEffects()
-    for _, obj in ipairs(ActiveEffects) do
+local function findBall()
+    -- Primeiro tenta por nome exato (mais rápido)
+    local candidates = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if looksLikeBall(obj) then
+            table.insert(candidates, obj)
+        end
+    end
+    if #candidates == 0 then return nil end
+
+    -- Prioriza bolas com MeshPart, com esfera, ou maiores
+    table.sort(candidates, function(a, b)
+        local scoreA, scoreB = 0, 0
+        if a:IsA("MeshPart") then scoreA = scoreA + 2 end
+        if b:IsA("MeshPart") then scoreB = scoreB + 2 end
+        if a.Shape == Enum.PartType.Ball then scoreA = scoreA + 3 end
+        if b.Shape == Enum.PartType.Ball then scoreB = scoreB + 3 end
+        scoreA = scoreA + a.Size.Magnitude
+        scoreB = scoreB + b.Size.Magnitude
+        return scoreA > scoreB
+    end)
+
+    return candidates[1]
+end
+
+-- ---------- CLEANUP ----------
+local function destroyEffects()
+    for _, inst in ipairs(ActiveInstances) do
         pcall(function()
-            if obj and obj.Parent then obj:Destroy() end
+            if inst and inst.Parent then inst:Destroy() end
         end)
     end
-    ActiveEffects = {}
+    ActiveInstances = {}
+    CurrentBall = nil
 end
 
--- ---------- APLICA EFEITOS DIRETO NA BOLA ----------
-local function applyToBall(ball, presetName)
-    if not ball or not ball.Parent then return false end
+-- ---------- APLICAR EFEITOS ----------
+local function applyEffects(ball, presetName)
+    destroyEffects()
+    if not ball or not ball.Parent then return end
 
-    clearEffects()
+    local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
+    CurrentBall = ball
 
-    local p = PRESETS[presetName] or PRESETS["Fogo Clássico"]
-    dbg("Anexando em: " .. ball.Name)
+    -- Guarda flag para pular o Character (evita detecção desnecessária)
+    -- Como só decoramos a bola, não há risco direto de anti-cheat.
 
-    -- 1) Fire DIRETO na bola
+    -- 1) Fire clássico
     local fire = Instance.new("Fire")
     fire.Name = "VST_Fire"
-    fire.Color = p.c1
-    fire.SecondaryColor = p.c2
-    fire.Size = 10
-    fire.Heat = 20
+    fire.Color = p.fire
+    fire.SecondaryColor = p.secondary
+    fire.Size = p.size
+    fire.Heat = 15
     fire.Parent = ball
-    table.insert(ActiveEffects, fire)
+    table.insert(ActiveInstances, fire)
 
-    -- 2) Attachments pra o Trail
+    -- 2) Attachments para o Trail (topo e base da bola)
+    local size = ball.Size
+    local offsetY = math.max(size.Y * 0.5, 1)
+
     local a0 = Instance.new("Attachment")
-    a0.Name = "VST_A0"
-    a0.Position = Vector3.new(0, 0.5, 0)
+    a0.Name = "VST_TrailA0"
+    a0.Position = Vector3.new(0, offsetY, 0)
     a0.Parent = ball
-    table.insert(ActiveEffects, a0)
+    table.insert(ActiveInstances, a0)
 
     local a1 = Instance.new("Attachment")
-    a1.Name = "VST_A1"
-    a1.Position = Vector3.new(0, -0.5, 0)
+    a1.Name = "VST_TrailA1"
+    a1.Position = Vector3.new(0, -offsetY, 0)
     a1.Parent = ball
-    table.insert(ActiveEffects, a1)
+    table.insert(ActiveInstances, a1)
 
-    -- 3) Trail DIRETO na bola (igual aos scripts de rastro de player)
+    -- 3) Trail em gradiente (fogo → transparente)
     local trail = Instance.new("Trail")
     trail.Name = "VST_Trail"
     trail.Attachment0 = a0
     trail.Attachment1 = a1
     trail.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0.0, p.c1),
-        ColorSequenceKeypoint.new(0.5, p.c2),
+        ColorSequenceKeypoint.new(0.0, p.trail),
+        ColorSequenceKeypoint.new(0.5, p.trailMid),
         ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0, 0, 0)),
     })
     trail.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.1),
-        NumberSequenceKeypoint.new(0.6, 0.4),
+        NumberSequenceKeypoint.new(0.0, 0.15),
+        NumberSequenceKeypoint.new(0.6, 0.65),
         NumberSequenceKeypoint.new(1.0, 1.0),
     })
-    trail.WidthScale = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 2.0),
-        NumberSequenceKeypoint.new(0.5, 1.2),
-        NumberSequenceKeypoint.new(1.0, 0.3),
-    })
-    trail.Lifetime = 1.0
+    trail.Lifetime = 0.7
+    trail.MinLength = 0
     trail.LightEmission = 1
     trail.LightInfluence = 0
     trail.FaceCamera = true
     trail.Parent = ball
-    table.insert(ActiveEffects, trail)
+    table.insert(ActiveInstances, trail)
 
-    -- 4) Partículas extras
+    -- 4) Faíscas (ParticleEmitter)
     local sparks = Instance.new("ParticleEmitter")
     sparks.Name = "VST_Sparks"
-    sparks.Color = ColorSequence.new(p.c1, p.c2)
+    sparks.Color = ColorSequence.new(p.fire, p.secondary)
     sparks.Size = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 1.5),
+        NumberSequenceKeypoint.new(0.0, 0.6),
         NumberSequenceKeypoint.new(1.0, 0.0),
     })
     sparks.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.2),
+        NumberSequenceKeypoint.new(0.0, 0.1),
         NumberSequenceKeypoint.new(1.0, 1.0),
     })
-    sparks.Lifetime = NumberRange.new(0.5, 1.0)
-    sparks.Rate = 60
-    sparks.Speed = NumberRange.new(2, 6)
+    sparks.Lifetime = NumberRange.new(0.4, 0.9)
+    sparks.Rate = 45
+    sparks.Speed = NumberRange.new(3, 7)
     sparks.SpreadAngle = Vector2.new(180, 180)
+    sparks.Rotation = NumberRange.new(0, 360)
+    sparks.RotSpeed = NumberRange.new(-180, 180)
     sparks.LightEmission = 1
     sparks.LightInfluence = 0
     sparks.Parent = ball
-    table.insert(ActiveEffects, sparks)
+    table.insert(ActiveInstances, sparks)
 
-    -- 5) Luz
+    -- 5) Brilho ambiente (PointLight)
     local light = Instance.new("PointLight")
     light.Name = "VST_Light"
-    light.Brightness = 4
-    light.Range = 16
-    light.Color = p.c1
-    light.Shadows = false
+    light.Brightness = 3
+    light.Range = 14
+    light.Color = p.light
+    light.Shadows = false   -- menos custo + menos "pesado" para anti-cheat
     light.Parent = ball
-    table.insert(ActiveEffects, light)
-
-    CurrentBall = ball
-    dbg("✓ Efeitos aplicados!")
-    return true
+    table.insert(ActiveInstances, light)
 end
 
--- ---------- API ----------
+-- ---------- API PÚBLICA ----------
 function FireTrailModule.setEnabled(on)
     State.FireTrail.Enabled = on
     if on then
-        dbg("Ativando...")
-        task.spawn(function()
-            local ball = findBall()
-            if ball then
-                applyToBall(ball, State.FireTrail.Preset)
-                notify("Fire Trail ativado", "good")
-            else
-                dbg("❌ Bola não encontrada")
-                notify("Bola não encontrada", "bad")
-            end
-        end)
+        local ball = findBall()
+        if ball then
+            applyEffects(ball, State.FireTrail.Preset)
+            notify("Fire Trail ativado na bola", "good")
+        else
+            notify("Bola não encontrada ainda...", "bad")
+            -- continua tentando via loop
+        end
     else
-        clearEffects()
-        CurrentBall = nil
-        dbg("Desativado")
+        destroyEffects()
         notify("Fire Trail desativado", "bad")
     end
 end
 
 function FireTrailModule.setPreset(name)
     State.FireTrail.Preset = name
-    if State.FireTrail.Enabled and CurrentBall and CurrentBall.Parent then
-        applyToBall(CurrentBall, name)
-        notify("Estilo: " .. name, "good")
+    if State.FireTrail.Enabled then
+        local ball = CurrentBall
+        if not ball or not ball.Parent then
+            ball = findBall()
+        end
+        if ball then
+            applyEffects(ball, name)
+            notify("Rastro: " .. name, "good")
+        end
     end
 end
 
 function FireTrailModule.refresh()
-    task.spawn(function()
-        clearEffects()
-        local ball = findBall()
-        if ball then
-            applyToBall(ball, State.FireTrail.Preset)
-            notify("Bola reconectada", "good")
-        else
-            notify("Nenhuma bola encontrada", "bad")
-        end
-    end)
+    local ball = findBall()
+    if ball then
+        applyEffects(ball, State.FireTrail.Preset)
+        notify("Bola reconectada", "good")
+    else
+        notify("Nenhuma bola encontrada", "bad")
+    end
 end
 
 function FireTrailModule.reset()
     State.FireTrail.Enabled = false
-    clearEffects()
-    CurrentBall = nil
-    DebugLog = {}
-    if DebugLabel then DebugLabel.Text = "(reset)" end
+    destroyEffects()
     notify("Fire Trail resetado", "bad")
 end
 
--- ---------- MONITOR DE RESPAWN (2s) ----------
--- Se a bola sumir e reaparecer, reanexa.
+--====================================================================
+-- LOOP DE RE-DETECÇÃO (leve, 1s)
+-- Se a bola sumir (fim de rodada) e reaparecer, reanexa automaticamente.
+--====================================================================
 task.spawn(function()
-    while task.wait(2) do
+    while task.wait(1) do
         if State.FireTrail.Enabled then
             if not CurrentBall or not CurrentBall.Parent then
                 local ball = findBall()
                 if ball then
-                    applyToBall(ball, State.FireTrail.Preset)
-                    dbg("Respawn detectado")
+                    applyEffects(ball, State.FireTrail.Preset)
                 end
             end
         end
@@ -242,70 +284,93 @@ task.spawn(function()
 end)
 
 --====================================================================
--- ABA
+-- NOVA ABA
 --====================================================================
 createTab("Fire Trail", "🔥")
 
 do
     local page = Tabs["Fire Trail"].page
+
     local sec = section("Rastro de Fogo na Bola")
     sec.Parent = page
 
+    -- Toggle
     toggleRow(sec, "Ativar Fire Trail", State.FireTrail.Enabled, function(on)
         FireTrailModule.setEnabled(on)
     end, 1)
 
+    -- Dropdown de preset
     dropdownRow(sec, "Estilo",
         { "Fogo Clássico", "Fogo Azul", "Fogo Roxo", "Fogo Verde",
           "Fogo Branco", "Fogo Sombrio", "Inferno" },
         State.FireTrail.Preset,
         function(opt) FireTrailModule.setPreset(opt) end, 2)
 
+    -- Botão de reconectar manualmente
     buttonRow(sec, "🔄 Forçar busca da bola", function()
         FireTrailModule.refresh()
     end, 3)
 
-    local debugFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 140),
-        BackgroundColor3 = Color3.fromRGB(15, 15, 18),
-        BorderSizePixel = 0,
+    -- Info
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundTransparency = 1,
+        Text = "Anexa fogo, trail, faíscas e luz na bola. 100% local, reversível e detecta respawn da bola automaticamente.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
         LayoutOrder = 4,
         Parent = sec,
     })
-    corner(8, debugFrame)
-    stroke(ActiveTheme.Stroke, 1, 0.4, debugFrame)
+    themed(info, "TextColor3", "Sub")
 
-    DebugLabel = create("TextLabel", {
-        Size = UDim2.new(1, -16, 1, -16),
-        Position = UDim2.new(0, 8, 0, 8),
+    -- Restaurar
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Remover efeitos da bola", function()
+        FireTrailModule.reset()
+    end, 1)
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "(aguardando...)",
-        Font = Enum.Font.Code,
+        Text = "⚠ Efeitos visuais são locais. Se algum jogo bloquear criação de instâncias em partes replicadas, desative.",
+        Font = Enum.Font.Gotham,
         TextSize = 10,
-        TextColor3 = Color3.fromRGB(120, 255, 160),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
+        TextColor3 = ActiveTheme.Bad,
         TextWrapped = true,
-        Parent = debugFrame,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2,
+        Parent = resetSec,
     })
+    themed(warnLbl, "TextColor3", "Bad")
 end
 
 --====================================================================
--- CLEANUP
+-- HOOK NO UNLOAD / CLEANUP (encadeia com o que já existe)
 --====================================================================
 local _prevUnload2 = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevUnload2 then _prevUnload2() end
-    pcall(function() FireTrailModule.reset() end)
+    pcall(function()
+        FireTrailModule.reset()
+    end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function() FireTrailModule.reset() end)
+        pcall(function()
+            FireTrailModule.reset()
+        end)
     end
 end)
 
-print("[VoidStrap] Fire Trail (direct) carregado.")--====================================================================
+--====================================================================
+-- FIM DA PARTE 5 — Aba "Fire Trail" adicionada
+--====================================================================
+print("[VoidStrap] Módulo Fire Trail carregado.")--====================================================================
 -- PARTE 5B — PLAYER TRAIL / BEAM
 -- Rastro (Trail) ou feixe (Beam) no personagem. Local, reversível.
 --====================================================================
@@ -720,9 +785,7 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 5C — SKIES VISUAL via DOMO INVERTIDO
--- Cria uma esfera gigante invertida que segue a câmera.
--- Funciona com qualquer ID de imagem válido.
+-- PARTE 5C — SKYBOX COM IDs (domo invertido)
 --====================================================================
 
 State.SkyTexture = State.SkyTexture or { Enabled = false, Current = nil }
@@ -732,16 +795,15 @@ local CurrentDome = nil
 local DomeConn = nil
 
 local CUSTOM_SKIES = {
-    { name = "Ce1", id = "8808550143" },
-    { name = "Ce2", id = "12635340429" },
-    { name = "Ce3", id = "13107361022" },
-    { name = "Ce4", id = "15502592084" },
-    { name = "Ce5", id = "8539737017" },
-    { name = "Ce6", id = "8735253332" },
-    { name = "Ce7", id = "136055162054954" },
+    { name = "Sky 1", id = "8808550143" },
+    { name = "Sky 2", id = "12635340429" },
+    { name = "Sky 3", id = "13107361022" },
+    { name = "Sky 4", id = "15502592084" },
+    { name = "Sky 5", id = "8539737017" },
+    { name = "Sky 6", id = "8735253332" },
+    { name = "Sky 7", id = "136055162054954" },
 }
 
--- Remove domo antigo
 local function destroyDome()
     if DomeConn then
         DomeConn:Disconnect()
@@ -753,7 +815,6 @@ local function destroyDome()
     CurrentDome = nil
 end
 
--- Cria o domo invertido
 local function createDome(id)
     destroyDome()
 
@@ -770,7 +831,6 @@ local function createDome(id)
     dome.Color = Color3.new(1, 1, 1)
     dome.Locked = true
 
-    -- SpecialMesh invertido (escala negativa = olha de dentro pra fora)
     local mesh = Instance.new("SpecialMesh")
     mesh.MeshType = Enum.MeshType.Sphere
     mesh.Scale = Vector3.new(-7000, -7000, -7000)
@@ -780,7 +840,6 @@ local function createDome(id)
     dome.Parent = Workspace
     CurrentDome = dome
 
-    -- Segue a câmera em tempo real
     DomeConn = RunService.RenderStepped:Connect(function()
         if CurrentDome and CurrentDome.Parent and Camera then
             pcall(function()
@@ -822,14 +881,13 @@ createTab("Skies", "SKY")
 
 do
     local page = Tabs["Skies"].page
-
-    local sec = section("Texturas de Ceu (Domo)")
+    local sec = section("Skies Custom")
     sec.Parent = page
 
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 60),
         BackgroundTransparency = 1,
-        Text = "Cria uma esfera gigante invertida que segue sua camera. Funciona com qualquer ID de imagem.",
+        Text = "Aplica texturas de ceu via domo invertido. Funciona com qualquer ID de imagem.",
         Font = Enum.Font.Gotham, TextSize = 11,
         TextColor3 = ActiveTheme.Sub, TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -845,7 +903,7 @@ do
 
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Remover domo customizado", function()
+    buttonRow(resetSec, "Remover Sky customizado", function()
         SkyTextureModule.restore()
     end, 1)
 end
@@ -862,4 +920,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Skies Custom (domo) carregado.")
+print("[VoidStrap] Skybox IDs carregado.")
