@@ -1,6 +1,5 @@
 --[[
-    VoidStrap v1.1.0 — Arquivo A
-    Parte 1: Serviços + Temas + State + Helpers + UI base
+    VoidStrap v1.2.0 — Interface redesenhada (estilo Kirtium)
 ]]
 
 local Players      = game:GetService("Players")
@@ -37,21 +36,34 @@ local function getSafeGuiParent()
 end
 local GuiParent = getSafeGuiParent()
 
-local VERSION = "v1.1.0"
+local VERSION = "v1.2.0"
 local TITLE   = "VoidStrap"
 
+-- ---------- TEMA ----------
 local Themes = {
     Void = {
-        Background = Color3.fromRGB(12, 12, 15),
-        Surface    = Color3.fromRGB(20, 20, 24),
-        Surface2   = Color3.fromRGB(28, 28, 34),
+        Background = Color3.fromRGB(15, 15, 18),
+        Surface    = Color3.fromRGB(25, 25, 30),
+        Surface2   = Color3.fromRGB(35, 35, 42),
         Accent     = Color3.fromRGB(140, 100, 255),
         AccentDim  = Color3.fromRGB(80, 55, 160),
-        Text       = Color3.fromRGB(235, 235, 245),
-        Sub        = Color3.fromRGB(140, 140, 155),
-        Stroke     = Color3.fromRGB(40, 40, 50),
-        Good       = Color3.fromRGB(80, 200, 130),
+        Text       = Color3.fromRGB(240, 240, 245),
+        Sub        = Color3.fromRGB(150, 150, 165),
+        Stroke     = Color3.fromRGB(50, 50, 60),
+        Good       = Color3.fromRGB(80, 200, 130),  -- verde do toggle
         Bad        = Color3.fromRGB(220, 80, 80),
+    },
+    Kirtium = {
+        Background = Color3.fromRGB(12, 12, 15),
+        Surface    = Color3.fromRGB(22, 22, 26),
+        Surface2   = Color3.fromRGB(32, 32, 38),
+        Accent     = Color3.fromRGB(80, 220, 130),  -- verde
+        AccentDim  = Color3.fromRGB(40, 130, 70),
+        Text       = Color3.fromRGB(245, 245, 250),
+        Sub        = Color3.fromRGB(150, 155, 165),
+        Stroke     = Color3.fromRGB(48, 48, 55),
+        Good       = Color3.fromRGB(80, 220, 130),
+        Bad        = Color3.fromRGB(230, 90, 90),
     },
     Midnight = {
         Background = Color3.fromRGB(8, 12, 20),
@@ -65,23 +77,11 @@ local Themes = {
         Good       = Color3.fromRGB(80, 220, 160),
         Bad        = Color3.fromRGB(230, 90, 100),
     },
-    Ember = {
-        Background = Color3.fromRGB(18, 10, 10),
-        Surface    = Color3.fromRGB(26, 14, 14),
-        Surface2   = Color3.fromRGB(38, 20, 20),
-        Accent     = Color3.fromRGB(255, 120, 60),
-        AccentDim  = Color3.fromRGB(150, 60, 30),
-        Text       = Color3.fromRGB(255, 235, 225),
-        Sub        = Color3.fromRGB(180, 140, 120),
-        Stroke     = Color3.fromRGB(60, 30, 25),
-        Good       = Color3.fromRGB(120, 220, 140),
-        Bad        = Color3.fromRGB(255, 80, 80),
-    },
 }
-local ActiveTheme = Themes.Void
+local ActiveTheme = Themes.Kirtium
 
 local State = {
-    Settings = { AnimationsEnabled = true, SoundsEnabled = true, ThemeName = "Void" },
+    Settings = { AnimationsEnabled = true, SoundsEnabled = true, ThemeName = "Kirtium" },
     Window = { Minimized = false },
     Skybox = { Enabled = false, Current = "Default" },
     Stretch = { Enabled = false, Intensity = 0, BaseFOV = 70 },
@@ -186,7 +186,7 @@ local function themed(inst, prop, themeKey)
 end
 
 local function applyTheme(themeName)
-    local theme = Themes[themeName] or Themes.Void
+    local theme = Themes[themeName] or Themes.Kirtium
     ActiveTheme = theme
     for _, e in ipairs(ThemedElements) do
         local v = theme[e.key]
@@ -246,6 +246,7 @@ local function notify(text, kind)
     end)
 end
 
+-- ---------- SCREEN GUI ----------
 local ScreenGui = create("ScreenGui", {
     Name = "VoidStrapGui_" .. tostring(math.random(1000, 9999)),
     ResetOnSpawn = false,
@@ -261,66 +262,66 @@ local ScreenOverlay = create("Frame", {
     Parent = ScreenGui,
 })
 
+-- JANELA PRINCIPAL
 local Main = create("Frame", {
     Name = "Main",
-    Size = UDim2.fromOffset(620, 420),
+    Size = UDim2.fromOffset(640, 440),
     Position = UDim2.fromScale(0.5, 0.5),
     AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = ActiveTheme.Background,
+    BackgroundColor3 = Color3.fromRGB(8, 8, 10),
     BorderSizePixel = 0,
     ClipsDescendants = true,
     Parent = ScreenOverlay,
 })
-themed(Main, "BackgroundColor3", "Background")
 corner(14, Main)
 
+-- Fundo com imagem (opcional, com blur-like)
 local MainBgImage = create("ImageLabel", {
     Name = "VST_MainBg",
     Size = UDim2.fromScale(1, 1),
     BackgroundTransparency = 1,
     Image = "",
-    ImageTransparency = 0.75,
+    ImageTransparency = 0.4,
     ScaleType = Enum.ScaleType.Crop,
-    ZIndex = -1,
+    ZIndex = 0,
     Visible = false,
     Parent = Main,
 })
 corner(14, MainBgImage)
 
-stroke(ActiveTheme.Stroke, 1, 0.3, Main)
-
-create("UIStroke", {
-    Color = Color3.new(0, 0, 0),
-    Thickness = 6,
-    Transparency = 0.85,
-    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-    Parent = Main,
-})
-
-local TopBar = create("Frame", {
-    Size = UDim2.new(1, 0, 0, 44),
-    BackgroundColor3 = ActiveTheme.Surface,
+-- Overlay escuro por cima da imagem pra deixar legível
+local MainOverlay = create("Frame", {
+    Name = "VST_MainOverlay",
+    Size = UDim2.fromScale(1, 1),
+    BackgroundColor3 = Color3.fromRGB(8, 8, 12),
+    BackgroundTransparency = 0.35,
     BorderSizePixel = 0,
+    ZIndex = 1,
     Parent = Main,
 })
-themed(TopBar, "BackgroundColor3", "Surface")
+corner(14, MainOverlay)
+
+stroke(ActiveTheme.Stroke, 1, 0.4, Main)
+
+-- TOPBAR
+local TopBar = create("Frame", {
+    Size = UDim2.new(1, 0, 0, 52),
+    BackgroundColor3 = Color3.fromRGB(12, 12, 15),
+    BackgroundTransparency = 0.2,
+    BorderSizePixel = 0,
+    ZIndex = 5,
+    Parent = Main,
+})
 corner(14, TopBar)
 
-local TopBarFill = create("Frame", {
-    Size = UDim2.new(1, 0, 0, 14),
-    Position = UDim2.new(0, 0, 1, -14),
-    BackgroundColor3 = ActiveTheme.Surface,
-    BorderSizePixel = 0,
-    Parent = TopBar,
-})
-themed(TopBarFill, "BackgroundColor3", "Surface")
-
+-- Logo pequena
 local Logo = create("Frame", {
     Size = UDim2.fromOffset(28, 28),
-    Position = UDim2.new(0, 12, 0, 8),
+    Position = UDim2.new(0, 16, 0, 12),
     BackgroundColor3 = ActiveTheme.Accent,
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
+    ZIndex = 6,
     Parent = TopBar,
 })
 corner(8, Logo)
@@ -330,101 +331,121 @@ local LogoImage = create("ImageLabel", {
     BackgroundTransparency = 1,
     Image = "rbxassetid://99887975337982",
     ScaleType = Enum.ScaleType.Fit,
+    ZIndex = 6,
     Parent = Logo,
 })
 corner(8, LogoImage)
 
+-- Título
 local TitleLabel = create("TextLabel", {
     Size = UDim2.new(0, 200, 1, 0),
-    Position = UDim2.new(0, 50, 0, 0),
+    Position = UDim2.new(0, 54, 0, 0),
     BackgroundTransparency = 1,
     Text = TITLE,
     Font = Enum.Font.GothamBold,
-    TextSize = 16,
+    TextSize = 18,
     TextColor3 = ActiveTheme.Text,
     TextXAlignment = Enum.TextXAlignment.Left,
+    ZIndex = 6,
     Parent = TopBar,
 })
 themed(TitleLabel, "TextColor3", "Text")
 
-local VersionLabel = create("TextLabel", {
-    Size = UDim2.new(0, 80, 1, 0),
-    Position = UDim2.new(0, 134, 0, 0),
-    BackgroundTransparency = 1,
-    Text = VERSION,
-    Font = Enum.Font.GothamMedium,
-    TextSize = 11,
-    TextColor3 = ActiveTheme.Sub,
-    TextXAlignment = Enum.TextXAlignment.Left,
+-- Badge de versão (estilo Kirtium)
+local VersionBadge = create("Frame", {
+    Size = UDim2.fromOffset(70, 24),
+    Position = UDim2.new(0, 170, 0.5, -12),
+    BackgroundColor3 = Color3.fromRGB(25, 25, 30),
+    BackgroundTransparency = 0.2,
+    BorderSizePixel = 0,
+    ZIndex = 6,
     Parent = TopBar,
 })
-themed(VersionLabel, "TextColor3", "Sub")
+corner(6, VersionBadge)
+stroke(ActiveTheme.Stroke, 1, 0.3, VersionBadge)
 
+local VersionLabel = create("TextLabel", {
+    Size = UDim2.fromScale(1, 1),
+    BackgroundTransparency = 1,
+    Text = VERSION,
+    Font = Enum.Font.GothamBold,
+    TextSize = 11,
+    TextColor3 = ActiveTheme.Text,
+    ZIndex = 7,
+    Parent = VersionBadge,
+})
+themed(VersionLabel, "TextColor3", "Text")
+
+-- Botões da topbar (minimizar, fechar)
 local function topbarButton(iconText, offsetRight)
     local btn = create("TextButton", {
-        Size = UDim2.fromOffset(28, 28),
-        Position = UDim2.new(1, offsetRight, 0, 8),
-        BackgroundColor3 = ActiveTheme.Surface2,
+        Size = UDim2.fromOffset(32, 32),
+        Position = UDim2.new(1, offsetRight, 0, 10),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 36),
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         Text = iconText,
         Font = Enum.Font.GothamBold,
         TextSize = 14,
         TextColor3 = ActiveTheme.Sub,
         AutoButtonColor = false,
+        ZIndex = 6,
         Parent = TopBar,
     })
-    themed(btn, "BackgroundColor3", "Surface2")
     themed(btn, "TextColor3", "Sub")
     corner(8, btn)
     btn.MouseEnter:Connect(function()
-        tween(btn, 0.15, { BackgroundColor3 = ActiveTheme.Surface })
+        tween(btn, 0.15, { BackgroundColor3 = Color3.fromRGB(45, 45, 55), BackgroundTransparency = 0 })
     end)
     btn.MouseLeave:Connect(function()
-        tween(btn, 0.15, { BackgroundColor3 = ActiveTheme.Surface2 })
+        tween(btn, 0.15, { BackgroundColor3 = Color3.fromRGB(30, 30, 36), BackgroundTransparency = 0.3 })
     end)
     return btn
 end
 
-local CloseBtn    = topbarButton("X", -38)
-local MinimizeBtn = topbarButton("-", -72)
+local CloseBtn    = topbarButton("X", -44)
+local MinimizeBtn = topbarButton("_", -82)
 
+-- SIDEBAR
 local Sidebar = create("ScrollingFrame", {
-    Size = UDim2.new(0, 150, 1, -44),
-    Position = UDim2.new(0, 0, 0, 44),
-    BackgroundColor3 = ActiveTheme.Background,
-    BackgroundTransparency = 0.3,
+    Size = UDim2.new(0, 150, 1, -52),
+    Position = UDim2.new(0, 0, 0, 52),
+    BackgroundColor3 = Color3.fromRGB(12, 12, 15),
+    BackgroundTransparency = 0.4,
     BorderSizePixel = 0,
     ScrollBarThickness = 4,
     ScrollBarImageColor3 = ActiveTheme.Accent,
-    ScrollBarImageTransparency = 0.3,
+    ScrollBarImageTransparency = 0.4,
     CanvasSize = UDim2.new(0, 0, 0, 0),
     AutomaticCanvasSize = Enum.AutomaticSize.Y,
     ScrollingDirection = Enum.ScrollingDirection.Y,
     ScrollingEnabled = true,
     ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,
     ClipsDescendants = true,
+    ZIndex = 5,
     Parent = Main,
 })
-themed(Sidebar, "BackgroundColor3", "Background")
 padding(10, Sidebar)
 create("UIListLayout", {
-    Padding = UDim.new(0, 6),
+    Padding = UDim.new(0, 4),
     SortOrder = Enum.SortOrder.LayoutOrder,
     Parent = Sidebar,
 })
 
+-- CONTENT
 local Content = create("Frame", {
-    Size = UDim2.new(1, -150, 1, -44),
-    Position = UDim2.new(0, 150, 0, 44),
-    BackgroundColor3 = ActiveTheme.Background,
-    BackgroundTransparency = 1,
+    Size = UDim2.new(1, -150, 1, -52),
+    Position = UDim2.new(0, 150, 0, 52),
+    BackgroundColor3 = Color3.fromRGB(10, 10, 14),
+    BackgroundTransparency = 0.4,
     BorderSizePixel = 0,
+    ZIndex = 5,
     Parent = Main,
 })
 padding(14, Content)
 
-print("[VoidStrap] Parte 1 OK")--====================================================================
--- PARTE 2 — ABAS + COMPONENTES
+print("[VoidStrap] Parte 1 (Kirtium style) OK")--====================================================================
+-- PARTE 2 — ABAS + COMPONENTES (estilo Kirtium)
 --====================================================================
 
 local Tabs = {}
@@ -434,21 +455,23 @@ function selectTab(name)
     for n, tab in pairs(Tabs) do
         local isActive = (n == name)
         tab.page.Visible = isActive
-        tab.accentBar.Visible = isActive
         tween(tab.button, 0.2, {
-            BackgroundColor3 = isActive and ActiveTheme.Surface or ActiveTheme.Background,
+            BackgroundColor3 = isActive and Color3.fromRGB(35, 35, 42) or Color3.fromRGB(0, 0, 0),
+            BackgroundTransparency = isActive and 0.3 or 1,
         })
         tween(tab.txt, 0.2, {
             TextColor3 = isActive and ActiveTheme.Text or ActiveTheme.Sub,
         })
+        tab.accentBar.Visible = isActive
     end
     CurrentTab = name
 end
 
 local function createTab(name, iconText)
     local btn = create("TextButton", {
-        Size = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = ActiveTheme.Background,
+        Size = UDim2.new(1, 0, 0, 34),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
@@ -456,22 +479,26 @@ local function createTab(name, iconText)
     })
     corner(8, btn)
 
-    local accentBar = create("Frame", {
-        Size = UDim2.new(0, 3, 0.55, 0),
-        Position = UDim2.new(0, 2, 0.5, 0),
+    -- ícone (texto pequeno à esquerda)
+    local icon = create("TextLabel", {
+        Size = UDim2.fromOffset(24, 24),
+        Position = UDim2.new(0, 8, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = ActiveTheme.Accent,
-        BorderSizePixel = 0,
-        Visible = false,
+        BackgroundTransparency = 1,
+        Text = iconText,
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = ActiveTheme.Sub,
+        TextXAlignment = Enum.TextXAlignment.Center,
         Parent = btn,
     })
-    corner(2, accentBar)
+    themed(icon, "TextColor3", "Sub")
 
     local txt = create("TextLabel", {
-        Size = UDim2.new(1, -12, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -40, 1, 0),
+        Position = UDim2.new(0, 38, 0, 0),
         BackgroundTransparency = 1,
-        Text = "  " .. iconText .. "   " .. name,
+        Text = name,
         Font = Enum.Font.GothamMedium,
         TextSize = 13,
         TextColor3 = ActiveTheme.Sub,
@@ -480,13 +507,24 @@ local function createTab(name, iconText)
     })
     themed(txt, "TextColor3", "Sub")
 
+    local accentBar = create("Frame", {
+        Size = UDim2.new(0, 3, 0.5, 0),
+        Position = UDim2.new(0, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundColor3 = ActiveTheme.Accent,
+        BorderSizePixel = 0,
+        Visible = false,
+        Parent = btn,
+    })
+    corner(2, accentBar)
+
     local page = create("ScrollingFrame", {
         Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ScrollBarThickness = 6,
+        ScrollBarThickness = 4,
         ScrollBarImageColor3 = ActiveTheme.Accent,
-        ScrollBarImageTransparency = 0.2,
+        ScrollBarImageTransparency = 0.4,
         CanvasSize = UDim2.new(0, 0, 0, 0),
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -497,19 +535,19 @@ local function createTab(name, iconText)
         Parent = Content,
     })
     create("UIListLayout", {
-        Padding = UDim.new(0, 8),
+        Padding = UDim.new(0, 10),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = page,
     })
     create("UIPadding", {
         PaddingTop    = UDim.new(0, 4),
-        PaddingBottom = UDim.new(0, 12),
-        PaddingLeft   = UDim.new(0, 4),
-        PaddingRight  = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 14),
+        PaddingLeft   = UDim.new(0, 2),
+        PaddingRight  = UDim.new(0, 2),
         Parent = page,
     })
 
-    Tabs[name] = { button = btn, page = page, accentBar = accentBar, txt = txt }
+    Tabs[name] = { button = btn, page = page, accentBar = accentBar, txt = txt, icon = icon }
 
     btn.MouseButton1Click:Connect(function()
         playClick()
@@ -517,38 +555,39 @@ local function createTab(name, iconText)
     end)
     btn.MouseEnter:Connect(function()
         if CurrentTab ~= name then
-            tween(btn, 0.15, { BackgroundColor3 = ActiveTheme.Surface })
+            tween(btn, 0.15, { BackgroundColor3 = Color3.fromRGB(25, 25, 30), BackgroundTransparency = 0.5 })
         end
     end)
     btn.MouseLeave:Connect(function()
         if CurrentTab ~= name then
-            tween(btn, 0.15, { BackgroundColor3 = ActiveTheme.Background })
+            tween(btn, 0.15, { BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1 })
         end
     end)
 end
 
+-- SECTION
 local function section(title)
     local frame = create("Frame", {
         Size = UDim2.new(1, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
-        BackgroundColor3 = ActiveTheme.Surface,
+        BackgroundColor3 = Color3.fromRGB(20, 20, 25),
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
     })
-    themed(frame, "BackgroundColor3", "Surface")
-    corner(10, frame)
-    stroke(ActiveTheme.Stroke, 1, 0.5, frame)
-    padding(12, frame)
+    corner(12, frame)
+    stroke(ActiveTheme.Stroke, 1, 0.6, frame)
+    padding(14, frame)
     create("UIListLayout", {
         Padding = UDim.new(0, 8),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = frame,
     })
     local lbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 20),
+        Size = UDim2.new(1, 0, 0, 22),
         BackgroundTransparency = 1,
         Text = title,
         Font = Enum.Font.GothamBold,
-        TextSize = 13,
+        TextSize = 14,
         TextColor3 = ActiveTheme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
         LayoutOrder = 0,
@@ -558,22 +597,23 @@ local function section(title)
     return frame
 end
 
+-- BUTTON ROW
 local function buttonRow(parent, label, onClick, order)
     local row = create("TextButton", {
-        Size = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = ActiveTheme.Surface2,
+        Size = UDim2.new(1, 0, 0, 38),
+        BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         Text = "",
         AutoButtonColor = false,
         LayoutOrder = order or 0,
         Parent = parent,
     })
-    themed(row, "BackgroundColor3", "Surface2")
     corner(8, row)
 
     local lbl = create("TextLabel", {
         Size = UDim2.new(1, -80, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
         Text = label,
         Font = Enum.Font.GothamMedium,
@@ -589,21 +629,21 @@ local function buttonRow(parent, label, onClick, order)
         Position = UDim2.new(1, -64, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
         BackgroundColor3 = ActiveTheme.Accent,
+        BackgroundTransparency = 0.2,
         BorderSizePixel = 0,
         Text = "Aplicar",
         Font = Enum.Font.GothamBold,
-        TextSize = 11,
+        TextSize = 10,
         TextColor3 = Color3.new(1, 1, 1),
         Parent = row,
     })
-    themed(badge, "BackgroundColor3", "Accent")
     corner(6, badge)
 
     row.MouseEnter:Connect(function()
-        tween(row, 0.15, { BackgroundColor3 = ActiveTheme.Surface })
+        tween(row, 0.15, { BackgroundColor3 = Color3.fromRGB(38, 38, 46), BackgroundTransparency = 0.3 })
     end)
     row.MouseLeave:Connect(function()
-        tween(row, 0.15, { BackgroundColor3 = ActiveTheme.Surface2 })
+        tween(row, 0.15, { BackgroundColor3 = Color3.fromRGB(28, 28, 34), BackgroundTransparency = 0.4 })
     end)
     row.MouseButton1Click:Connect(function()
         playClick()
@@ -612,23 +652,24 @@ local function buttonRow(parent, label, onClick, order)
     return row, badge
 end
 
+-- TOGGLE ROW (verde estilo Kirtium)
 local function toggleRow(parent, label, initial, onChange, order)
     local row = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = ActiveTheme.Surface2,
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
         Parent = parent,
     })
-    themed(row, "BackgroundColor3", "Surface2")
     corner(8, row)
 
     local lbl = create("TextLabel", {
-        Size = UDim2.new(1, -80, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -100, 0, 22),
+        Position = UDim2.new(0, 14, 0, 6),
         BackgroundTransparency = 1,
         Text = label,
-        Font = Enum.Font.GothamMedium,
+        Font = Enum.Font.GothamBold,
         TextSize = 13,
         TextColor3 = ActiveTheme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -636,31 +677,45 @@ local function toggleRow(parent, label, initial, onChange, order)
     })
     themed(lbl, "TextColor3", "Text")
 
+    -- subtítulo do Kirtium (opcional)
+    local sub = create("TextLabel", {
+        Size = UDim2.new(1, -100, 0, 14),
+        Position = UDim2.new(0, 14, 0, 26),
+        BackgroundTransparency = 1,
+        Text = "Ativa/desativa essa função",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = row,
+    })
+    themed(sub, "TextColor3", "Sub")
+
+    -- Toggle track (verde quando ativo)
     local track = create("Frame", {
-        Size = UDim2.fromOffset(42, 22),
-        Position = UDim2.new(1, -54, 0.5, 0),
+        Size = UDim2.fromOffset(46, 26),
+        Position = UDim2.new(1, -60, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = ActiveTheme.Stroke,
+        BackgroundColor3 = Color3.fromRGB(60, 60, 70),
         BorderSizePixel = 0,
         Parent = row,
     })
-    themed(track, "BackgroundColor3", "Stroke")
-    corner(11, track)
+    corner(13, track)
 
     local knob = create("Frame", {
-        Size = UDim2.fromOffset(16, 16),
+        Size = UDim2.fromOffset(20, 20),
         Position = UDim2.new(0, 3, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = track,
     })
-    corner(8, knob)
+    corner(10, knob)
 
     local state = initial and true or false
     local function render(animated)
-        local targetX = state and UDim2.new(1, -19, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
-        local targetColor = state and ActiveTheme.Accent or ActiveTheme.Stroke
+        local targetX = state and UDim2.new(1, -23, 0.5, 0) or UDim2.new(0, 3, 0.5, 0)
+        local targetColor = state and Color3.fromRGB(80, 220, 130) or Color3.fromRGB(60, 60, 70)
         if animated then
             tween(knob, 0.2, { Position = targetX })
             tween(track, 0.2, { BackgroundColor3 = targetColor })
@@ -691,23 +746,24 @@ local function toggleRow(parent, label, initial, onChange, order)
     return row, set, function() return state end
 end
 
+-- SLIDER ROW
 local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     local row = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 56),
-        BackgroundColor3 = ActiveTheme.Surface2,
+        Size = UDim2.new(1, 0, 0, 60),
+        BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
         Parent = parent,
     })
-    themed(row, "BackgroundColor3", "Surface2")
     corner(8, row)
 
     local lbl = create("TextLabel", {
-        Size = UDim2.new(1, -80, 0, 24),
-        Position = UDim2.new(0, 12, 0, 6),
+        Size = UDim2.new(1, -80, 0, 22),
+        Position = UDim2.new(0, 14, 0, 8),
         BackgroundTransparency = 1,
         Text = label,
-        Font = Enum.Font.GothamMedium,
+        Font = Enum.Font.GothamBold,
         TextSize = 13,
         TextColor3 = ActiveTheme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -717,7 +773,7 @@ local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
 
     local valueLabel = create("TextLabel", {
         Size = UDim2.fromOffset(60, 22),
-        Position = UDim2.new(1, -72, 0, 6),
+        Position = UDim2.new(1, -72, 0, 8),
         BackgroundTransparency = 1,
         Text = tostring(initial),
         Font = Enum.Font.GothamBold,
@@ -729,13 +785,12 @@ local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     themed(valueLabel, "TextColor3", "Accent")
 
     local track = create("Frame", {
-        Size = UDim2.new(1, -24, 0, 6),
-        Position = UDim2.new(0, 12, 0, 38),
-        BackgroundColor3 = ActiveTheme.Stroke,
+        Size = UDim2.new(1, -28, 0, 6),
+        Position = UDim2.new(0, 14, 0, 42),
+        BackgroundColor3 = Color3.fromRGB(60, 60, 70),
         BorderSizePixel = 0,
         Parent = row,
     })
-    themed(track, "BackgroundColor3", "Stroke")
     corner(3, track)
 
     local fill = create("Frame", {
@@ -748,14 +803,14 @@ local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     corner(3, fill)
 
     local handle = create("Frame", {
-        Size = UDim2.fromOffset(14, 14),
+        Size = UDim2.fromOffset(18, 18),
         Position = UDim2.new(0, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = track,
     })
-    corner(7, handle)
+    corner(9, handle)
 
     local value = initial
     local dragging = false
@@ -798,24 +853,25 @@ local function sliderRow(parent, label, minV, maxV, initial, onChange, order)
     return row, function() return value end
 end
 
+-- DROPDOWN ROW
 local function dropdownRow(parent, label, options, initial, onChange, order)
     local row = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = ActiveTheme.Surface2,
+        Size = UDim2.new(1, 0, 0, 44),
+        BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+        BackgroundTransparency = 0.4,
         BorderSizePixel = 0,
         LayoutOrder = order or 0,
         Parent = parent,
         ClipsDescendants = false,
     })
-    themed(row, "BackgroundColor3", "Surface2")
     corner(8, row)
 
     local lbl = create("TextLabel", {
         Size = UDim2.new(1, -160, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
         Text = label,
-        Font = Enum.Font.GothamMedium,
+        Font = Enum.Font.GothamBold,
         TextSize = 13,
         TextColor3 = ActiveTheme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -824,10 +880,11 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
     themed(lbl, "TextColor3", "Text")
 
     local selected = create("TextButton", {
-        Size = UDim2.fromOffset(120, 26),
-        Position = UDim2.new(1, -132, 0.5, 0),
+        Size = UDim2.fromOffset(120, 30),
+        Position = UDim2.new(1, -134, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = ActiveTheme.Background,
+        BackgroundColor3 = Color3.fromRGB(20, 20, 25),
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         Text = initial,
         Font = Enum.Font.GothamMedium,
@@ -836,20 +893,18 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
         AutoButtonColor = false,
         Parent = row,
     })
-    themed(selected, "BackgroundColor3", "Background")
     themed(selected, "TextColor3", "Text")
     corner(6, selected)
 
     local list = create("Frame", {
-        Size = UDim2.new(0, 120, 0, #options * 26 + 8),
-        Position = UDim2.new(1, -132, 1, 4),
-        BackgroundColor3 = ActiveTheme.Surface,
+        Size = UDim2.new(0, 120, 0, #options * 28 + 10),
+        Position = UDim2.new(1, -134, 1, 4),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 25),
         BorderSizePixel = 0,
         Visible = false,
         ZIndex = 5,
         Parent = row,
     })
-    themed(list, "BackgroundColor3", "Surface")
     corner(6, list)
     stroke(ActiveTheme.Stroke, 1, 0.3, list)
     create("UIListLayout", {
@@ -861,8 +916,9 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
 
     for i, opt in ipairs(options) do
         local o = create("TextButton", {
-            Size = UDim2.new(1, 0, 0, 22),
-            BackgroundColor3 = ActiveTheme.Surface,
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+            BackgroundTransparency = 0.3,
             BorderSizePixel = 0,
             Text = opt,
             Font = Enum.Font.GothamMedium,
@@ -874,10 +930,10 @@ local function dropdownRow(parent, label, options, initial, onChange, order)
         })
         corner(4, o)
         o.MouseEnter:Connect(function()
-            tween(o, 0.12, { BackgroundColor3 = ActiveTheme.Surface2 })
+            tween(o, 0.12, { BackgroundColor3 = Color3.fromRGB(45, 45, 55), BackgroundTransparency = 0 })
         end)
         o.MouseLeave:Connect(function()
-            tween(o, 0.12, { BackgroundColor3 = ActiveTheme.Surface })
+            tween(o, 0.12, { BackgroundColor3 = Color3.fromRGB(28, 28, 34), BackgroundTransparency = 0.3 })
         end)
         o.MouseButton1Click:Connect(function()
             playClick()
@@ -910,7 +966,7 @@ do
     end)
 end
 
-print("[VoidStrap] Parte 2 OK")--====================================================================
+print("[VoidStrap] Parte 2 (Kirtium style) OK")--====================================================================
 -- PARTE 3A — MÓDULOS (Skybox / Stretch / Grass / Flags)
 --====================================================================
 
