@@ -273,16 +273,16 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6 — AUTO FOLLOW + LOCK + BOTÃO FLUTUANTE
--- Detecta quando a bola está "lockada" (posse de alguém).
--- Para o Auto Follow automaticamente nesse caso.
+-- PARTE 6 — AUTO FOLLOW + BOTÃO FLUTUANTE
+-- Versão simplificada e otimizada para mobile.
+-- Pausa automática quando a bola está em posse de alguém.
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
     Enabled = false,
     Speed = 16,
     StopDistance = 2.5,
-    PauseOnLock = true,   -- NOVO: pausa quando bola está lockada
+    PauseOnLock = true,
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -293,10 +293,11 @@ State.AutoFollowBtn = State.AutoFollowBtn or {
 local AutoFollowModule = {}
 local AF_BodyVel = nil
 local AF_Conn = nil
+local AF_CachedBall = nil
+local AF_LastSearch = 0
 local AF_LockedByMe = false
-local AF_LastAttacker = nil
 
--- ---------- DETECÇÃO DA BOLA ----------
+-- ---------- DETECÇÃO DA BOLA (cacheada) ----------
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -304,50 +305,43 @@ local BALL_NAMES = {
 
 local function afFindBall()
     local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local n = obj.Name
-            for _, name in ipairs(BALL_NAMES) do
-                if n == name then
-                    if char and obj:IsDescendantOf(char) then
-                        -- ignora acessórios do character
-                    else
-                        return obj
-                    end
-                end
+    -- Busca rápida por nome exato
+    for _, name in ipairs(BALL_NAMES) do
+        local b = Workspace:FindFirstChild(name, true)
+        if b and b:IsA("BasePart") then
+            if not (char and b:IsDescendantOf(char)) then
+                return b
             end
         end
     end
     return nil
 end
 
--- ---------- DETECÇÃO DE LOCK ----------
--- Verifica se a bola está "lockada" (posse de alguém):
---   - Se há algum objeto filho com nome contendo "lock", "Owner", "Possess"
---   - Se a bola tem um jogador muito próximo (< 5 studs) com Humanoid.RigType R15
---   - Se a bola tem alguma Tag/Attribute relacionada a owner
+-- ---------- DETECÇÃO DE LOCK (SIMPLIFICADA) ----------
+-- Só considera lock se:
+--   1. Algum OUTRO jogador está a menos de 4 studs da bola
+--   2. A bola tem Attribute "Owner"/"Locked"
+--   3. A bola tem filho com nome contendo "lock"
 local function isBallLocked(ball)
     if not ball then return false, nil end
 
-    -- 1) Checa se há um filho com nome indicando lock
+    -- Checa filho com nome de lock
     for _, child in ipairs(ball:GetChildren()) do
         local cn = child.Name:lower()
-        if cn:find("lock") or cn:find("owner") or cn:find("possess") then
+        if cn:find("lock") or cn:find("owner") then
             return true, child
         end
     end
 
-    -- 2) Checa Attributes
-    local ok, ownerAttr = pcall(function() return ball:GetAttribute("Owner") end)
-    if ok and ownerAttr then return true, ownerAttr end
+    -- Checa Attributes
+    local ok, attr = pcall(function() return ball:GetAttribute("Owner") end)
+    if ok and attr then return true, attr end
+    local ok2, attr2 = pcall(function() return ball:GetAttribute("Locked") end)
+    if ok2 and attr2 then return true, nil end
 
-    local ok2, lockAttr = pcall(function() return ball:GetAttribute("Locked") end)
-    if ok2 and lockAttr then return true, nil end
-
-    -- 3) Checa proximidade: se algum jogador está a menos de 4 studs da bola
-    --    e a bola não se move muito (indica posse)
+    -- Checa proximidade (excluindo VOCÊ mesmo)
     for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
+        if player ~= LP and player.Character then
             local root = player.Character:FindFirstChild("HumanoidRootPart")
             if root then
                 local dist = (root.Position - ball.Position).Magnitude
@@ -369,27 +363,25 @@ local function afCleanup()
     AF_BodyVel = nil
 end
 
--- ---------- ATUALIZAR VISUAL DO BOTÃO FLUTUANTE ----------
+-- ---------- BOTÃO FLUTUANTE ----------
 local FloatingBtn = nil
 
 local function updateFloatingBtnVisual()
     if not FloatingBtn or not FloatingBtn.Parent then return end
     local active = State.AutoFollow and State.AutoFollow.Enabled
-    local locked = AF_LockedByMe
-
-    if locked then
-        FloatingBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 40)  -- amarelo
+    if AF_LockedByMe then
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 40)
         FloatingBtn.Text = "AF LOCK"
     elseif active then
-        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 100)  -- verde
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 100)
         FloatingBtn.Text = "AF ON"
     else
-        FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)  -- cinza
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
         FloatingBtn.Text = "AF OFF"
     end
 end
 
--- ---------- LOOP PRINCIPAL DO AUTO FOLLOW ----------
+-- ---------- LOOP PRINCIPAL ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
@@ -406,25 +398,38 @@ local function afStart()
             return
         end
 
-        local ball = afFindBall()
-        if not ball then afCleanup() return end
-
-        -- ---------- DETECÇÃO DE LOCK ----------
-        if State.AutoFollow.PauseOnLock then
-            local locked, who = isBallLocked(ball)
-            if locked then
-                -- Alguém está com a bola — para de seguir
-                AF_LockedByMe = (who == LP)
-                afCleanup()
-                updateFloatingBtnVisual()
-                return
-            else
-                AF_LockedByMe = false
-                updateFloatingBtnVisual()
-            end
+        -- Cache da bola (só re-busca a cada 2s)
+        local now = tick()
+        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 2 then
+            AF_LastSearch = now
+            AF_CachedBall = afFindBall()
         end
 
-        -- ---------- MOVIMENTO NORMAL ----------
+        local ball = AF_CachedBall
+        if not ball then afCleanup() return end
+
+        -- ---------- CHECAGEM DE LOCK ----------
+        if State.AutoFollow.PauseOnLock then
+            local locked, who = isBallLocked(ball)
+            local wasLocked = AF_LockedByMe
+            AF_LockedByMe = locked and (who == LP or who == nil)
+
+            if locked and not AF_LockedByMe then
+                -- Outro jogador tem a bola → pausa
+                afCleanup()
+                if wasLocked ~= AF_LockedByMe then
+                    updateFloatingBtnVisual()
+                end
+                return
+            end
+            if wasLocked ~= AF_LockedByMe then
+                updateFloatingBtnVisual()
+            end
+        else
+            AF_LockedByMe = false
+        end
+
+        -- ---------- MOVIMENTO ----------
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
@@ -485,6 +490,7 @@ function AutoFollowModule.reset()
     AF_LockedByMe = false
     afCleanup()
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
+    AF_CachedBall = nil
     updateFloatingBtnVisual()
     notify("Auto Follow resetado", "bad")
 end
@@ -595,7 +601,7 @@ function AutoFollowBtnModule.toggle()
     end
 end
 
--- ---------- ABA AUTO FOLLOW ----------
+-- ---------- ABA ----------
 createTab("Auto Follow", "AF")
 
 do
@@ -608,7 +614,7 @@ do
         AutoFollowModule.setEnabled(on)
     end, 1)
 
-    toggleRow(sec, "Pausar quando Bola Lockada", State.AutoFollow.PauseOnLock, function(on)
+    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
         AutoFollowModule.setPauseOnLock(on)
         notify(on and "Pausa ativada" or "Pausa desativada", on and "good" or "bad")
     end, 2)
@@ -624,7 +630,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 60),
         BackgroundTransparency = 1,
-        Text = "Segue a bola automaticamente. Quando alguem locka (pega posse), para de seguir. Quando solta, volta a perseguir.",
+        Text = "Segue a bola. Pausa quando outro jogador esta com a posse.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -635,29 +641,13 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
-    -- Botão flutuante
     local floatSec = section("Botao Flutuante")
     floatSec.Parent = page
 
-    local infoBtn = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Cria um botao flutuante. Arraste pra mover, toque pra ativar/desativar.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = floatSec,
-    })
-    themed(infoBtn, "TextColor3", "Sub")
-
     buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
         AutoFollowBtnModule.toggle()
-    end, 2)
+    end, 1)
 
-    -- Aviso
     local warnSec = section("Aviso")
     warnSec.Parent = page
 
@@ -700,7 +690,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow + Lock + Botao Flutuante carregado.")--====================================================================
+print("[VoidStrap] Auto Follow carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
