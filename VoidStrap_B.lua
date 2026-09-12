@@ -274,13 +274,12 @@ end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
 -- PARTE 6 — AUTO FOLLOW + LOCK DO TPS + BOTÃO FLUTUANTE
--- Detecta lock via ObjectValue "Owner" (método do TPS).
--- Pausa automaticamente quando VOCÊ ou OUTRO jogador pega a bola.
+-- Usa Humanoid:MoveTo() em vez de BodyVelocity (funciona no TPS).
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
     Enabled = false,
-    Speed = 16,
+    Speed = 22,
     StopDistance = 2.5,
     PauseOnLock = true,
     TouchToEnable = true,
@@ -292,55 +291,49 @@ State.AutoFollowBtn = State.AutoFollowBtn or {
 }
 
 local AutoFollowModule = {}
-local AF_BodyVel = nil
 local AF_Conn = nil
 local AF_CachedBall = nil
 local AF_LastSearch = 0
 local AF_LockedByMe = false
 local AF_TouchConn = nil
 local AF_TouchDebounce = 0
+local AF_BaseWalkSpeed = 16
+local AF_OriginalWalkSpeed = nil
 
 -- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
 local function afFindBall()
     local char = LP.Character
-    for _, name in ipairs(BALL_NAMES) do
-        local b = Workspace:FindFirstChild(name, true)
-        if b and b:IsA("BasePart") then
-            if not (char and b:IsDescendantOf(char)) then
-                return b
-            end
+    -- Direto
+    local b = Workspace:FindFirstChild("TPS")
+    if b and b:IsA("BasePart") then
+        if not (char and b:IsDescendantOf(char)) then
+            return b
+        end
+    end
+    -- Fallback: dentro de Model
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") then
+            local tps = obj:FindFirstChild("TPS")
+            if tps and tps:IsA("BasePart") then return tps end
         end
     end
     return nil
 end
 
--- ---------- DETECÇÃO DE LOCK (MÉTODO DO TPS) ----------
--- O TPS usa um ObjectValue chamado "Owner" dentro da bola.
---   Owner.Value = Character de quem tem a posse
---   Owner.Value = nil = bola livre
+-- ---------- DETECÇÃO DE LOCK (TPS) ----------
 local function isBallLocked(ball)
     if not ball then return false, nil end
-
     local ownerVal = ball:FindFirstChild("Owner")
-    if ownerVal and ownerVal:IsA("ObjectValue") and ownerVal.Value then
-        local ownerPlayer = Players:GetPlayerFromCharacter(ownerVal.Value)
-        return true, ownerPlayer or ownerVal.Value
-    end
-
-    return false, nil
-end
-
--- ---------- CLEANUP ----------
-local function afCleanup()
-    if AF_BodyVel and AF_BodyVel.Parent then
-        pcall(function() AF_BodyVel:Destroy() end)
-    end
-    AF_BodyVel = nil
+    if not ownerVal or not ownerVal.Value then return false, nil end
+    local ownerPlayer = Players:GetPlayerFromCharacter(ownerVal.Value)
+    if not ownerPlayer then return false, nil end
+    local ownerChar = ownerPlayer.Character
+    if not ownerChar then return false, nil end
+    local ownerRoot = ownerChar:FindFirstChild("HumanoidRootPart")
+    if not ownerRoot then return false, nil end
+    local dist = (ownerRoot.Position - ball.Position).Magnitude
+    if dist > 8 then return false, nil end
+    return true, ownerPlayer
 end
 
 -- ---------- BOTÃO FLUTUANTE ----------
@@ -365,19 +358,24 @@ end
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
-    AF_Conn = RunService.RenderStepped:Connect(function()
+    -- Guarda WalkSpeed original
+    local char = LP.Character
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        AF_OriginalWalkSpeed = humanoid.WalkSpeed
+    end
+
+    AF_Conn = RunService.Heartbeat:Connect(function()
         if not State.AutoFollow.Enabled then return end
 
         local char = LP.Character
-        if not char then afCleanup() return end
+        if not char then return end
 
         local root = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid or humanoid.Health <= 0 then
-            afCleanup()
-            return
-        end
+        if not root or not humanoid or humanoid.Health <= 0 then return end
 
+        -- Cache da bola
         local now = tick()
         if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 2 then
             AF_LastSearch = now
@@ -385,19 +383,17 @@ local function afStart()
         end
 
         local ball = AF_CachedBall
-        if not ball then afCleanup() return end
+        if not ball then return end
 
-        -- ---------- CHECAGEM DE LOCK (via Owner do TPS) ----------
+        -- Lock
         if State.AutoFollow.PauseOnLock then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
-
-            -- AF_LockedByMe = true se quem lockou foi você
             AF_LockedByMe = locked and (who == LP)
 
             if locked then
-                -- Bola lockada (por você OU outro) → pausa
-                afCleanup()
+                humanoid:MoveTo(root.Position)
+                humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
                 if wasLocked ~= AF_LockedByMe then
                     updateFloatingBtnVisual()
                 end
@@ -411,30 +407,21 @@ local function afStart()
             AF_LockedByMe = false
         end
 
-        -- ---------- MOVIMENTO ----------
+        -- Movimento com Humanoid:MoveTo
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
         if distance > State.AutoFollow.StopDistance then
-            if not AF_BodyVel or AF_BodyVel.Parent ~= root then
-                afCleanup()
-                AF_BodyVel = Instance.new("BodyVelocity")
-                AF_BodyVel.Name = "VST_AutoFollow"
-                AF_BodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
-                AF_BodyVel.Velocity = Vector3.zero
-                AF_BodyVel.Parent = root
-            end
-            local direction = (targetPos - root.Position).Unit
-            local speed = math.max(humanoid.WalkSpeed, State.AutoFollow.Speed)
-            pcall(function() root.CFrame = CFrame.lookAt(root.Position, targetPos) end)
-            pcall(function() AF_BodyVel.Velocity = direction * speed end)
+            humanoid.WalkSpeed = State.AutoFollow.Speed
+            humanoid:MoveTo(targetPos)
         else
-            afCleanup()
+            humanoid:MoveTo(root.Position)
+            humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
         end
     end)
 end
 
--- ---------- DETECÇÃO DE TRISCAR ----------
+-- ---------- TRISCAR ----------
 local function afStartTouchDetection()
     if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
 
@@ -464,7 +451,7 @@ local function afStartTouchDetection()
 
         if minDist <= touchRadius then
             AF_TouchDebounce = now
-            if AF_BodyVel == nil and not AF_LockedByMe then
+            if not AF_LockedByMe then
                 AF_LastSearch = 0
             end
         end
@@ -479,7 +466,14 @@ function AutoFollowModule.setEnabled(on)
         afStartTouchDetection()
         notify("Auto Follow ativado", "good")
     else
-        afCleanup()
+        -- Restaura WalkSpeed
+        local char = LP.Character
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
+            humanoid:MoveTo(humanoid.RootPart and humanoid.RootPart.Position or Vector3.zero)
+        end
+
         if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
         if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
         AF_LockedByMe = false
@@ -496,7 +490,16 @@ function AutoFollowModule.setTouchToEnable(enabled) State.AutoFollow.TouchToEnab
 function AutoFollowModule.reset()
     State.AutoFollow.Enabled = false
     AF_LockedByMe = false
-    afCleanup()
+
+    local char = LP.Character
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
+        if humanoid.RootPart then
+            humanoid:MoveTo(humanoid.RootPart.Position)
+        end
+    end
+
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
     if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
     AF_CachedBall = nil
@@ -631,7 +634,7 @@ do
         AutoFollowModule.setPauseOnLock(on)
     end, 3)
 
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
+    sliderRow(sec, "Velocidade", 16, 60, State.AutoFollow.Speed, function(v)
         AutoFollowModule.setSpeed(v)
     end, 4)
 
@@ -642,7 +645,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Segue a bola. Detecta lock via Owner da bola. Pausa automaticamente quando alguem tem a posse.",
+        Text = "Segue a bola via Humanoid:MoveTo. Pausa automaticamente quando alguem tem a posse (Owner).",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -702,7 +705,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow (com lock TPS) carregado.")--====================================================================
+print("[VoidStrap] Auto Follow (MoveTo) carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
