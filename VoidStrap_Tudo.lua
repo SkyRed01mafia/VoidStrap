@@ -3716,14 +3716,14 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Reach (Hitbox) carregado.")--====================================================================
--- PARTE 15 — BOOM BOX (Musica)
+-- PARTE 15 — BOOM BOX (com IDs novos + campo pra ID manual)
 --====================================================================
 
 State.BoomBox = State.BoomBox or {
     Enabled = false,
     Volume = 1.0,
     Looped = true,
-    Target = "Player",   -- "Player" ou "Ball"
+    Target = "Player",
     CurrentTrack = nil,
 }
 
@@ -3735,12 +3735,12 @@ local BB_Conn = nil
 -- ---------- LISTA DE MUSICAS ----------
 local BOOMBOX_TRACKS = {
     { name = "Nenhuma",           id = nil },
-    { name = "Meant to Be",       id = "2147141158" },
-    { name = "Sunflower",         id = "2698664996" },
-    { name = "Sometimes",         id = "415384530" },
-    { name = "BrooklynBloodPop",  id = "136111288303730" },
-    { name = "Nuts",              id = "5678130547" },
-    { name = "Super Funk",        id = "107835682687645" },
+    { name = "Sometimes",         id = "121397051787416" },
+    { name = "Meant to Be",       id = "126576350082922" },
+    { name = "Ilusionary",        id = "87570666848900" },
+    { name = "BrooklynBloodPop",  id = "96414211708215" },
+    { name = "I'm So Fed Up",     id = "103072508653269" },
+    { name = "PHONK",             id = "119234504459800" },
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
@@ -3768,7 +3768,7 @@ local function findBall15()
     return nil
 end
 
--- ---------- CRIAR SOUND ----------
+-- ---------- SOUND ----------
 local function destroySound()
     if BB_Sound and BB_Sound.Parent then
         pcall(function() BB_Sound:Destroy() end)
@@ -3780,7 +3780,6 @@ end
 local function createSoundOn(target)
     if not target then return end
     if BB_Sound and BB_Sound.Parent == target then return end
-
     destroySound()
 
     BB_Sound = Instance.new("Sound")
@@ -3794,7 +3793,6 @@ local function createSoundOn(target)
     BB_CurrentTarget = target
 end
 
--- ---------- APLICAR TRACK ----------
 local function applyTrack(trackId)
     if not BB_Sound then return end
     if trackId then
@@ -3807,10 +3805,9 @@ local function applyTrack(trackId)
     end
 end
 
--- ---------- LOOP (fixa o som no alvo) ----------
+-- ---------- LOOP ----------
 local function bbStart()
     if BB_Conn then BB_Conn:Disconnect() end
-
     BB_Conn = RunService.Heartbeat:Connect(function()
         if not State.BoomBox.Enabled then return end
 
@@ -3827,7 +3824,6 @@ local function bbStart()
             return
         end
 
-        -- Se o alvo mudou, cria de novo
         if not BB_Sound or BB_Sound.Parent ~= target then
             createSoundOn(target)
             if State.BoomBox.CurrentTrack then
@@ -3835,7 +3831,6 @@ local function bbStart()
             end
         end
 
-        -- Atualiza volume e loop
         if BB_Sound then
             pcall(function()
                 BB_Sound.Volume = State.BoomBox.Volume
@@ -3872,6 +3867,17 @@ function BoomBoxModule.setTrack(name)
             return
         end
     end
+end
+
+function BoomBoxModule.setTrackById(id)
+    id = tostring(id or ""):gsub("%D", "")  -- só números
+    if id == "" then
+        notify("ID invalido", "bad")
+        return
+    end
+    State.BoomBox.CurrentTrack = id
+    applyTrack(id)
+    notify("ID: " .. id, "good")
 end
 
 function BoomBoxModule.setVolume(v)
@@ -3939,6 +3945,41 @@ do
         BoomBoxModule.refresh()
     end, 5)
 
+    -- CAMPO DE ID MANUAL
+    local idSec = section("Tocar por ID")
+    idSec.Parent = page
+
+    local idFrame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 44),
+        BackgroundColor3 = ActiveTheme.Surface2,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = idSec,
+    })
+    themed(idFrame, "BackgroundColor3", "Surface2")
+    corner(8, idFrame)
+
+    local idBox = create("TextBox", {
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Cole o ID da musica (só números)...",
+        PlaceholderColor3 = ActiveTheme.Sub,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextColor3 = ActiveTheme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = idFrame,
+    })
+    themed(idBox, "TextColor3", "Text")
+    themed(idBox, "PlaceholderColor3", "Sub")
+
+    buttonRow(idSec, "Tocar ID", function()
+        BoomBoxModule.setTrackById(idBox.Text)
+    end, 2)
+
     -- MÚSICAS
     local trackSec = section("Musicas")
     trackSec.Parent = page
@@ -3952,7 +3993,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Pra outros ouvirem, o jogo precisa aceitar.",
+        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Voce tambem pode colar qualquer ID na secao 'Tocar por ID'.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
