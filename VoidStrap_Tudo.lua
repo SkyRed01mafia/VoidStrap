@@ -3000,23 +3000,29 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Color carregado.")--====================================================================
--- PARTE 9 — BALL NA CABEÇA
--- Faz a bola ficar em cima da cabeça do personagem.
+-- PARTE 9 — BALL NA CABEÇA + BOTÃO FLUTUANTE
 --====================================================================
 
 State.BallOnHead = State.BallOnHead or {
     Enabled = false,
-    HeightOffset = 4,   -- studs acima da cabeça
-    Smooth = true,      -- movimento suave (interpolação)
-    Smoothness = 0.3,   -- 0..1 (menor = mais rápido)
+    HeightOffset = 4,
+    Smooth = true,
+    Smoothness = 0.3,
+}
+
+State.BallOnHeadBtn = State.BallOnHeadBtn or {
+    Visible = false,
+    Position = UDim2.new(0, 20, 0.55, 0),
+    Locked = false,
 }
 
 local BallOnHeadModule = {}
 local BOH_Conn = nil
 local BOH_CachedBall = nil
 local BOH_LastSearch = 0
+local BOH_FloatingBtn = nil
 
--- ---------- DETECÇÃO DA BOLA ----------
+-- ---------- DETECÇÃO ----------
 local BALL_NAMES_9 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -3041,23 +3047,16 @@ local function findBall9()
     return nil
 end
 
--- ---------- LOOP PRINCIPAL ----------
+-- ---------- LOOP ----------
 local function bohStart()
     if BOH_Conn then BOH_Conn:Disconnect() end
-
-    BOH_Conn = RunService.RenderStepped:Connect(function(dt)
+    BOH_Conn = RunService.RenderStepped:Connect(function()
         if not State.BallOnHead.Enabled then return end
-
         local char = LP.Character
         if not char then return end
-
-        -- Pega a cabeça (Head ou UpperTorso se não tiver Head)
-        local head = char:FindFirstChild("Head")
-            or char:FindFirstChild("UpperTorso")
-            or char:FindFirstChild("HumanoidRootPart")
+        local head = char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
         if not head then return end
 
-        -- Cache da bola
         local now = tick()
         if not BOH_CachedBall or not BOH_CachedBall.Parent or (now - BOH_LastSearch) > 1 then
             BOH_LastSearch = now
@@ -3066,30 +3065,59 @@ local function bohStart()
         local ball = BOH_CachedBall
         if not ball then return end
 
-        -- Calcula posição alvo: em cima da cabeça
         local headSize = head.Size
         local offsetY = (headSize.Y / 2) + (ball.Size.Y / 2) + State.BallOnHead.HeightOffset
         local targetPos = head.Position + Vector3.new(0, offsetY, 0)
         local targetCF = CFrame.new(targetPos)
 
-        -- Aplica com ou sem suavização
         pcall(function()
             if State.BallOnHead.Smooth then
-                -- Interpolação suave
                 local k = math.clamp(State.BallOnHead.Smoothness, 0.05, 1)
                 ball.CFrame = ball.CFrame:Lerp(targetCF, k)
             else
-                -- Instantâneo
                 ball.CFrame = targetCF
             end
         end)
 
-        -- Zera velocidade pra não cair
         pcall(function()
             ball.AssemblyLinearVelocity = Vector3.zero
             ball.AssemblyAngularVelocity = Vector3.zero
         end)
     end)
+end
+
+local function bohUpdateBtnVisual()
+    if not BOH_FloatingBtn or not BOH_FloatingBtn.Parent then return end
+    if State.BallOnHead.Enabled then
+        BOH_FloatingBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 40)
+        BOH_FloatingBtn.Text = "HEAD ON"
+    else
+        BOH_FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        BOH_FloatingBtn.Text = "HEAD OFF"
+    end
+end
+
+local function bohUpdateLockVisual()
+    if not BOH_FloatingBtn or not BOH_FloatingBtn.Parent then return end
+    local lockIcon = BOH_FloatingBtn:FindFirstChild("VST_BOHLock")
+    if State.BallOnHeadBtn.Locked then
+        if not lockIcon then
+            create("TextLabel", {
+                Name = "VST_BOHLock",
+                Size = UDim2.fromOffset(18, 18),
+                Position = UDim2.new(1, -20, 0, 2),
+                BackgroundTransparency = 1,
+                Text = "L",
+                Font = Enum.Font.GothamBold,
+                TextSize = 12,
+                TextColor3 = Color3.fromRGB(255, 220, 60),
+                ZIndex = 100000,
+                Parent = BOH_FloatingBtn,
+            })
+        end
+    else
+        if lockIcon then lockIcon:Destroy() end
+    end
 end
 
 -- ---------- API ----------
@@ -3102,6 +3130,7 @@ function BallOnHeadModule.setEnabled(on)
         if BOH_Conn then BOH_Conn:Disconnect(); BOH_Conn = nil end
         notify("Ball on Head desativado", "bad")
     end
+    bohUpdateBtnVisual()
 end
 
 function BallOnHeadModule.setHeight(v) State.BallOnHead.HeightOffset = v end
@@ -3112,11 +3141,120 @@ function BallOnHeadModule.reset()
     State.BallOnHead.Enabled = false
     if BOH_Conn then BOH_Conn:Disconnect(); BOH_Conn = nil end
     BOH_CachedBall = nil
+    bohUpdateBtnVisual()
     notify("Ball on Head resetado", "bad")
 end
 
+-- ---------- BOTÃO FLUTUANTE ----------
+local BallOnHeadBtnModule = {}
+local BOH_Dragging = false
+local BOH_DragStart = nil
+local BOH_StartPos = nil
+local BOH_PressTime = 0
+local BOH_PressPos = nil
+
+local function bohCreateFloatingBtn()
+    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
+        BOH_FloatingBtn.Visible = true
+        bohUpdateLockVisual()
+        return
+    end
+
+    BOH_FloatingBtn = create("TextButton", {
+        Name = "VST_BallOnHeadBtn",
+        Size = UDim2.fromOffset(64, 64),
+        Position = State.BallOnHeadBtn.Position,
+        BackgroundColor3 = Color3.fromRGB(40, 40, 50),
+        BorderSizePixel = 0,
+        Text = "HEAD OFF",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Color3.new(1, 1, 1),
+        AutoButtonColor = false,
+        ZIndex = 99999,
+        Parent = ScreenOverlay,
+    })
+    corner(32, BOH_FloatingBtn)
+    stroke(ActiveTheme.Accent, 2, 0.3, BOH_FloatingBtn)
+    bohUpdateBtnVisual()
+    bohUpdateLockVisual()
+
+    BOH_FloatingBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            BOH_Dragging = true
+            BOH_DragStart = input.Position
+            BOH_StartPos = BOH_FloatingBtn.Position
+            BOH_PressTime = tick()
+            BOH_PressPos = input.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if not BOH_Dragging then return end
+        if State.BallOnHeadBtn.Locked then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - BOH_DragStart
+            if math.abs(delta.X) > 8 or math.abs(delta.Y) > 8 then
+                BOH_FloatingBtn.Position = UDim2.new(
+                    BOH_StartPos.X.Scale, BOH_StartPos.X.Offset + delta.X,
+                    BOH_StartPos.Y.Scale, BOH_StartPos.Y.Offset + delta.Y
+                )
+                State.BallOnHeadBtn.Position = BOH_FloatingBtn.Position
+            end
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            BOH_Dragging = false
+            if BOH_PressPos then
+                local fDelta = input.Position - BOH_PressPos
+                local moved = math.abs(fDelta.X) + math.abs(fDelta.Y)
+                local elapsed = tick() - BOH_PressTime
+                if moved < 12 and elapsed < 0.5 then
+                    BallOnHeadModule.setEnabled(not State.BallOnHead.Enabled)
+                end
+            end
+            BOH_PressPos = nil
+        end
+    end)
+end
+
+function BallOnHeadBtnModule.show()
+    bohCreateFloatingBtn()
+    State.BallOnHeadBtn.Visible = true
+    notify("Botao Head criado", "good")
+end
+
+function BallOnHeadBtnModule.hide()
+    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
+        BOH_FloatingBtn:Destroy()
+        BOH_FloatingBtn = nil
+    end
+    State.BallOnHeadBtn.Visible = false
+    notify("Botao Head removido", "bad")
+end
+
+function BallOnHeadBtnModule.toggle()
+    if State.BallOnHeadBtn.Visible then
+        BallOnHeadBtnModule.hide()
+    else
+        BallOnHeadBtnModule.show()
+    end
+end
+
+function BallOnHeadBtnModule.setLocked(locked)
+    State.BallOnHeadBtn.Locked = locked
+    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
+        State.BallOnHeadBtn.Position = BOH_FloatingBtn.Position
+    end
+    bohUpdateLockVisual()
+    notify(locked and "Botao travado" or "Botao liberado", locked and "good" or "bad")
+end
+
 --====================================================================
--- ABA BALL ON HEAD
+-- ABA CABEÇA
 --====================================================================
 createTab("Cabeça", "BOH")
 
@@ -3143,9 +3281,9 @@ do
     end, 4)
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
+        Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "Faz a bola ficar em cima da sua cabeca. Apenas voce ve — outros jogadores continuam vendo a bola no lugar real.",
+        Text = "Bola fica em cima da cabeca. Apenas voce ve — outros continuam vendo no lugar real.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -3156,14 +3294,40 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
+    -- BOTÃO FLUTUANTE
+    local floatSec = section("Botao Flutuante")
+    floatSec.Parent = page
+
+    buttonRow(floatSec, "Criar / Remover Botao", function()
+        BallOnHeadBtnModule.toggle()
+    end, 1)
+
+    toggleRow(floatSec, "Travar Botao no Lugar", State.BallOnHeadBtn.Locked, function(on)
+        BallOnHeadBtnModule.setLocked(on)
+    end, 2)
+
+    local lockInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Toque pra ligar/desligar. Arraste pra mover. Trave pra fixar.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = floatSec,
+    })
+    themed(lockInfo, "TextColor3", "Sub")
+
     -- Aviso
     local warnSec = section("Aviso")
     warnSec.Parent = page
 
     local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
+        Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "AVISO: mexer na CFrame da bola e altamente detectavel por anti-cheat server-side. Pode causar ban. Use apenas em alt.",
+        Text = "AVISO: mexer no CFrame da bola e detectavel por anti-cheat. Use apenas em alt.",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = ActiveTheme.Bad,
@@ -3176,163 +3340,157 @@ do
 
     buttonRow(warnSec, "Desativar", function()
         BallOnHeadModule.reset()
+        BallOnHeadBtnModule.hide()
     end, 2)
 end
 
--- ---------- CLEANUP ----------
 local _prevBOH = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevBOH then _prevBOH() end
-    pcall(function() BallOnHeadModule.reset() end)
+    pcall(function()
+        BallOnHeadModule.reset()
+        BallOnHeadBtnModule.hide()
+    end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function() BallOnHeadModule.reset() end)
+        pcall(function()
+            BallOnHeadModule.reset()
+            BallOnHeadBtnModule.hide()
+        end)
     end
 end)
 
-print("[VoidStrap] Ball on Head carregado.")--====================================================================
--- PARTE 10 — STRETCH SCREEN (via ViewportSize, sem FOV)
--- Estica a camera forçando uma ViewportSize diferente.
+print("[VoidStrap] Ball on Head + Botao carregado.")--====================================================================
+-- PARTE 10 — STRETCH SCREEN (FOV)
 --====================================================================
 
-State.ViewportStretch = State.ViewportStretch or {
+State.Stretch = State.Stretch or {
     Enabled = false,
     Preset = "Baixa",
-    CustomWidth = 1020,
-    CustomHeight = 1990,
+    Intensity = 1.0,
 }
 
-local ViewportModule = {}
-local VP_Original = nil
-local VP_Conn = nil
+local StretchModule = {}
+local ST_OriginalFOV = nil
+local ST_BaseFOV = 70
+local ST_Conn = nil
 
--- ---------- PRESETS DE RESOLUÇÃO ----------
-local VP_PRESETS = {
-    { name = "Baixa",  w = 1080, h = 1920,  desc = "1080x1920 (FHD vertical)" },
-    { name = "Media",  w = 1080, h = 2200,  desc = "1080x2200 (levemente esticado)" },
-    { name = "Alta",   w = 1020, h = 1990,  desc = "1020x1990 (formato do pedido)" },
-    { name = "Ultra",  w = 900,  h = 2400,  desc = "900x2400 (muito esticado)" },
+local STRETCH_PRESETS = {
+    { name = "Baixa",  fov = 85,  desc = "85 FOV" },
+    { name = "Media",  fov = 100, desc = "100 FOV" },
+    { name = "Alta",   fov = 115, desc = "115 FOV" },
+    { name = "Ultra",  fov = 130, desc = "130 FOV" },
 }
 
-local function getVPPreset(name)
-    for _, p in ipairs(VP_PRESETS) do
+local function stGetPreset(name)
+    for _, p in ipairs(STRETCH_PRESETS) do
         if p.name == name then return p end
     end
-    return VP_PRESETS[1]
+    return STRETCH_PRESETS[1]
 end
 
--- ---------- APLICAR ----------
-local function applyViewport()
+local function stApply()
     if not Camera then return end
-
-    -- Salva o original na primeira vez
-    if not VP_Original then
-        VP_Original = Camera.ViewportSize
+    if not ST_OriginalFOV then
+        ST_OriginalFOV = Camera.FieldOfView
+        ST_BaseFOV = Camera.FieldOfView
     end
-
-    if not State.ViewportStretch.Enabled then
-        pcall(function() Camera.ViewportSize = VP_Original end)
+    if not State.Stretch.Enabled then
+        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
         return
     end
-
-    local preset = getVPPreset(State.ViewportStretch.Preset)
-    pcall(function()
-        Camera.ViewportSize = Vector2.new(preset.w, preset.h)
-    end)
+    local p = stGetPreset(State.Stretch.Preset)
+    local targetFOV = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
+    pcall(function() Camera.FieldOfView = targetFOV end)
 end
 
--- ---------- LOOP (reaplica caso o jogo reset) ----------
-local function vpStart()
-    if VP_Conn then VP_Conn:Disconnect() end
-    VP_Conn = RunService.RenderStepped:Connect(function()
-        if not State.ViewportStretch.Enabled then return end
+local function stStart()
+    if ST_Conn then ST_Conn:Disconnect() end
+    ST_Conn = RunService.RenderStepped:Connect(function()
+        if not State.Stretch.Enabled then return end
         if not Camera then return end
-        local preset = getVPPreset(State.ViewportStretch.Preset)
-        if Camera.ViewportSize.X ~= preset.w or Camera.ViewportSize.Y ~= preset.h then
-            pcall(function()
-                Camera.ViewportSize = Vector2.new(preset.w, preset.h)
-            end)
+        local p = stGetPreset(State.Stretch.Preset)
+        local target = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
+        if math.abs(Camera.FieldOfView - target) > 0.5 then
+            pcall(function() Camera.FieldOfView = target end)
         end
     end)
 end
 
--- ---------- API ----------
-function ViewportModule.setEnabled(on)
-    State.ViewportStretch.Enabled = on
+function StretchModule.setEnabled(on)
+    State.Stretch.Enabled = on
     if on then
-        if not VP_Original and Camera then
-            VP_Original = Camera.ViewportSize
+        if not ST_OriginalFOV and Camera then
+            ST_OriginalFOV = Camera.FieldOfView
+            ST_BaseFOV = Camera.FieldOfView
         end
-        vpStart()
-        applyViewport()
-        notify("Stretch ativado: " .. State.ViewportStretch.Preset, "good")
+        stStart()
+        stApply()
+        notify("Stretch: " .. State.Stretch.Preset, "good")
     else
-        if VP_Conn then VP_Conn:Disconnect(); VP_Conn = nil end
-        applyViewport()
+        if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
+        stApply()
         notify("Stretch desativado", "bad")
     end
 end
 
-function ViewportModule.setPreset(name)
-    State.ViewportStretch.Preset = name
-    if State.ViewportStretch.Enabled then
-        applyViewport()
+function StretchModule.setPreset(name)
+    State.Stretch.Preset = name
+    if State.Stretch.Enabled then
+        stApply()
         notify("Stretch: " .. name, "good")
     end
 end
 
-function ViewportModule.setCustom(w, h)
-    State.ViewportStretch.CustomWidth = w
-    State.ViewportStretch.CustomHeight = h
-    if State.ViewportStretch.Enabled then
-        pcall(function()
-            Camera.ViewportSize = Vector2.new(w, h)
-        end)
-    end
+function StretchModule.setIntensity(v)
+    State.Stretch.Intensity = v
+    if State.Stretch.Enabled then stApply() end
 end
 
-function ViewportModule.reset()
-    State.ViewportStretch.Enabled = false
-    State.ViewportStretch.Preset = "Baixa"
-    if VP_Conn then VP_Conn:Disconnect(); VP_Conn = nil end
-    if Camera and VP_Original then
-        pcall(function() Camera.ViewportSize = VP_Original end)
+function StretchModule.reset()
+    State.Stretch.Enabled = false
+    State.Stretch.Preset = "Baixa"
+    State.Stretch.Intensity = 1.0
+    if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
+    if Camera and ST_OriginalFOV then
+        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
     end
     notify("Stretch resetado", "bad")
 end
 
---====================================================================
--- ABA STRETCH
---====================================================================
 createTab("Stretch", "STR")
 
 do
     local page = Tabs["Stretch"].page
 
-    local sec = section("Esticar Tela (ViewportSize)")
+    local sec = section("Esticar Tela (FOV)")
     sec.Parent = page
 
-    toggleRow(sec, "Ativar Stretch", State.ViewportStretch.Enabled, function(on)
-        ViewportModule.setEnabled(on)
+    toggleRow(sec, "Ativar Stretch", State.Stretch.Enabled, function(on)
+        StretchModule.setEnabled(on)
     end, 1)
 
     dropdownRow(sec, "Proporcao",
         { "Baixa", "Media", "Alta", "Ultra" },
-        State.ViewportStretch.Preset,
-        function(opt) ViewportModule.setPreset(opt) end, 2)
+        State.Stretch.Preset,
+        function(opt) StretchModule.setPreset(opt) end, 2)
+
+    sliderRow(sec, "Intensidade (x100)", 50, 200, math.floor(State.Stretch.Intensity * 100), function(v)
+        StretchModule.setIntensity(v / 100)
+    end, 3)
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 100),
+        Size = UDim2.new(1, 0, 0, 80),
         BackgroundTransparency = 1,
-        Text = "Baixa = 1080x1920 | Media = 1080x2200 | Alta = 1020x1990 | Ultra = 900x2400\n\nForca a ViewportSize da camera. Isso distorce o mundo 3D (aspect ratio diferente do dispositivo).",
+        Text = "Baixa=85 | Media=100 | Alta=115 | Ultra=130 FOV.\n\nIntensidade: 0.5x a 2x do efeito.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
+        LayoutOrder = 4,
         Parent = sec,
     })
     themed(info, "TextColor3", "Sub")
@@ -3340,21 +3498,20 @@ do
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Resetar Stretch", function()
-        ViewportModule.reset()
+        StretchModule.reset()
     end, 1)
 end
 
--- ---------- CLEANUP ----------
-local _prevVP = _G.VoidStrapUnload
+local _prevStr = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
-    if _prevVP then _prevVP() end
-    pcall(function() ViewportModule.reset() end)
+    if _prevStr then _prevStr() end
+    pcall(function() StretchModule.reset() end)
 end
 
 Players.PlayerRemoving:Connect(function(plr)
     if plr == LP then
-        pcall(function() ViewportModule.reset() end)
+        pcall(function() StretchModule.reset() end)
     end
 end)
 
-print("[VoidStrap] Stretch (ViewportSize) carregado.")
+print("[VoidStrap] Stretch (FOV) carregado.")
