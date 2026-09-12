@@ -1533,298 +1533,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Custom (cor + textura + UV) carregado.")--====================================================================
--- PARTE 8 — AUTO GOLEIRO (GK) — Goal111 / Goal222
---====================================================================
-
-State.AutoGK = State.AutoGK or {
-    Enabled = false,
-    Speed = 24,
-    AreaRadius = 15,
-    GoalSide = "Home",   -- "Home" (Goal222) ou "Away" (Goal111)
-    FollowBallY = false,
-}
-
-local AutoGKModule = {}
-local AGK_Conn = nil
-local AGK_CachedBall = nil
-local AGK_LastSearch = 0
-local AGK_BodyVel = nil
-local AGK_CachedGoal = nil
-local AGK_GoalLastSearch = 0
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_8 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function isBallName8(name)
-    for _, n in ipairs(BALL_NAMES_8) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function findBall8()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName8(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- DETECÇÃO DO GOL ----------
--- Home = Goal222
--- Away = Goal111
-local function findGoal()
-    local goalName = (State.AutoGK.GoalSide == "Home") and "Goal222" or "Goal111"
-
-    local goal = Workspace:FindFirstChild(goalName, true)
-    if goal then return goal end
-
-    -- Fallback: procura em todos os descendentes
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name:lower() == goalName:lower() then
-            return obj
-        end
-    end
-    return nil
-end
-
--- ---------- CLEANUP ----------
-local function agkCleanupBodyVel()
-    if AGK_BodyVel and AGK_BodyVel.Parent then
-        pcall(function() AGK_BodyVel:Destroy() end)
-    end
-    AGK_BodyVel = nil
-end
-
--- ---------- LOOP PRINCIPAL ----------
-local function agkStart()
-    if AGK_Conn then AGK_Conn:Disconnect() end
-
-    AGK_Conn = RunService.RenderStepped:Connect(function()
-        if not State.AutoGK.Enabled then
-            agkCleanupBodyVel()
-            return
-        end
-
-        local char = LP.Character
-        if not char then agkCleanupBodyVel() return end
-
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid or humanoid.Health <= 0 then
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- Cache da bola
-        local now = tick()
-        if not AGK_CachedBall or not AGK_CachedBall.Parent or (now - AGK_LastSearch) > 1 then
-            AGK_LastSearch = now
-            AGK_CachedBall = findBall8()
-        end
-        local ball = AGK_CachedBall
-        if not ball then agkCleanupBodyVel() return end
-
-        -- Cache do gol
-        if not AGK_CachedGoal or not AGK_CachedGoal.Parent or (now - AGK_GoalLastSearch) > 3 then
-            AGK_GoalLastSearch = now
-            AGK_CachedGoal = findGoal()
-        end
-        local goal = AGK_CachedGoal
-        if not goal then agkCleanupBodyVel() return end
-
-        local goalPos = goal.Position
-
-        -- Só se a bola estiver dentro do raio da pequena área
-        local ballToGoal = (ball.Position - goalPos).Magnitude
-        if ballToGoal > State.AutoGK.AreaRadius then
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- Posição alvo: entre o gol e a bola (mas dentro do raio)
-        local dirToBall = (ball.Position - goalPos)
-        local dist = dirToBall.Magnitude
-
-        local targetPos
-        if dist > 1 then
-            -- Ponto a 40% do caminho entre gol e bola
-            local partial = dirToBall.Unit * math.min(dist * 0.6, State.AutoGK.AreaRadius)
-            targetPos = goalPos + partial
-        else
-            targetPos = goalPos
-        end
-
-        -- Mantém a altura do chão (ou segue a bola se FollowBallY)
-        if State.AutoGK.FollowBallY then
-            targetPos = Vector3.new(targetPos.X, ball.Position.Y, targetPos.Z)
-        else
-            targetPos = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
-        end
-
-        local distance = (root.Position - targetPos).Magnitude
-        if distance < 1.5 then
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- BodyVelocity
-        if not AGK_BodyVel or AGK_BodyVel.Parent ~= root then
-            agkCleanupBodyVel()
-            AGK_BodyVel = Instance.new("BodyVelocity")
-            AGK_BodyVel.Name = "VST_AutoGK"
-            AGK_BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
-            AGK_BodyVel.Velocity = Vector3.zero
-            AGK_BodyVel.Parent = root
-        end
-
-        local dir = (targetPos - root.Position).Unit
-        local speed = State.AutoGK.Speed
-        pcall(function()
-            root.CFrame = CFrame.lookAt(root.Position, ball.Position)
-        end)
-        pcall(function()
-            AGK_BodyVel.Velocity = dir * speed
-        end)
-    end)
-end
-
--- ---------- API ----------
-function AutoGKModule.setEnabled(on)
-    State.AutoGK.Enabled = on
-    if on then
-        AGK_CachedGoal = nil
-        AGK_GoalLastSearch = 0
-        agkStart()
-        notify("Auto Goleiro ativado (" .. State.AutoGK.GoalSide .. ")", "good")
-    else
-        agkCleanupBodyVel()
-        if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
-        notify("Auto Goleiro desativado", "bad")
-    end
-end
-
-function AutoGKModule.setSpeed(v) State.AutoGK.Speed = v end
-function AutoGKModule.setAreaRadius(v) State.AutoGK.AreaRadius = v end
-function AutoGKModule.setFollowBallY(v) State.AutoGK.FollowBallY = v end
-
-function AutoGKModule.setGoalSide(side)
-    State.AutoGK.GoalSide = side
-    AGK_CachedGoal = nil
-    AGK_GoalLastSearch = 0
-    notify("Gol: " .. side .. " (" .. (side == "Home" and "Goal222" or "Goal111") .. ")", "good")
-end
-
-function AutoGKModule.refresh()
-    AGK_CachedBall = nil
-    AGK_CachedGoal = nil
-    AGK_LastSearch = 0
-    AGK_GoalLastSearch = 0
-    notify("Reconectado", "good")
-end
-
-function AutoGKModule.reset()
-    State.AutoGK.Enabled = false
-    agkCleanupBodyVel()
-    if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
-    notify("Auto Goleiro resetado", "bad")
-end
-
---====================================================================
--- ABA AUTO GOLEIRO
---====================================================================
-createTab("GK", "GK")
-
-do
-    local page = Tabs["GK"].page
-
-    local sec = section("Auto Goleiro")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Auto Goleiro", State.AutoGK.Enabled, function(on)
-        AutoGKModule.setEnabled(on)
-    end, 1)
-
-    -- SELETOR DE GOL
-    dropdownRow(sec, "Gol (Home/Away)",
-        { "Home", "Away" },
-        State.AutoGK.GoalSide,
-        function(opt) AutoGKModule.setGoalSide(opt) end, 2)
-
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoGK.Speed, function(v)
-        AutoGKModule.setSpeed(v)
-    end, 3)
-
-    sliderRow(sec, "Raio da Area", 5, 40, State.AutoGK.AreaRadius, function(v)
-        AutoGKModule.setAreaRadius(v)
-    end, 4)
-
-    toggleRow(sec, "Seguir Altura da Bola", State.AutoGK.FollowBallY, function(on)
-        AutoGKModule.setFollowBallY(on)
-    end, 5)
-
-    buttonRow(sec, "Reconectar", function()
-        AutoGKModule.refresh()
-    end, 6)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "Home = segue Goal222 | Away = segue Goal111. O goleiro se posiciona entre o gol e a bola quando a bola estiver dentro do raio.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 7,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Aviso
-    local warnSec = section("Aviso")
-    warnSec.Parent = page
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        Text = "AVISO: Auto Goleiro da vantagem competitiva. Use em alt.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = warnSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
-
-    buttonRow(warnSec, "Desativar tudo", function()
-        AutoGKModule.reset()
-    end, 2)
-end
-
--- ---------- CLEANUP ----------
-local _prevGK = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevGK then _prevGK() end
-    pcall(function() AutoGKModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() AutoGKModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Auto Goleiro (Home/Away) carregado.")--====================================================================
 -- PARTE 9 — BALL NA CABEÇA
 -- Faz a bola ficar em cima da cabeça do personagem.
 --====================================================================
@@ -2017,4 +1725,169 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball on Head carregado.")
+print("[VoidStrap] Ball on Head carregado.")--====================================================================
+-- PARTE 10 — STRETCH SCREEN (via ViewportSize, sem FOV)
+-- Estica a camera forçando uma ViewportSize diferente.
+--====================================================================
+
+State.ViewportStretch = State.ViewportStretch or {
+    Enabled = false,
+    Preset = "Baixa",
+    CustomWidth = 1020,
+    CustomHeight = 1990,
+}
+
+local ViewportModule = {}
+local VP_Original = nil
+local VP_Conn = nil
+
+-- ---------- PRESETS DE RESOLUÇÃO ----------
+local VP_PRESETS = {
+    { name = "Baixa",  w = 1080, h = 1920,  desc = "1080x1920 (FHD vertical)" },
+    { name = "Media",  w = 1080, h = 2200,  desc = "1080x2200 (levemente esticado)" },
+    { name = "Alta",   w = 1020, h = 1990,  desc = "1020x1990 (formato do pedido)" },
+    { name = "Ultra",  w = 900,  h = 2400,  desc = "900x2400 (muito esticado)" },
+}
+
+local function getVPPreset(name)
+    for _, p in ipairs(VP_PRESETS) do
+        if p.name == name then return p end
+    end
+    return VP_PRESETS[1]
+end
+
+-- ---------- APLICAR ----------
+local function applyViewport()
+    if not Camera then return end
+
+    -- Salva o original na primeira vez
+    if not VP_Original then
+        VP_Original = Camera.ViewportSize
+    end
+
+    if not State.ViewportStretch.Enabled then
+        pcall(function() Camera.ViewportSize = VP_Original end)
+        return
+    end
+
+    local preset = getVPPreset(State.ViewportStretch.Preset)
+    pcall(function()
+        Camera.ViewportSize = Vector2.new(preset.w, preset.h)
+    end)
+end
+
+-- ---------- LOOP (reaplica caso o jogo reset) ----------
+local function vpStart()
+    if VP_Conn then VP_Conn:Disconnect() end
+    VP_Conn = RunService.RenderStepped:Connect(function()
+        if not State.ViewportStretch.Enabled then return end
+        if not Camera then return end
+        local preset = getVPPreset(State.ViewportStretch.Preset)
+        if Camera.ViewportSize.X ~= preset.w or Camera.ViewportSize.Y ~= preset.h then
+            pcall(function()
+                Camera.ViewportSize = Vector2.new(preset.w, preset.h)
+            end)
+        end
+    end)
+end
+
+-- ---------- API ----------
+function ViewportModule.setEnabled(on)
+    State.ViewportStretch.Enabled = on
+    if on then
+        if not VP_Original and Camera then
+            VP_Original = Camera.ViewportSize
+        end
+        vpStart()
+        applyViewport()
+        notify("Stretch ativado: " .. State.ViewportStretch.Preset, "good")
+    else
+        if VP_Conn then VP_Conn:Disconnect(); VP_Conn = nil end
+        applyViewport()
+        notify("Stretch desativado", "bad")
+    end
+end
+
+function ViewportModule.setPreset(name)
+    State.ViewportStretch.Preset = name
+    if State.ViewportStretch.Enabled then
+        applyViewport()
+        notify("Stretch: " .. name, "good")
+    end
+end
+
+function ViewportModule.setCustom(w, h)
+    State.ViewportStretch.CustomWidth = w
+    State.ViewportStretch.CustomHeight = h
+    if State.ViewportStretch.Enabled then
+        pcall(function()
+            Camera.ViewportSize = Vector2.new(w, h)
+        end)
+    end
+end
+
+function ViewportModule.reset()
+    State.ViewportStretch.Enabled = false
+    State.ViewportStretch.Preset = "Baixa"
+    if VP_Conn then VP_Conn:Disconnect(); VP_Conn = nil end
+    if Camera and VP_Original then
+        pcall(function() Camera.ViewportSize = VP_Original end)
+    end
+    notify("Stretch resetado", "bad")
+end
+
+--====================================================================
+-- ABA STRETCH
+--====================================================================
+createTab("Stretch", "STR")
+
+do
+    local page = Tabs["Stretch"].page
+
+    local sec = section("Esticar Tela (ViewportSize)")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Stretch", State.ViewportStretch.Enabled, function(on)
+        ViewportModule.setEnabled(on)
+    end, 1)
+
+    dropdownRow(sec, "Proporcao",
+        { "Baixa", "Media", "Alta", "Ultra" },
+        State.ViewportStretch.Preset,
+        function(opt) ViewportModule.setPreset(opt) end, 2)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 100),
+        BackgroundTransparency = 1,
+        Text = "Baixa = 1080x1920 | Media = 1080x2200 | Alta = 1020x1990 | Ultra = 900x2400\n\nForca a ViewportSize da camera. Isso distorce o mundo 3D (aspect ratio diferente do dispositivo).",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Resetar Stretch", function()
+        ViewportModule.reset()
+    end, 1)
+end
+
+-- ---------- CLEANUP ----------
+local _prevVP = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevVP then _prevVP() end
+    pcall(function() ViewportModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() ViewportModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Stretch (ViewportSize) carregado.")
