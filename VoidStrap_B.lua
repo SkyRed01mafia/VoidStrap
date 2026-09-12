@@ -273,8 +273,7 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6 — AUTO FOLLOW + REACH + BOTÃO FLUTUANTE + LOCK
--- Sistema baseado no Dio Brando Hub, integrado ao VoidStrap.
+-- PARTE 6.1 — AUTO FOLLOW (NÚCLEO + BOTÃO FLUTUANTE)
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
@@ -285,6 +284,7 @@ State.AutoFollow = State.AutoFollow or {
     ReachDistance = 1,
     PauseOnLock = true,
     TouchToEnable = true,
+    TargetMode = "Todas",
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -303,42 +303,83 @@ local AF_LockedByMe = false
 local AF_TouchConn = nil
 local AF_TouchDebounce = 0
 
--- ---------- DETECÇÃO DA BOLA ----------
+-- DETECÇÃO DE BOLA
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
 }
 
-local function afFindBall()
-    local char = LP.Character
-    for _, name in ipairs(BALL_NAMES) do
-        local b = Workspace:FindFirstChild(name, true)
-        if b and b:IsA("BasePart") then
-            if not (char and b:IsDescendantOf(char)) then
-                return b
+local function isBallName(name)
+    for _, n in ipairs(BALL_NAMES) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function getBallOwner(ball)
+    if not ball then return nil end
+    local ownerVal = ball:FindFirstChild("Owner")
+    if not ownerVal or not ownerVal.Value then return nil end
+    return Players:GetPlayerFromCharacter(ownerVal.Value)
+end
+
+local function afFindAllBalls()
+    local balls = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallName(obj.Name) then
+            local char = LP.Character
+            if not (char and obj:IsDescendantOf(char)) then
+                table.insert(balls, obj)
             end
         end
+    end
+    return balls
+end
+
+local function afFindMyBall()
+    for _, b in ipairs(afFindAllBalls()) do
+        if getBallOwner(b) == LP then return b end
     end
     return nil
 end
 
--- ---------- DETECÇÃO DE LOCK (Owner do TPS) ----------
-local function isBallLocked(ball)
-    if not ball then return false, nil end
-    local ownerVal = ball:FindFirstChild("Owner")
-    if not ownerVal or not ownerVal.Value then return false, nil end
-    local ownerPlayer = Players:GetPlayerFromCharacter(ownerVal.Value)
-    if not ownerPlayer then return false, nil end
-    local ownerChar = ownerPlayer.Character
-    if not ownerChar then return false, nil end
-    local ownerRoot = ownerChar:FindFirstChild("HumanoidRootPart")
-    if not ownerRoot then return false, nil end
-    local dist = (ownerRoot.Position - ball.Position).Magnitude
-    if dist > 8 then return false, nil end
-    return true, ownerPlayer
+local function afFindClosestBall()
+    local char = LP.Character
+    if not char then return nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local closest, minDist = nil, math.huge
+    for _, b in ipairs(afFindAllBalls()) do
+        local d = (b.Position - root.Position).Magnitude
+        if d < minDist then minDist = d; closest = b end
+    end
+    return closest
 end
 
--- ---------- CLEANUP ----------
+local function afFindBallDefault()
+    local balls = afFindAllBalls()
+    return balls[1]
+end
+
+local function afFindBallByMode()
+    local mode = State.AutoFollow.TargetMode or "Todas"
+    if mode == "Minha" then return afFindMyBall() end
+    if mode == "MaisProxima" then return afFindClosestBall() end
+    return afFindBallDefault()
+end
+
+local function isBallLocked(ball)
+    if not ball then return false, nil end
+    local owner = getBallOwner(ball)
+    if not owner then return false, nil end
+    local char = owner.Character
+    if not char then return false, nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return false, nil end
+    if (root.Position - ball.Position).Magnitude > 8 then return false, nil end
+    return true, owner
+end
+
 local function afCleanupBodyVel()
     if AF_BodyVel and AF_BodyVel.Parent then
         pcall(function() AF_BodyVel:Destroy() end)
@@ -346,7 +387,7 @@ local function afCleanupBodyVel()
     AF_BodyVel = nil
 end
 
--- ---------- BOTÃO FLUTUANTE ----------
+-- BOTÃO FLUTUANTE
 local FloatingBtn = nil
 
 local function updateFloatingBtnVisual()
@@ -364,57 +405,42 @@ local function updateFloatingBtnVisual()
     end
 end
 
--- ---------- LOOP PRINCIPAL ----------
+-- LOOP PRINCIPAL
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
-
     AF_Conn = RunService.RenderStepped:Connect(function()
-        if not State.AutoFollow.Enabled then
-            afCleanupBodyVel()
-            return
-        end
-
+        if not State.AutoFollow.Enabled then afCleanupBodyVel() return end
         local char = LP.Character
         if not char then afCleanupBodyVel() return end
-
         local root = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid or humanoid.Health <= 0 then
-            afCleanupBodyVel()
-            return
-        end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not root or not hum or hum.Health <= 0 then afCleanupBodyVel() return end
 
         local now = tick()
-        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 2 then
+        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 1 then
             AF_LastSearch = now
-            AF_CachedBall = afFindBall()
+            AF_CachedBall = afFindBallByMode()
         end
-
         local ball = AF_CachedBall
         if not ball then afCleanupBodyVel() return end
 
-        -- Lock
-        if State.AutoFollow.PauseOnLock then
+        if State.AutoFollow.PauseOnLock and State.AutoFollow.TargetMode ~= "Minha" then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
             AF_LockedByMe = locked and (who == LP)
-
             if locked then
                 afCleanupBodyVel()
                 if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
                 return
             end
-
             if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
         else
             AF_LockedByMe = false
         end
 
-        -- Movimento
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
-        local distance = (root.Position - targetPos).Magnitude
-
-        if distance > State.AutoFollow.StopDistance then
+        local dist = (root.Position - targetPos).Magnitude
+        if dist > State.AutoFollow.StopDistance then
             if not AF_BodyVel or AF_BodyVel.Parent ~= root then
                 afCleanupBodyVel()
                 AF_BodyVel = Instance.new("BodyVelocity")
@@ -423,103 +449,72 @@ local function afStart()
                 AF_BodyVel.Velocity = Vector3.zero
                 AF_BodyVel.Parent = root
             end
-
-            local direction = (targetPos - root.Position).Unit
-            pcall(function()
-                root.CFrame = CFrame.lookAt(root.Position, targetPos)
-            end)
-
-            local speed = math.max(humanoid.WalkSpeed, State.AutoFollow.Speed)
-            pcall(function()
-                AF_BodyVel.Velocity = direction * speed
-            end)
+            local dir = (targetPos - root.Position).Unit
+            pcall(function() root.CFrame = CFrame.lookAt(root.Position, targetPos) end)
+            local speed = math.max(hum.WalkSpeed, State.AutoFollow.Speed)
+            pcall(function() AF_BodyVel.Velocity = dir * speed end)
         else
             afCleanupBodyVel()
         end
     end)
 end
 
--- ---------- REACH ----------
+-- REACH
 local function afStartReach()
     if AF_ReachConn then AF_ReachConn:Disconnect(); AF_ReachConn = nil end
-
     AF_ReachConn = RunService.Heartbeat:Connect(function()
         if not State.AutoFollow.Enabled then return end
         if not State.AutoFollow.ReachEnabled then return end
         if State.AutoFollow.ReachDistance <= 1 then return end
-
         local char = LP.Character
         if not char then return end
-
-        local leg = char:FindFirstChild("Right Leg")
-            or char:FindFirstChild("Right Lower Leg")
-            or char:FindFirstChild("HumanoidRootPart")
+        local leg = char:FindFirstChild("Right Leg") or char:FindFirstChild("Right Lower Leg") or char:FindFirstChild("HumanoidRootPart")
         if not leg then return end
-
-        local ball = AF_CachedBall or afFindBall()
+        local ball = AF_CachedBall or afFindBallByMode()
         if not ball then return end
-
-        local distance = (leg.Position - ball.Position).Magnitude
+        local dist = (leg.Position - ball.Position).Magnitude
         local maxReach = State.AutoFollow.ReachDistance * 1.8
-
-        if distance <= maxReach and distance > 1.5 then
+        if dist <= maxReach and dist > 1.5 then
             if firetouchinterest then
-                pcall(function()
-                    firetouchinterest(ball, leg, 0)
-                    firetouchinterest(ball, leg, 1)
-                end)
+                pcall(function() firetouchinterest(ball, leg, 0); firetouchinterest(ball, leg, 1) end)
             end
-            pcall(function()
-                ball.CFrame = leg.CFrame * CFrame.new(0, -1, -1)
-            end)
+            pcall(function() ball.CFrame = leg.CFrame * CFrame.new(0, -1, -1) end)
         end
     end)
 end
 
--- ---------- TRISCAR ----------
+-- TRISCAR
 local function afStartTouchDetection()
     if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
-
     AF_TouchConn = RunService.Heartbeat:Connect(function()
         if not State.AutoFollow.TouchToEnable then return end
         if not State.AutoFollow.Enabled then return end
-
         local now = tick()
         if now - AF_TouchDebounce < 0.5 then return end
-
         local char = LP.Character
         if not char then return end
-
-        local ball = AF_CachedBall or afFindBall()
+        local ball = AF_CachedBall or afFindBallByMode()
         if not ball or not ball.Parent then return end
-
         local minDist = math.huge
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                local d = (part.Position - ball.Position).Magnitude
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then
+                local d = (p.Position - ball.Position).Magnitude
                 if d < minDist then minDist = d end
             end
         end
-
-        local ballRadius = math.max(ball.Size.X, ball.Size.Y, ball.Size.Z) * 0.5
-        local touchRadius = ballRadius + 1.5
-
-        if minDist <= touchRadius then
+        local radius = math.max(ball.Size.X, ball.Size.Y, ball.Size.Z) * 0.5 + 1.5
+        if minDist <= radius then
             AF_TouchDebounce = now
-            if not AF_LockedByMe then
-                AF_LastSearch = 0
-            end
+            if not AF_LockedByMe then AF_LastSearch = 0 end
         end
     end)
 end
 
--- ---------- API ----------
+-- API
 function AutoFollowModule.setEnabled(on)
     State.AutoFollow.Enabled = on
     if on then
-        afStart()
-        afStartReach()
-        afStartTouchDetection()
+        afStart(); afStartReach(); afStartTouchDetection()
         notify("Auto Follow ativado", "good")
     else
         afCleanupBodyVel()
@@ -534,10 +529,17 @@ end
 
 function AutoFollowModule.setSpeed(v) State.AutoFollow.Speed = v end
 function AutoFollowModule.setStopDistance(v) State.AutoFollow.StopDistance = v end
-function AutoFollowModule.setPauseOnLock(enabled) State.AutoFollow.PauseOnLock = enabled end
-function AutoFollowModule.setTouchToEnable(enabled) State.AutoFollow.TouchToEnable = enabled end
-function AutoFollowModule.setReachEnabled(enabled) State.AutoFollow.ReachEnabled = enabled end
+function AutoFollowModule.setPauseOnLock(v) State.AutoFollow.PauseOnLock = v end
+function AutoFollowModule.setTouchToEnable(v) State.AutoFollow.TouchToEnable = v end
+function AutoFollowModule.setReachEnabled(v) State.AutoFollow.ReachEnabled = v end
 function AutoFollowModule.setReachDistance(v) State.AutoFollow.ReachDistance = v end
+
+function AutoFollowModule.setTargetMode(mode)
+    State.AutoFollow.TargetMode = mode
+    AF_CachedBall = nil
+    AF_LastSearch = 0
+    notify("Alvo: " .. mode, "good")
+end
 
 function AutoFollowModule.reset()
     State.AutoFollow.Enabled = false
@@ -551,7 +553,7 @@ function AutoFollowModule.reset()
     notify("Auto Follow resetado", "bad")
 end
 
--- ---------- BOTÃO FLUTUANTE ARRASTÁVEL + LOCK ----------
+-- BOTÃO FLUTUANTE
 local AutoFollowBtnModule = {}
 local IsDragging = false
 local DragStart = nil
@@ -588,7 +590,6 @@ local function createFloatingBtn()
         updateLockVisual()
         return
     end
-
     FloatingBtn = create("TextButton", {
         Name = "VST_AutoFollowBtn",
         Size = UDim2.fromOffset(64, 64),
@@ -605,7 +606,6 @@ local function createFloatingBtn()
     })
     corner(32, FloatingBtn)
     stroke(ActiveTheme.Accent, 2, 0.3, FloatingBtn)
-
     updateFloatingBtnVisual()
     updateLockVisual()
 
@@ -623,7 +623,6 @@ local function createFloatingBtn()
     UIS.InputChanged:Connect(function(input)
         if not IsDragging then return end
         if State.AutoFollowBtn.Locked then return end
-
         if input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch then
             local delta = input.Position - DragStart
@@ -642,8 +641,8 @@ local function createFloatingBtn()
         or input.UserInputType == Enum.UserInputType.Touch then
             IsDragging = false
             if PressStartPos then
-                local finalDelta = input.Position - PressStartPos
-                local moved = math.abs(finalDelta.X) + math.abs(finalDelta.Y)
+                local fDelta = input.Position - PressStartPos
+                local moved = math.abs(fDelta.X) + math.abs(fDelta.Y)
                 local elapsed = tick() - PressStartTime
                 if moved < 12 and elapsed < 0.5 then
                     AutoFollowModule.setEnabled(not State.AutoFollow.Enabled)
@@ -693,15 +692,15 @@ function AutoFollowBtnModule.setLocked(locked)
     notify(locked and "Botao travado" or "Botao liberado", locked and "good" or "bad")
 end
 
-function AutoFollowBtnModule.toggleLock()
-    AutoFollowBtnModule.setLocked(not State.AutoFollowBtn.Locked)
-end
+print("[VoidStrap] 6.1 OK")--====================================================================
+-- PARTE 6.2 — AUTO FOLLOW (ABAS UI)
+--====================================================================
 
--- ---------- ABA AUTO FOLLOW ----------
-createTab("Auto Follow", "AF")
+-- ABA BASICO
+createTab("AF Basico", "AF")
 
 do
-    local page = Tabs["Auto Follow"].page
+    local page = Tabs["AF Basico"].page
 
     local sec = section("Seguir Bola")
     sec.Parent = page
@@ -710,43 +709,91 @@ do
         AutoFollowModule.setEnabled(on)
     end, 1)
 
-    toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
-        AutoFollowModule.setTouchToEnable(on)
-    end, 2)
-
-    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
-        AutoFollowModule.setPauseOnLock(on)
-    end, 3)
+    dropdownRow(sec, "Alvo",
+        { "Todas", "Minha", "MaisProxima" },
+        State.AutoFollow.TargetMode,
+        function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
 
     sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
         AutoFollowModule.setSpeed(v)
-    end, 4)
+    end, 3)
 
     sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
         AutoFollowModule.setStopDistance(v)
-    end, 5)
+    end, 4)
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
+        Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Segue a bola via BodyVelocity. Pausa quando alguem tem a posse (Owner da bola).",
+        Text = "Todas = qualquer bola. Minha = so quando VOCE tem a posse. MaisProxima = a mais perto de voce.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 6,
+        LayoutOrder = 5,
         Parent = sec,
     })
     themed(info, "TextColor3", "Sub")
 
-    -- Reach
+    local floatSec = section("Botao Flutuante")
+    floatSec.Parent = page
+
+    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
+        AutoFollowBtnModule.toggle()
+    end, 1)
+
+    local floatInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Cria um botao na tela. Toque pra ligar/desligar. Arraste pra mover.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2,
+        Parent = floatSec,
+    })
+    themed(floatInfo, "TextColor3", "Sub")
+end
+
+-- ABA AVANCADO
+createTab("AF Avancado", "AF+")
+
+do
+    local page = Tabs["AF Avancado"].page
+
+    local sec = section("Seguir Bola (Avancado)")
+    sec.Parent = page
+
+    toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
+        AutoFollowModule.setTouchToEnable(on)
+    end, 1)
+
+    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
+        AutoFollowModule.setPauseOnLock(on)
+    end, 2)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Triscar = encostar na bola reativa o AF. Lock = pausa quando alguem tem a posse.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
     local reachSec = section("Reach (Alcance)")
     reachSec.Parent = page
 
     toggleRow(reachSec, "Ativar Reach", State.AutoFollow.ReachEnabled, function(on)
         AutoFollowModule.setReachEnabled(on)
-        notify(on and "Reach ativado" or "Reach desativado", on and "good" or "bad")
     end, 1)
 
     sliderRow(reachSec, "Distancia (Studs)", 1, 12, State.AutoFollow.ReachDistance, function(v)
@@ -756,7 +803,7 @@ do
     local reachWarn = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "AVISO: Reach empurra a bola pra sua perna via CFrame. Pode ser detectado por anti-cheat server-side.",
+        Text = "AVISO: Reach empurra a bola via CFrame. Pode ser detectado por anti-cheat.",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = ActiveTheme.Bad,
@@ -767,17 +814,12 @@ do
     })
     themed(reachWarn, "TextColor3", "Bad")
 
-    -- Botão flutuante
-    local floatSec = section("Botao Flutuante")
+    local floatSec = section("Botao Flutuante (Avancado)")
     floatSec.Parent = page
-
-    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
-        AutoFollowBtnModule.toggle()
-    end, 1)
 
     toggleRow(floatSec, "Travar Botao no Lugar", State.AutoFollowBtn.Locked, function(on)
         AutoFollowBtnModule.setLocked(on)
-    end, 2)
+    end, 1)
 
     local lockInfo = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
@@ -788,12 +830,11 @@ do
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
+        LayoutOrder = 2,
         Parent = floatSec,
     })
     themed(lockInfo, "TextColor3", "Sub")
 
-    -- Reset
     local resetSec = section("Restaurar")
     resetSec.Parent = page
 
@@ -803,7 +844,7 @@ do
     end, 1)
 end
 
--- ---------- CLEANUP ----------
+-- CLEANUP
 local _prevAF = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAF then _prevAF() end
@@ -822,7 +863,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow (Dio Brando style + Lock) carregado.")--====================================================================
+print("[VoidStrap] 6.2 OK")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
