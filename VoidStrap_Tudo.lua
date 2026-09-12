@@ -2755,7 +2755,7 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor)
+-- PARTE 13 — CUSTOM BALL (Cor visual em TODAS as bolas)
 --====================================================================
 
 State.BallColor = State.BallColor or {
@@ -2764,14 +2764,13 @@ State.BallColor = State.BallColor or {
 }
 
 local BallColorModule = {}
-local BallColorTarget = nil
-local BallColorBackup = nil
-local BallColorConn = nil
+local BC_Conn = nil
+local BC_Tracked = {}  -- [ball] = { Color original, TextureColor original, ... }
 
 -- ---------- PALETA ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
-    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
+    { name = "Preto",      color = Color3.fromRGB(40, 40, 40) },
     { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
     { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
     { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
@@ -2788,76 +2787,136 @@ local BALL_COLORS = {
     { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
 }
 
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_7 = {
+-- ---------- DETECÇÃO DE TODAS AS BOLAS ----------
+local BALL_NAMES_13 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
 }
 
-local function isBallName7(name)
-    for _, n in ipairs(BALL_NAMES_7) do
+local function isBallName13(name)
+    for _, n in ipairs(BALL_NAMES_13) do
         if name == n then return true end
     end
     return false
 end
 
-local function findBall7()
+local function findAllBalls13()
+    local balls = {}
     local char = LP.Character
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName7(obj.Name) then
+        if obj:IsA("BasePart") and isBallName13(obj.Name) then
             if not (char and obj:IsDescendantOf(char)) then
-                return obj
+                table.insert(balls, obj)
             end
         end
     end
-    return nil
+    return balls
 end
 
--- ---------- APLICAR / RESTAURAR ----------
-local function applyBallColor(ball, color)
-    if not ball then return end
-    if not BallColorBackup then
-        BallColorBackup = {
-            Color = ball.Color,
-            Material = ball.Material,
-        }
+-- ---------- APLICAR COR EM UMA BOLA ----------
+local function trackBall(ball)
+    if BC_Tracked[ball] then return end
+    BC_Tracked[ball] = {
+        Color = ball.Color,
+        Material = ball.Material,
+        TextureColor = nil,
+        HasTexture = false,
+        TextureTransparency = nil,
+    }
+    local tex = ball:FindFirstChildOfClass("Texture")
+    if tex then
+        BC_Tracked[ball].HasTexture = true
+        BC_Tracked[ball].TextureColor = tex.Color3
+        BC_Tracked[ball].TextureTransparency = tex.Transparency
     end
+end
+
+local function applyColorToBall(ball, color)
+    if not ball or not ball.Parent then return end
+    trackBall(ball)
+
+    -- 1) Cor da Part
+    pcall(function() ball.Color = color end)
+
+    -- 2) Texture.Color3 (tinge a imagem)
+    local tex = ball:FindFirstChildOfClass("Texture")
+    if tex then
+        pcall(function() tex.Color3 = color end)
+    end
+
+    -- 3) Decals
+    for _, d in ipairs(ball:GetChildren()) do
+        if d:IsA("Decal") then
+            pcall(function() d.Color3 = color end)
+        end
+    end
+end
+
+local function restoreBall(ball)
+    local data = BC_Tracked[ball]
+    if not data then return end
     pcall(function()
-        ball.Color = color
+        ball.Color = data.Color
+        ball.Material = data.Material
     end)
-end
-
-local function restoreBallColor()
-    if BallColorTarget and BallColorTarget.Parent and BallColorBackup then
-        pcall(function()
-            BallColorTarget.Color = BallColorBackup.Color
-            BallColorTarget.Material = BallColorBackup.Material
-        end)
+    if data.HasTexture then
+        local tex = ball:FindFirstChildOfClass("Texture")
+        if tex then
+            if data.TextureColor then
+                pcall(function() tex.Color3 = data.TextureColor end)
+            end
+            if data.TextureTransparency ~= nil then
+                pcall(function() tex.Transparency = data.TextureTransparency end)
+            end
+        end
     end
-    BallColorBackup = nil
+    for _, d in ipairs(ball:GetChildren()) do
+        if d:IsA("Decal") then
+            pcall(function() d.Color3 = Color3.new(1, 1, 1) end)
+        end
+    end
+    BC_Tracked[ball] = nil
 end
 
--- ---------- MONITOR DE RESPAWN ----------
-local function startBallColorMonitor()
-    if BallColorConn then BallColorConn:Disconnect() end
-    local lastSearch = 0
+-- ---------- APLICAR EM TODAS ----------
+local function applyToAllBalls()
+    if not State.BallColor.Color then return end
+    local balls = findAllBalls13()
+    for _, ball in ipairs(balls) do
+        applyColorToBall(ball, State.BallColor.Color)
+    end
+end
 
-    BallColorConn = RunService.Heartbeat:Connect(function()
+local function restoreAllBalls()
+    for ball in pairs(BC_Tracked) do
+        restoreBall(ball)
+    end
+    BC_Tracked = {}
+end
+
+-- ---------- MONITOR (bolas novas) ----------
+local function bcStart()
+    if BC_Conn then BC_Conn:Disconnect() end
+    local lastScan = 0
+    BC_Conn = RunService.Heartbeat:Connect(function()
         if not State.BallColor.Enabled then return end
-        if not BallColorTarget or not BallColorTarget.Parent then
-            local now = tick()
-            if now - lastSearch < 1.5 then return end
-            lastSearch = now
-            task.spawn(function()
-                local b = findBall7()
-                if b and State.BallColor.Enabled then
-                    BallColorTarget = b
-                    BallColorBackup = nil
-                    if State.BallColor.Color then
-                        applyBallColor(b, State.BallColor.Color)
-                    end
-                end
-            end)
+        local now = tick()
+        if now - lastScan < 2 then return end
+        lastScan = now
+
+        -- Aplica em bolas novas
+        local balls = findAllBalls13()
+        for _, ball in ipairs(balls) do
+            if not BC_Tracked[ball] then
+                applyColorToBall(ball, State.BallColor.Color)
+            end
+        end
+
+        -- Limpa referências mortas
+        for ball in pairs(BC_Tracked) do
+            if not ball.Parent then
+                BC_Tracked[ball] = nil
+            end
         end
     end)
 end
@@ -2866,22 +2925,12 @@ end
 function BallColorModule.setEnabled(on)
     State.BallColor.Enabled = on
     if on then
-        task.spawn(function()
-            BallColorTarget = findBall7()
-            if BallColorTarget then
-                if State.BallColor.Color then
-                    applyBallColor(BallColorTarget, State.BallColor.Color)
-                end
-                notify("Ball Color ativado", "good")
-            else
-                notify("Bola nao encontrada", "bad")
-            end
-            startBallColorMonitor()
-        end)
+        applyToAllBalls()
+        bcStart()
+        notify("Ball Color ativado", "good")
     else
-        restoreBallColor()
-        if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
-        BallColorTarget = nil
+        if BC_Conn then BC_Conn:Disconnect(); BC_Conn = nil end
+        restoreAllBalls()
         notify("Ball Color desativado", "bad")
     end
 end
@@ -2890,8 +2939,8 @@ function BallColorModule.setColor(name)
     for _, e in ipairs(BALL_COLORS) do
         if e.name == name then
             State.BallColor.Color = e.color
-            if BallColorTarget and BallColorTarget.Parent then
-                applyBallColor(BallColorTarget, e.color)
+            if State.BallColor.Enabled then
+                applyToAllBalls()
             end
             notify("Cor: " .. name, "good")
             return
@@ -2900,31 +2949,21 @@ function BallColorModule.setColor(name)
 end
 
 function BallColorModule.refresh()
-    task.spawn(function()
-        local b = findBall7()
-        if b then
-            BallColorTarget = b
-            BallColorBackup = nil
-            if State.BallColor.Color then
-                applyBallColor(b, State.BallColor.Color)
-            end
-            notify("Bola reconectada", "good")
-        else
-            notify("Nenhuma bola encontrada", "bad")
-        end
-    end)
+    applyToAllBalls()
+    notify("Reconectado", "good")
 end
 
 function BallColorModule.reset()
     State.BallColor.Enabled = false
     State.BallColor.Color = nil
-    restoreBallColor()
-    if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
-    BallColorTarget = nil
+    if BC_Conn then BC_Conn:Disconnect(); BC_Conn = nil end
+    restoreAllBalls()
     notify("Bola restaurada", "bad")
 end
 
--- ---------- ABA ----------
+--====================================================================
+-- ABA BALL COLOR
+--====================================================================
 createTab("Ball", "BALL")
 
 do
@@ -2941,20 +2980,6 @@ do
         BallColorModule.refresh()
     end, 2)
 
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Muda a cor da bola localmente. Apenas voce ve.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = mainSec,
-    })
-    themed(info, "TextColor3", "Sub")
-
     local colorSec = section("Cores")
     colorSec.Parent = page
 
@@ -2963,6 +2988,7 @@ do
             BallColorModule.setColor(e.name)
         end, i)
 
+        -- Swatch de preview
         local swatch = create("Frame", {
             Size = UDim2.fromOffset(18, 18),
             Position = UDim2.new(0, 8, 0.5, 0),
@@ -2981,15 +3007,14 @@ do
 
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar cor original", function()
+    buttonRow(resetSec, "Restaurar bola original", function()
         BallColorModule.reset()
     end, 1)
 end
 
--- ---------- CLEANUP ----------
-local _prevBall = _G.VoidStrapUnload
+local _prevBC = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
-    if _prevBall then _prevBall() end
+    if _prevBC then _prevBC() end
     pcall(function() BallColorModule.reset() end)
 end
 
@@ -2999,7 +3024,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Color carregado.")--====================================================================
+print("[VoidStrap] Ball Color (all balls) carregado.")--====================================================================
 -- PARTE 10 — STRETCH SCREEN (FOV)
 --====================================================================
 
@@ -3153,22 +3178,21 @@ end)
 
 print("[VoidStrap] Stretch (FOV) carregado.")--====================================================================
 -- PARTE 11 — REACH (Alcance)
--- Aumenta o alcance do seu toque na bola.
 --====================================================================
 
 State.Reach = State.Reach or {
     Enabled = false,
-    Distance = 5,        -- studs de alcance
-    AutoTouch = true,    -- dispara touch automaticamente
-    PullBall = false,    -- puxa a bola pra perto
+    Distance = 5,
+    AutoTouch = true,
+    PullBall = false,
 }
 
 local ReachModule = {}
 local RE_Conn = nil
 local RE_CachedBall = nil
 local RE_LastSearch = 0
+local RE_LastTouch = 0
 
--- ---------- DETECÇÃO DA BOLA ----------
 local BALL_NAMES_11 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -3181,19 +3205,69 @@ local function isBallName11(name)
     return false
 end
 
+-- Deteccao robusta: tenta por nome, por esfera, e por tag
 local function findBall11()
     local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName11(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
+
+    -- 1) Por nome exato
+    for _, name in ipairs(BALL_NAMES_11) do
+        local b = Workspace:FindFirstChild(name, true)
+        if b and b:IsA("BasePart") then
+            if not (char and b:IsDescendantOf(char)) then
+                return b
             end
         end
     end
+
+    -- 2) Fallback: esfera entre 1 e 6 studs
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
+            local mx = math.max(obj.Size.X, obj.Size.Y, obj.Size.Z)
+            if mx >= 1 and mx <= 6 then
+                if not (char and obj:IsDescendantOf(char)) then
+                    return obj
+                end
+            end
+        end
+    end
+
+    -- 3) Fallback: procura em Models "Balls"
+    for _, name in ipairs({"Balls", "Ball", "Game", "Field"}) do
+        local c = Workspace:FindFirstChild(name)
+        if c then
+            for _, obj in ipairs(c:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    local n = obj.Name:lower()
+                    if n == "tps" or n:find("ball") or n:find("bola") then
+                        return obj
+                    end
+                end
+            end
+        end
+    end
+
     return nil
 end
 
--- ---------- LOOP PRINCIPAL ----------
+-- Pega todas as partes de "pe" do personagem (R6 e R15)
+local function getFeet(char)
+    local feet = {}
+    local names = {
+        -- R15
+        "RightFoot", "LeftFoot",
+        "RightLowerLeg", "LeftLowerLeg",
+        -- R6
+        "Right Leg", "Left Leg",
+        -- Fallback
+        "HumanoidRootPart",
+    }
+    for _, n in ipairs(names) do
+        local p = char:FindFirstChild(n)
+        if p then table.insert(feet, p) end
+    end
+    return feet
+end
+
 local function reStart()
     if RE_Conn then RE_Conn:Disconnect() end
 
@@ -3203,18 +3277,10 @@ local function reStart()
         local char = LP.Character
         if not char then return end
 
-        -- Pega a "perna" (pra simular o toque como se fosse chute)
-        local leg = char:FindFirstChild("Right Leg")
-            or char:FindFirstChild("Right Lower Leg")
-            or char:FindFirstChild("Left Leg")
-            or char:FindFirstChild("Left Lower Leg")
-            or char:FindFirstChild("HumanoidRootPart")
-        if not leg then return end
-
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return end
 
-        -- Cache da bola
+        -- Cache da bola (a cada 0.5s)
         local now = tick()
         if not RE_CachedBall or not RE_CachedBall.Parent or (now - RE_LastSearch) > 0.5 then
             RE_LastSearch = now
@@ -3223,26 +3289,41 @@ local function reStart()
         local ball = RE_CachedBall
         if not ball then return end
 
-        -- Calcula distância
-        local distance = (leg.Position - ball.Position).Magnitude
-        if distance > State.Reach.Distance then return end
+        local feet = getFeet(char)
+        if #feet == 0 then return end
 
-        -- ---------- AUTO TOUCH ----------
-        if State.Reach.AutoTouch then
-            if firetouchinterest then
-                pcall(function()
-                    firetouchinterest(ball, leg, 0)
-                    firetouchinterest(ball, leg, 1)
-                end)
+        -- Pega o pe mais perto
+        local closestFoot = nil
+        local minDist = math.huge
+        for _, foot in ipairs(feet) do
+            local d = (foot.Position - ball.Position).Magnitude
+            if d < minDist then
+                minDist = d
+                closestFoot = foot
             end
         end
 
-        -- ---------- PULL BALL ----------
+        if not closestFoot then return end
+        if minDist > State.Reach.Distance then return end
+
+        -- Cooldown de 0.15s pra nao spammar
+        if now - RE_LastTouch < 0.15 then return end
+        RE_LastTouch = now
+
+        -- Auto Touch
+        if State.Reach.AutoTouch and firetouchinterest then
+            pcall(function()
+                firetouchinterest(ball, closestFoot, 0)
+                firetouchinterest(ball, closestFoot, 1)
+            end)
+        end
+
+        -- Pull Ball (opcional)
         if State.Reach.PullBall then
             pcall(function()
-                local direction = (leg.Position - ball.Position)
-                if direction.Magnitude > 0.1 then
-                    local targetPos = ball.Position + direction.Unit * math.min(direction.Magnitude * 0.5, 3)
+                local dir = (closestFoot.Position - ball.Position)
+                if dir.Magnitude > 0.1 then
+                    local targetPos = ball.Position + dir.Unit * math.min(dir.Magnitude * 0.3, 2)
                     ball.CFrame = CFrame.new(targetPos)
                 end
             end)
@@ -3250,7 +3331,6 @@ local function reStart()
     end)
 end
 
--- ---------- API ----------
 function ReachModule.setEnabled(on)
     State.Reach.Enabled = on
     if on then
@@ -3264,9 +3344,6 @@ end
 
 function ReachModule.setDistance(v)
     State.Reach.Distance = v
-    if State.Reach.Enabled then
-        notify("Reach: " .. v .. " studs", "good")
-    end
 end
 
 function ReachModule.setAutoTouch(on)
@@ -3277,6 +3354,12 @@ function ReachModule.setPullBall(on)
     State.Reach.PullBall = on
 end
 
+function ReachModule.refresh()
+    RE_CachedBall = nil
+    RE_LastSearch = 0
+    notify("Reconectado", "good")
+end
+
 function ReachModule.reset()
     State.Reach.Enabled = false
     if RE_Conn then RE_Conn:Disconnect(); RE_Conn = nil end
@@ -3284,14 +3367,10 @@ function ReachModule.reset()
     notify("Reach resetado", "bad")
 end
 
---====================================================================
--- ABA REACH
---====================================================================
 createTab("Reach", "RCH")
 
 do
     local page = Tabs["Reach"].page
-
     local sec = section("Alcance (Reach)")
     sec.Parent = page
 
@@ -3309,47 +3388,13 @@ do
 
     toggleRow(sec, "Puxar Bola (Pull)", State.Reach.PullBall, function(on)
         ReachModule.setPullBall(on)
-        notify(on and "Pull ativado" or "Pull desativado", on and "good" or "bad")
     end, 4)
 
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "Aumenta o alcance do toque na bola.\nAutoTouch = dispara o toque automaticamente. Pull = puxa a bola pra perto.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 5,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Aviso
-    local warnSec = section("Aviso")
-    warnSec.Parent = page
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "AVISO: Reach e altamente detectavel por anti-cheat server-side. Mexe direto na fisica da bola. Use APENAS em alt. Pode causar ban permanente.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = warnSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
-
-    buttonRow(warnSec, "Desativar tudo", function()
-        ReachModule.reset()
-    end, 2)
+    buttonRow(sec, "Reconectar Bola", function()
+        ReachModule.refresh()
+    end, 5)
 end
 
--- ---------- CLEANUP ----------
 local _prevRE = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevRE then _prevRE() end
@@ -3363,16 +3408,16 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Reach carregado.")--====================================================================
--- PARTE 12 — AUTO CATCH (Goleiro pega a bola na mão)
--- Quando a bola entra no raio da mão do goleiro, dispara touch.
+-- PARTE 12 — AUTO CATCH (aumenta alcance da mao)
+-- Nao move, nao pula. So dispara touch quando a bola entra no range.
 --====================================================================
 
 State.AutoCatch = State.AutoCatch or {
     Enabled = false,
-    Range = 6,           -- studs do alcance da mão
-    GoalSide = "Home",   -- "Home" (Goal222) ou "Away" (Goal111)
-    OnlyMyGoal = false,  -- só funciona se você estiver no gol escolhido
-    Notify = true,       -- avisa quando pega
+    Range = 6,
+    GoalSide = "Home",
+    OnlyMyGoal = false,
+    Notify = false,
 }
 
 local AutoCatchModule = {}
@@ -3383,7 +3428,6 @@ local AC_LastSearch = 0
 local AC_GoalLastSearch = 0
 local AC_LastCatch = 0
 
--- ---------- DETECÇÃO DA BOLA ----------
 local BALL_NAMES_12 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -3408,7 +3452,6 @@ local function findBall12()
     return nil
 end
 
--- ---------- DETECÇÃO DO GOL ----------
 local function findGoal12()
     local goalName = (State.AutoCatch.GoalSide == "Home") and "Goal222" or "Goal111"
     local goal = Workspace:FindFirstChild(goalName, true)
@@ -3421,7 +3464,26 @@ local function findGoal12()
     return nil
 end
 
--- ---------- LOOP PRINCIPAL ----------
+-- Pega as maos do goleiro (R6 e R15)
+local function getHands(char)
+    local hands = {}
+    local names = {
+        -- R15
+        "RightHand", "LeftHand",
+        "RightLowerArm", "LeftLowerArm",
+        -- R6
+        "Right Arm", "Left Arm",
+        -- Fallback
+        "RightUpperLeg", "LeftUpperLeg",
+        "HumanoidRootPart",
+    }
+    for _, n in ipairs(names) do
+        local p = char:FindFirstChild(n)
+        if p then table.insert(hands, p) end
+    end
+    return hands
+end
+
 local function acStart()
     if AC_Conn then AC_Conn:Disconnect() end
 
@@ -3451,60 +3513,37 @@ local function acStart()
         end
         local goal = AC_CachedGoal
 
-        -- Se OnlyMyGoal, exige que você esteja perto do gol escolhido
+        -- Se OnlyMyGoal, exige estar perto do gol escolhido
         if State.AutoCatch.OnlyMyGoal and goal then
             local distToGoal = (root.Position - goal.Position).Magnitude
             if distToGoal > 30 then return end
         end
 
-        -- Pega os "braços" do goleiro (Hands ou LowerArms)
-        local hands = {}
-        local handNames = {
-            "RightHand", "LeftHand",
-            "RightLowerArm", "LeftLowerArm",
-            "RightUpperArm", "LeftUpperArm",
-            "Right Arm", "Left Arm",
-            "RightLowerLeg", "LeftLowerLeg",
-            "RightUpperLeg", "LeftUpperLeg",
-            "HumanoidRootPart"
-        }
-        for _, name in ipairs(handNames) do
-            local part = char:FindFirstChild(name)
-            if part then table.insert(hands, part) end
-        end
-
+        local hands = getHands(char)
         if #hands == 0 then return end
 
-        -- Checa distância mínima entre qualquer membro do goleiro e a bola
+        -- Distancia minima entre qualquer mao e a bola
         local minDist = math.huge
-        local closestPart = nil
-        for _, part in ipairs(hands) do
-            local d = (part.Position - ball.Position).Magnitude
+        local closestHand = nil
+        for _, hand in ipairs(hands) do
+            local d = (hand.Position - ball.Position).Magnitude
             if d < minDist then
                 minDist = d
-                closestPart = part
+                closestHand = hand
             end
         end
 
-        -- Se está dentro do alcance, "pega" a bola
-        if minDist <= State.AutoCatch.Range then
-            -- Debounce pra não spammar
+        -- Se dentro do alcance, dispara touch
+        if minDist <= State.AutoCatch.Range and closestHand then
             if now - AC_LastCatch < 0.3 then return end
             AC_LastCatch = now
 
-            -- Dispara o touch (simula a mão pegando)
-            if firetouchinterest and closestPart then
+            if firetouchinterest then
                 pcall(function()
-                    firetouchinterest(ball, closestPart, 0)
-                    firetouchinterest(ball, closestPart, 1)
+                    firetouchinterest(ball, closestHand, 0)
+                    firetouchinterest(ball, closestHand, 1)
                 end)
             end
-
-            -- Se a bola é MeshPart/Part, zera a velocidade local
-            pcall(function()
-                ball.AssemblyLinearVelocity = Vector3.zero
-                ball.AssemblyAngularVelocity = Vector3.zero
-            end)
 
             if State.AutoCatch.Notify then
                 notify("Pegou a bola!", "good")
@@ -3513,7 +3552,6 @@ local function acStart()
     end)
 end
 
--- ---------- API ----------
 function AutoCatchModule.setEnabled(on)
     State.AutoCatch.Enabled = on
     if on then
@@ -3536,7 +3574,6 @@ function AutoCatchModule.setGoalSide(side)
     State.AutoCatch.GoalSide = side
     AC_CachedGoal = nil
     AC_GoalLastSearch = 0
-    notify("Gol: " .. side, "good")
 end
 
 function AutoCatchModule.refresh()
@@ -3551,17 +3588,12 @@ function AutoCatchModule.reset()
     if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
     AC_CachedBall = nil
     AC_CachedGoal = nil
-    notify("Auto Catch resetado", "bad")
 end
 
---====================================================================
--- ABA AUTO CATCH
---====================================================================
 createTab("Auto Catch", "AC")
 
 do
     local page = Tabs["Auto Catch"].page
-
     local sec = section("Auto Catch")
     sec.Parent = page
 
@@ -3574,7 +3606,7 @@ do
         State.AutoCatch.GoalSide,
         function(opt) AutoCatchModule.setGoalSide(opt) end, 2)
 
-    sliderRow(sec, "Alcance da Mao", 2, 12, State.AutoCatch.Range, function(v)
+    sliderRow(sec, "Alcance da Mao", 2, 15, State.AutoCatch.Range, function(v)
         AutoCatchModule.setRange(v)
     end, 3)
 
@@ -3582,53 +3614,12 @@ do
         AutoCatchModule.setOnlyMyGoal(on)
     end, 4)
 
-    toggleRow(sec, "Notificar", State.AutoCatch.Notify, function(on)
-        AutoCatchModule.setNotify(on)
-    end, 5)
-
     buttonRow(sec, "Reconectar", function()
         AutoCatchModule.refresh()
         notify("Reconectado", "good")
-    end, 6)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "Quando a bola entra no alcance da mao do goleiro, dispara touch automaticamente pra pegar.\n\nHome = Goal222 | Away = Goal111.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 7,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Aviso
-    local warnSec = section("Aviso")
-    warnSec.Parent = page
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        Text = "AVISO: dispara touch automatico na bola. Detectavel. Use apenas em alt.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = warnSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
-
-    buttonRow(warnSec, "Desativar tudo", function()
-        AutoCatchModule.reset()
-    end, 2)
+    end, 5)
 end
 
--- ---------- CLEANUP ----------
 local _prevAC = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAC then _prevAC() end
@@ -3641,38 +3632,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Catch carregado.")--====================================================================
--- REMOVE TODOS OS AVISOS (warnLbl)
--- Percorre a UI e remove qualquer TextLabel com cor vermelha (Bad)
---====================================================================
-
-task.defer(function()
-    task.wait(1)  -- espera a UI carregar
-
-    local function isWarnLabel(lbl)
-        if not lbl:IsA("TextLabel") then return false end
-        -- Detecta pelo texto (a maioria tem "AVISO" no início)
-        local t = lbl.Text or ""
-        if t:find("AVISO") or t:find("aviso") then return true end
-        -- Detecta pela cor vermelha (Bad)
-        local c = lbl.TextColor3
-        if c.R > 0.7 and c.G < 0.5 and c.B < 0.5 then return true end
-        return false
-    end
-
-    local removed = 0
-    for _, gui in ipairs(LP:WaitForChild("PlayerGui"):GetChildren()) do
-        if gui.Name:find("VoidStrap") then
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if isWarnLabel(obj) then
-                    obj:Destroy()
-                    removed = removed + 1
-                end
-            end
-        end
-    end
-
-    print("[VoidStrap] Avisos removidos:", removed)
-end)
-
-print("[VoidStrap] Remocao de avisos carregada.")
+print("[VoidStrap] Auto Catch carregado.")
