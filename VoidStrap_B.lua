@@ -36,39 +36,27 @@ local FIRE_PRESETS = {
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
 local function ftFindBall()
     local char = LP.Character
-    local function valid(p)
-        if not p or not p:IsA("BasePart") then return false end
-        if char and p:IsDescendantOf(char) then return false end
-        return true
-    end
-
-    -- Busca rápida por nomes conhecidos
-    for _, name in ipairs({"TPS", "ESA", "MRS", "PRS", "MPS", "Bola", "Ball", "SoccerBall", "Football"}) do
-        local b = Workspace:FindFirstChild(name, true)
-        if valid(b) then return b end
-    end
-
-    -- Fallback: esferas pequenas
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if valid(obj) and obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
-            local mx = math.max(obj.Size.X, obj.Size.Y, obj.Size.Z)
-            if mx >= 1 and mx <= 6 then return obj end
-        end
-        if obj:IsA("Model") then
-            for _, sub in ipairs(obj:GetChildren()) do
-                if valid(sub) and sub:IsA("BasePart") then
-                    if sub.Shape == Enum.PartType.Ball then
-                        local mx = math.max(sub.Size.X, sub.Size.Y, sub.Size.Z)
-                        if mx >= 1 and mx <= 6 then return sub end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local n = obj.Name
+            for _, name in ipairs(BALL_NAMES) do
+                if n == name then
+                    if char and obj:IsDescendantOf(char) then
+                        -- ignora acessórios
+                    else
+                        return obj
                     end
-                    if sub.Name:lower() == "tps" then return sub end
                 end
             end
         end
     end
-
     return nil
 end
 
@@ -227,7 +215,7 @@ task.spawn(function()
 end)
 
 --====================================================================
--- ABA
+-- ABA FIRE TRAIL
 --====================================================================
 createTab("Fire Trail", "FT")
 
@@ -269,25 +257,9 @@ do
     buttonRow(resetSec, "Remover efeitos da bola", function()
         FireTrailModule.reset()
     end, 1)
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "AVISO: efeitos visuais sao locais. Se algum jogo bloquear, desative.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 2,
-        Parent = resetSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
 end
 
---====================================================================
--- CLEANUP
---====================================================================
+-- ---------- CLEANUP ----------
 local _prevFT = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevFT then _prevFT() end
@@ -301,429 +273,16 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 5B — PLAYER TRAIL / BEAM
--- Rastro (Trail) ou feixe (Beam) no personagem. Local, reversível.
---====================================================================
-
-State.PlayerTrail = State.PlayerTrail or {
-    Enabled = false,
-    Mode = "Trail",        -- "Trail" ou "Beam"
-    Preset = "Arco-Íris",
-    Width = 2,
-    Lifetime = 1.0,
-}
-
-local PlayerTrailModule = {}
-
-local ActiveEffects   = {}
-local CharacterConn   = nil
-local CurrentChar     = nil
-local DebugLabel2     = nil
-local DebugLog2       = {}
-
-local function dbg2(msg)
-    table.insert(DebugLog2, 1, msg)
-    while #DebugLog2 > 8 do table.remove(DebugLog2) end
-    if DebugLabel2 then DebugLabel2.Text = table.concat(DebugLog2, "\n") end
-    print("[PlayerTrail] " .. msg)
-end
-
--- ---------- PRESETS DE COR ----------
-local PT_PRESETS = {
-    ["Arco-Íris"] = {
-        colors = {
-            Color3.fromRGB(255, 60, 60),
-            Color3.fromRGB(255, 200, 60),
-            Color3.fromRGB(80, 255, 80),
-            Color3.fromRGB(60, 200, 255),
-            Color3.fromRGB(180, 80, 255),
-        },
-        rainbow = true,
-    },
-    ["Fogo"] = {
-        colors = {
-            Color3.fromRGB(255, 220, 80),
-            Color3.fromRGB(255, 140, 40),
-            Color3.fromRGB(255, 60, 0),
-        },
-    },
-    ["Gelo"] = {
-        colors = {
-            Color3.fromRGB(220, 240, 255),
-            Color3.fromRGB(120, 200, 255),
-            Color3.fromRGB(60, 140, 220),
-        },
-    },
-    ["Neon Verde"] = {
-        colors = {
-            Color3.fromRGB(200, 255, 200),
-            Color3.fromRGB(80, 255, 120),
-            Color3.fromRGB(30, 180, 60),
-        },
-    },
-    ["Roxo Cósmico"] = {
-        colors = {
-            Color3.fromRGB(230, 180, 255),
-            Color3.fromRGB(180, 80, 255),
-            Color3.fromRGB(90, 40, 180),
-        },
-    },
-    ["Dourado"] = {
-        colors = {
-            Color3.fromRGB(255, 240, 180),
-            Color3.fromRGB(255, 200, 60),
-            Color3.fromRGB(200, 140, 30),
-        },
-    },
-    ["Sangue"] = {
-        colors = {
-            Color3.fromRGB(255, 80, 80),
-            Color3.fromRGB(180, 20, 20),
-            Color3.fromRGB(90, 0, 0),
-        },
-    },
-    ["Sombra"] = {
-        colors = {
-            Color3.fromRGB(90, 60, 130),
-            Color3.fromRGB(50, 20, 80),
-            Color3.fromRGB(15, 5, 30),
-        },
-    },
-    ["Branco Puro"] = {
-        colors = {
-            Color3.fromRGB(255, 255, 255),
-            Color3.fromRGB(220, 220, 255),
-            Color3.fromRGB(150, 150, 200),
-        },
-    },
-    ["Preto Fade"] = {
-        colors = {
-            Color3.fromRGB(60, 60, 60),
-            Color3.fromRGB(25, 25, 25),
-            Color3.fromRGB(0, 0, 0),
-        },
-    },
-}
-
--- ---------- UTIL ----------
-local function buildColorSequence(preset)
-    if not preset or not preset.colors then return ColorSequence.new(Color3.new(1,1,1)) end
-    if #preset.colors == 1 then
-        return ColorSequence.new(preset.colors[1])
-    end
-    local kps = {}
-    for i, c in ipairs(preset.colors) do
-        table.insert(kps, ColorSequenceKeypoint.new((i-1)/(#preset.colors-1), c))
-    end
-    return ColorSequence.new(kps)
-end
-
-local function clearEffects()
-    for _, obj in ipairs(ActiveEffects) do
-        pcall(function()
-            if obj and obj.Parent then obj:Destroy() end
-        end)
-    end
-    ActiveEffects = {}
-end
-
--- ---------- APLICAR NO PERSONAGEM ----------
-local function applyToCharacter()
-    local char = LP.Character
-    if not char then
-        dbg2("Sem character")
-        return false
-    end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    if not hrp then
-        dbg2("Sem HumanoidRootPart")
-        return false
-    end
-
-    clearEffects()
-    CurrentChar = char
-
-    local preset = PT_PRESETS[State.PlayerTrail.Preset] or PT_PRESETS["Arco-Íris"]
-    local colorSeq = buildColorSequence(preset)
-    local width = State.PlayerTrail.Width or 2
-    local lifetime = State.PlayerTrail.Lifetime or 1.0
-
-    -- Attachment 0 (base, na raiz)
-    local a0 = Instance.new("Attachment")
-    a0.Name = "VST_PT_A0"
-    a0.Position = Vector3.new(0, 0, 0)
-    a0.Parent = hrp
-    table.insert(ActiveEffects, a0)
-
-    -- Attachment 1 (topo, um pouco acima)
-    local a1 = Instance.new("Attachment")
-    a1.Name = "VST_PT_A1"
-    a1.Position = Vector3.new(0, width, 0)
-    a1.Parent = hrp
-    table.insert(ActiveEffects, a1)
-
-    if State.PlayerTrail.Mode == "Beam" then
-        -- Beam (feixe reto)
-        local beam = Instance.new("Beam")
-        beam.Name = "VST_PT_Beam"
-        beam.Attachment0 = a0
-        beam.Attachment1 = a1
-        beam.Color = colorSeq
-        beam.Width0 = width
-        beam.Width1 = width * 0.6
-        beam.LightEmission = 1
-        beam.LightInfluence = 0
-        beam.FaceCamera = true
-        beam.Segments = 10
-        beam.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0.0, 0.15),
-            NumberSequenceKeypoint.new(0.5, 0.4),
-            NumberSequenceKeypoint.new(1.0, 1.0),
-        })
-        beam.Parent = hrp
-        table.insert(ActiveEffects, beam)
-        dbg2("Beam anexado")
-    else
-        -- Trail (rastro clássico)
-        local trail = Instance.new("Trail")
-        trail.Name = "VST_PT_Trail"
-        trail.Attachment0 = a0
-        trail.Attachment1 = a1
-        trail.Color = colorSeq
-        trail.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0.0, 0.1),
-            NumberSequenceKeypoint.new(0.6, 0.5),
-            NumberSequenceKeypoint.new(1.0, 1.0),
-        })
-        trail.WidthScale = NumberSequence.new({
-            NumberSequenceKeypoint.new(0.0, 1.5),
-            NumberSequenceKeypoint.new(0.5, 1.0),
-            NumberSequenceKeypoint.new(1.0, 0.2),
-        })
-        trail.Lifetime = lifetime
-        trail.LightEmission = 1
-        trail.LightInfluence = 0
-        trail.FaceCamera = true
-        trail.Parent = hrp
-        table.insert(ActiveEffects, trail)
-        dbg2("Trail anexado")
-    end
-
-    -- Partículas extras (opcional, dá mais "aura")
-    local sparks = Instance.new("ParticleEmitter")
-    sparks.Name = "VST_PT_Sparks"
-    sparks.Color = colorSeq
-    sparks.Size = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.8),
-        NumberSequenceKeypoint.new(1.0, 0.0),
-    })
-    sparks.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.3),
-        NumberSequenceKeypoint.new(1.0, 1.0),
-    })
-    sparks.Lifetime = NumberRange.new(0.3, 0.7)
-    sparks.Rate = 25
-    sparks.Speed = NumberRange.new(1, 4)
-    sparks.SpreadAngle = Vector2.new(180, 180)
-    sparks.LightEmission = 1
-    sparks.LightInfluence = 0
-    sparks.Parent = hrp
-    table.insert(ActiveEffects, sparks)
-
-    dbg2("✓ Efeitos no character")
-    return true
-end
-
--- ---------- LOOP DE RAINBOW (se preset tiver rainbow = true) ----------
-local RainbowConn = nil
-local function startRainbowLoop()
-    if RainbowConn then RainbowConn:Disconnect() end
-    if not State.PlayerTrail.Enabled then return end
-    local preset = PT_PRESETS[State.PlayerTrail.Preset]
-    if not preset or not preset.rainbow then return end
-
-    local hue = 0
-    RainbowConn = RunService.Heartbeat:Connect(function(dt)
-        if not State.PlayerTrail.Enabled then return end
-        hue = (hue + dt * 0.3) % 1
-        local c1 = Color3.fromHSV(hue, 1, 1)
-        local c2 = Color3.fromHSV((hue + 0.2) % 1, 1, 1)
-        local c3 = Color3.fromHSV((hue + 0.4) % 1, 1, 1)
-        local seq = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, c1),
-            ColorSequenceKeypoint.new(0.5, c2),
-            ColorSequenceKeypoint.new(1, c3),
-        })
-        for _, obj in ipairs(ActiveEffects) do
-            if obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("ParticleEmitter") then
-                pcall(function() obj.Color = seq end)
-            end
-        end
-    end)
-end
-
--- ---------- MONITOR DE RESPAWN ----------
-local function hookCharacter()
-    if CharacterConn then CharacterConn:Disconnect() end
-    CharacterConn = LP.CharacterAdded:Connect(function(char)
-        task.wait(0.5)
-        if State.PlayerTrail.Enabled then
-            applyToCharacter()
-            startRainbowLoop()
-        end
-    end)
-end
-
--- ---------- API ----------
-function PlayerTrailModule.setEnabled(on)
-    State.PlayerTrail.Enabled = on
-    if on then
-        dbg2("Ativando...")
-        task.spawn(function()
-            if applyToCharacter() then
-                startRainbowLoop()
-                notify("Player Trail ativado", "good")
-            else
-                notify("Character não pronto", "bad")
-            end
-        end)
-    else
-        clearEffects()
-        if RainbowConn then RainbowConn:Disconnect(); RainbowConn = nil end
-        dbg2("Desativado")
-        notify("Player Trail desativado", "bad")
-    end
-end
-
-function PlayerTrailModule.setMode(mode)
-    State.PlayerTrail.Mode = mode
-    if State.PlayerTrail.Enabled then
-        applyToCharacter()
-        startRainbowLoop()
-        notify("Modo: " .. mode, "good")
-    end
-end
-
-function PlayerTrailModule.setPreset(name)
-    State.PlayerTrail.Preset = name
-    if State.PlayerTrail.Enabled then
-        applyToCharacter()
-        startRainbowLoop()
-        notify("Estilo: " .. name, "good")
-    end
-end
-
-function PlayerTrailModule.setWidth(w)
-    State.PlayerTrail.Width = w
-    if State.PlayerTrail.Enabled then
-        applyToCharacter()
-    end
-end
-
-function PlayerTrailModule.setLifetime(l)
-    State.PlayerTrail.Lifetime = l
-    if State.PlayerTrail.Enabled then
-        applyToCharacter()
-    end
-end
-
-function PlayerTrailModule.reset()
-    State.PlayerTrail.Enabled = false
-    clearEffects()
-    if RainbowConn then RainbowConn:Disconnect(); RainbowConn = nil end
-    DebugLog2 = {}
-    if DebugLabel2 then DebugLabel2.Text = "(reset)" end
-    notify("Player Trail resetado", "bad")
-end
-
--- ---------- ABA ----------
-createTab("Player Trail", "✨")
-
-do
-    local page = Tabs["Player Trail"].page
-    local sec = section("Rastro no Personagem")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Player Trail", State.PlayerTrail.Enabled, function(on)
-        PlayerTrailModule.setEnabled(on)
-    end, 1)
-
-    dropdownRow(sec, "Modo",
-        { "Trail", "Beam" },
-        State.PlayerTrail.Mode,
-        function(opt) PlayerTrailModule.setMode(opt) end, 2)
-
-    dropdownRow(sec, "Estilo",
-        { "Arco-Íris", "Fogo", "Gelo", "Neon Verde", "Roxo Cósmico",
-          "Dourado", "Sangue", "Sombra", "Branco Puro", "Preto Fade" },
-        State.PlayerTrail.Preset,
-        function(opt) PlayerTrailModule.setPreset(opt) end, 3)
-
-    sliderRow(sec, "Largura", 1, 10, State.PlayerTrail.Width, function(v)
-        PlayerTrailModule.setWidth(v)
-    end, 4)
-
-    sliderRow(sec, "Duração", 1, 5, math.floor(State.PlayerTrail.Lifetime * 10), function(v)
-        PlayerTrailModule.setLifetime(v / 10)
-    end, 5)
-
-    local debugFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 110),
-        BackgroundColor3 = Color3.fromRGB(15, 15, 18),
-        BorderSizePixel = 0,
-        LayoutOrder = 6,
-        Parent = sec,
-    })
-    corner(8, debugFrame)
-    stroke(ActiveTheme.Stroke, 1, 0.4, debugFrame)
-
-    DebugLabel2 = create("TextLabel", {
-        Size = UDim2.new(1, -16, 1, -16),
-        Position = UDim2.new(0, 8, 0, 8),
-        BackgroundTransparency = 1,
-        Text = "(aguardando...)",
-        Font = Enum.Font.Code,
-        TextSize = 10,
-        TextColor3 = Color3.fromRGB(120, 255, 160),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        TextWrapped = true,
-        Parent = debugFrame,
-    })
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Remover rastro do personagem", function()
-        PlayerTrailModule.reset()
-    end, 1)
-end
-
--- Hooks
-hookCharacter()
-
-local _prevUnload3 = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevUnload3 then _prevUnload3() end
-    pcall(function() PlayerTrailModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() PlayerTrailModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Player Trail carregado.")--====================================================================
--- PARTE 6 — AUTO FOLLOW + BOTÃO FLUTUANTE
--- Aplica BodyVelocity no seu HumanoidRootPart pra seguir a bola.
--- Botão flutuante arrastável pra ativar/desativar.
+-- PARTE 6 — AUTO FOLLOW + LOCK + BOTÃO FLUTUANTE
+-- Detecta quando a bola está "lockada" (posse de alguém).
+-- Para o Auto Follow automaticamente nesse caso.
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
     Enabled = false,
     Speed = 16,
     StopDistance = 2.5,
+    PauseOnLock = true,   -- NOVO: pausa quando bola está lockada
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -734,6 +293,8 @@ State.AutoFollowBtn = State.AutoFollowBtn or {
 local AutoFollowModule = {}
 local AF_BodyVel = nil
 local AF_Conn = nil
+local AF_LockedByMe = false
+local AF_LastAttacker = nil
 
 -- ---------- DETECÇÃO DA BOLA ----------
 local BALL_NAMES = {
@@ -760,6 +321,46 @@ local function afFindBall()
     return nil
 end
 
+-- ---------- DETECÇÃO DE LOCK ----------
+-- Verifica se a bola está "lockada" (posse de alguém):
+--   - Se há algum objeto filho com nome contendo "lock", "Owner", "Possess"
+--   - Se a bola tem um jogador muito próximo (< 5 studs) com Humanoid.RigType R15
+--   - Se a bola tem alguma Tag/Attribute relacionada a owner
+local function isBallLocked(ball)
+    if not ball then return false, nil end
+
+    -- 1) Checa se há um filho com nome indicando lock
+    for _, child in ipairs(ball:GetChildren()) do
+        local cn = child.Name:lower()
+        if cn:find("lock") or cn:find("owner") or cn:find("possess") then
+            return true, child
+        end
+    end
+
+    -- 2) Checa Attributes
+    local ok, ownerAttr = pcall(function() return ball:GetAttribute("Owner") end)
+    if ok and ownerAttr then return true, ownerAttr end
+
+    local ok2, lockAttr = pcall(function() return ball:GetAttribute("Locked") end)
+    if ok2 and lockAttr then return true, nil end
+
+    -- 3) Checa proximidade: se algum jogador está a menos de 4 studs da bola
+    --    e a bola não se move muito (indica posse)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            local root = player.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                local dist = (root.Position - ball.Position).Magnitude
+                if dist < 4 then
+                    return true, player
+                end
+            end
+        end
+    end
+
+    return false, nil
+end
+
 -- ---------- CLEANUP ----------
 local function afCleanup()
     if AF_BodyVel and AF_BodyVel.Parent then
@@ -774,11 +375,16 @@ local FloatingBtn = nil
 local function updateFloatingBtnVisual()
     if not FloatingBtn or not FloatingBtn.Parent then return end
     local active = State.AutoFollow and State.AutoFollow.Enabled
-    if active then
-        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 100)
+    local locked = AF_LockedByMe
+
+    if locked then
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 40)  -- amarelo
+        FloatingBtn.Text = "AF LOCK"
+    elseif active then
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 100)  -- verde
         FloatingBtn.Text = "AF ON"
     else
-        FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)  -- cinza
         FloatingBtn.Text = "AF OFF"
     end
 end
@@ -803,6 +409,22 @@ local function afStart()
         local ball = afFindBall()
         if not ball then afCleanup() return end
 
+        -- ---------- DETECÇÃO DE LOCK ----------
+        if State.AutoFollow.PauseOnLock then
+            local locked, who = isBallLocked(ball)
+            if locked then
+                -- Alguém está com a bola — para de seguir
+                AF_LockedByMe = (who == LP)
+                afCleanup()
+                updateFloatingBtnVisual()
+                return
+            else
+                AF_LockedByMe = false
+                updateFloatingBtnVisual()
+            end
+        end
+
+        -- ---------- MOVIMENTO NORMAL ----------
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
@@ -840,6 +462,7 @@ function AutoFollowModule.setEnabled(on)
     else
         afCleanup()
         if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
+        AF_LockedByMe = false
         notify("Auto Follow desativado", "bad")
     end
     updateFloatingBtnVisual()
@@ -853,8 +476,13 @@ function AutoFollowModule.setStopDistance(v)
     State.AutoFollow.StopDistance = v
 end
 
+function AutoFollowModule.setPauseOnLock(enabled)
+    State.AutoFollow.PauseOnLock = enabled
+end
+
 function AutoFollowModule.reset()
     State.AutoFollow.Enabled = false
+    AF_LockedByMe = false
     afCleanup()
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
     updateFloatingBtnVisual()
@@ -929,7 +557,6 @@ local function createFloatingBtn()
                 local moved = math.abs(finalDelta.X) + math.abs(finalDelta.Y)
                 local elapsed = tick() - PressStartTime
                 if moved < 12 and elapsed < 0.5 then
-                    -- Clique: alterna
                     AutoFollowModule.setEnabled(not State.AutoFollow.Enabled)
                 end
             end
@@ -981,36 +608,41 @@ do
         AutoFollowModule.setEnabled(on)
     end, 1)
 
+    toggleRow(sec, "Pausar quando Bola Lockada", State.AutoFollow.PauseOnLock, function(on)
+        AutoFollowModule.setPauseOnLock(on)
+        notify(on and "Pausa ativada" or "Pausa desativada", on and "good" or "bad")
+    end, 2)
+
     sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
         AutoFollowModule.setSpeed(v)
-    end, 2)
+    end, 3)
 
     sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
         AutoFollowModule.setStopDistance(v)
-    end, 3)
+    end, 4)
 
     local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
+        Size = UDim2.new(1, 0, 0, 60),
         BackgroundTransparency = 1,
-        Text = "Aplica BodyVelocity no seu personagem pra te mover ate a bola. Local, reversivel.",
+        Text = "Segue a bola automaticamente. Quando alguem locka (pega posse), para de seguir. Quando solta, volta a perseguir.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 4,
+        LayoutOrder = 5,
         Parent = sec,
     })
     themed(info, "TextColor3", "Sub")
 
-    -- Seção do botão flutuante
+    -- Botão flutuante
     local floatSec = section("Botao Flutuante")
     floatSec.Parent = page
 
     local infoBtn = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 55),
         BackgroundTransparency = 1,
-        Text = "Cria um botao flutuante na tela. Arraste pra mover, toque pra ativar/desativar o Auto Follow.",
+        Text = "Cria um botao flutuante. Arraste pra mover, toque pra ativar/desativar.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1068,7 +700,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow + Botao Flutuante carregado.")--====================================================================
+print("[VoidStrap] Auto Follow + Lock + Botao Flutuante carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
