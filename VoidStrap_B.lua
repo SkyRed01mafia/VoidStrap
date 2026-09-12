@@ -273,8 +273,9 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6 — AUTO FOLLOW + BOTÃO FLUTUANTE + TRISCAR
--- Ativa o Auto Follow automaticamente quando você encosta na bola.
+-- PARTE 6 — AUTO FOLLOW + LOCK DO TPS + BOTÃO FLUTUANTE
+-- Detecta lock via ObjectValue "Owner" (método do TPS).
+-- Pausa automaticamente quando VOCÊ ou OUTRO jogador pega a bola.
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
@@ -282,7 +283,7 @@ State.AutoFollow = State.AutoFollow or {
     Speed = 16,
     StopDistance = 2.5,
     PauseOnLock = true,
-    TouchToEnable = true,  -- NOVO: triscar ativa
+    TouchToEnable = true,
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -318,28 +319,19 @@ local function afFindBall()
     return nil
 end
 
--- ---------- DETECÇÃO DE LOCK ----------
+-- ---------- DETECÇÃO DE LOCK (MÉTODO DO TPS) ----------
+-- O TPS usa um ObjectValue chamado "Owner" dentro da bola.
+--   Owner.Value = Character de quem tem a posse
+--   Owner.Value = nil = bola livre
 local function isBallLocked(ball)
     if not ball then return false, nil end
-    for _, child in ipairs(ball:GetChildren()) do
-        local cn = child.Name:lower()
-        if cn:find("lock") or cn:find("owner") then
-            return true, child
-        end
+
+    local ownerVal = ball:FindFirstChild("Owner")
+    if ownerVal and ownerVal:IsA("ObjectValue") and ownerVal.Value then
+        local ownerPlayer = Players:GetPlayerFromCharacter(ownerVal.Value)
+        return true, ownerPlayer or ownerVal.Value
     end
-    local ok, attr = pcall(function() return ball:GetAttribute("Owner") end)
-    if ok and attr then return true, attr end
-    local ok2, attr2 = pcall(function() return ball:GetAttribute("Locked") end)
-    if ok2 and attr2 then return true, nil end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LP and player.Character then
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                local dist = (root.Position - ball.Position).Magnitude
-                if dist < 4 then return true, player end
-            end
-        end
-    end
+
     return false, nil
 end
 
@@ -395,21 +387,31 @@ local function afStart()
         local ball = AF_CachedBall
         if not ball then afCleanup() return end
 
+        -- ---------- CHECAGEM DE LOCK (via Owner do TPS) ----------
         if State.AutoFollow.PauseOnLock then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
-            AF_LockedByMe = locked and (who == LP or who == nil)
 
-            if locked and not AF_LockedByMe then
+            -- AF_LockedByMe = true se quem lockou foi você
+            AF_LockedByMe = locked and (who == LP)
+
+            if locked then
+                -- Bola lockada (por você OU outro) → pausa
                 afCleanup()
-                if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
+                if wasLocked ~= AF_LockedByMe then
+                    updateFloatingBtnVisual()
+                end
                 return
             end
-            if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
+
+            if wasLocked ~= AF_LockedByMe then
+                updateFloatingBtnVisual()
+            end
         else
             AF_LockedByMe = false
         end
 
+        -- ---------- MOVIMENTO ----------
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
@@ -432,8 +434,7 @@ local function afStart()
     end)
 end
 
--- ---------- TRISCAR NA BOLA (TOUCH) ----------
--- Quando você toca na bola com QUALQUER parte do corpo, ativa o Auto Follow.
+-- ---------- DETECÇÃO DE TRISCAR ----------
 local function afStartTouchDetection()
     if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
 
@@ -441,18 +442,15 @@ local function afStartTouchDetection()
         if not State.AutoFollow.TouchToEnable then return end
         if not State.AutoFollow.Enabled then return end
 
-        -- Debounce de 0.5s pra não spammar
         local now = tick()
         if now - AF_TouchDebounce < 0.5 then return end
 
         local char = LP.Character
         if not char then return end
 
-        -- Procura a bola mais próxima
         local ball = AF_CachedBall or afFindBall()
         if not ball or not ball.Parent then return end
 
-        -- Checa distância mínima entre qualquer membro do char e a bola
         local minDist = math.huge
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -461,16 +459,12 @@ local function afStartTouchDetection()
             end
         end
 
-        -- Tamanho da bola + margem
         local ballRadius = math.max(ball.Size.X, ball.Size.Y, ball.Size.Z) * 0.5
         local touchRadius = ballRadius + 1.5
 
         if minDist <= touchRadius then
             AF_TouchDebounce = now
-            -- Já está seguindo? Só re-notifica
-            -- Se não está seguindo (foi pausado por lock), reativa
             if AF_BodyVel == nil and not AF_LockedByMe then
-                -- Está pausado mas a bola está livre — destrava
                 AF_LastSearch = 0
             end
         end
@@ -631,7 +625,6 @@ do
 
     toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
         AutoFollowModule.setTouchToEnable(on)
-        notify(on and "Triscar ativa" or "Triscar desativado", on and "good" or "bad")
     end, 2)
 
     toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
@@ -649,7 +642,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Segue a bola. Com 'Triscar Ativa' ligado, quando voce encosta na bola o Auto Follow reativa automaticamente.",
+        Text = "Segue a bola. Detecta lock via Owner da bola. Pausa automaticamente quando alguem tem a posse.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -709,7 +702,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow + Trisque carregado.")--====================================================================
+print("[VoidStrap] Auto Follow (com lock TPS) carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
