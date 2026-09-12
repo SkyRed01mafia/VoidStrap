@@ -2569,192 +2569,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] 6.2 OK")--====================================================================
--- PARTE 6B — CHARS (Aplica skin via comando de chat)
---====================================================================
-
-State.Chars = State.Chars or { Enabled = true }
-
-local CharsModule = {}
-
--- ---------- LISTA DE CHARS ----------
-local CHAR_LIST = {
-    "MiguelCalebeGamer202",
-    "guto785662",
-    "beastsxc",
-    "89felip3",
-    "guto_01games",
-    "feliou23",
-    "LeozzinnTxz",
-    "aerovah",
-    "novaes_wc",
-    "GHOST_INFINITI07",
-    "16alvez",
-    "mikaelfacada10",
-    "keny_tcs",
-    "3qu",
-    "hel",
-    "phzin123271",
-    "portuga_xz3",
-    "j12ufdo",
-    "shadow_samuel1347k",
-    "131felipe6",
-    "mnbzzaicsn",
-    "careca12492",
-    "sunno_mm2",
-    "rangeamandio",
-    "rosa_skillsz",
-    "DAVILUCASPLU2VC",
-    "rayagaj3",
-    "Felliou",
-    "ythek9on1",
-    "Bernardow_w",
-    "Samblox_Xd",
-    "mica1203ely5",
-}
-
--- ---------- ENVIAR MENSAGEM NO CHAT ----------
-local function sendChat(msg)
-    local ok = false
-
-    pcall(function()
-        local RS = game:GetService("ReplicatedStorage")
-        local events = RS:FindFirstChild("DefaultChatSystemChatEvents")
-        if events then
-            local say = events:FindFirstChild("SayMessageRequest")
-            if say then
-                say:FireServer(msg, "All")
-                ok = true
-            end
-        end
-    end)
-
-    if not ok then
-        pcall(function()
-            local TCS = game:GetService("TextChatService")
-            if TCS and TCS.ChatVersion == Enum.ChatVersion.TextChatService then
-                local channels = TCS:FindFirstChild("TextChannels")
-                if channels then
-                    local general = channels:FindFirstChild("RBXGeneral")
-                    if general then
-                        general:SendAsync(msg)
-                        ok = true
-                    end
-                end
-            end
-        end)
-    end
-
-    return ok
-end
-
--- ---------- API ----------
-function CharsModule.apply(charName)
-    if not charName or charName == "" then return end
-    local cmd = ":char " .. charName
-    if sendChat(cmd) then
-        notify("Char: " .. charName, "good")
-    else
-        notify("Falha ao enviar chat", "bad")
-    end
-end
-
-function CharsModule.applyById(id)
-    if not id or id == "" then return end
-    local cmd = ":char " .. id
-    if sendChat(cmd) then
-        notify("Char ID: " .. id, "good")
-    else
-        notify("Falha ao enviar chat", "bad")
-    end
-end
-
---====================================================================
--- ABA CHARS
---====================================================================
-createTab("Chars", "CH")
-
-do
-    local page = Tabs["Chars"].page
-
-    -- Secao de info
-    local secInfo = section("Aplicar Char via Chat")
-    secInfo.Parent = page
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Clique num char pra enviar :char NOME no chat automaticamente.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = secInfo,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Secao de ID custom
-    local secId = section("Char por ID")
-    secId.Parent = page
-
-    -- Input de texto simples
-    local inputFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = ActiveTheme.Surface2,
-        BorderSizePixel = 0,
-        LayoutOrder = 1,
-        Parent = secId,
-    })
-    themed(inputFrame, "BackgroundColor3", "Surface2")
-    corner(8, inputFrame)
-
-    local textBox = create("TextBox", {
-        Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Digite o ID do char...",
-        PlaceholderColor3 = ActiveTheme.Sub,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 13,
-        TextColor3 = ActiveTheme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false,
-        Parent = inputFrame,
-    })
-    themed(textBox, "TextColor3", "Text")
-    themed(textBox, "PlaceholderColor3", "Sub")
-
-    buttonRow(secId, "Aplicar ID do Char", function()
-        local id = textBox.Text
-        if id and id ~= "" then
-            CharsModule.applyById(id)
-        else
-            notify("Digite um ID primeiro", "bad")
-        end
-    end, 2)
-
-    -- Secao da lista
-    local charSec = section("Lista de Chars")
-    charSec.Parent = page
-
-    for i, name in ipairs(CHAR_LIST) do
-        buttonRow(charSec, name, function()
-            CharsModule.apply(name)
-        end, i)
-    end
-end
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevChars = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevChars then _prevChars() end
-end
-
-print("[VoidStrap] Chars carregado.")--====================================================================
 -- PARTE 7 — CUSTOM BALL (Cor)
 --====================================================================
 
@@ -3000,369 +2814,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Color carregado.")--====================================================================
--- PARTE 9 — BALL NA CABEÇA + BOTÃO FLUTUANTE
---====================================================================
-
-State.BallOnHead = State.BallOnHead or {
-    Enabled = false,
-    HeightOffset = 4,
-    Smooth = true,
-    Smoothness = 0.3,
-}
-
-State.BallOnHeadBtn = State.BallOnHeadBtn or {
-    Visible = false,
-    Position = UDim2.new(0, 20, 0.55, 0),
-    Locked = false,
-}
-
-local BallOnHeadModule = {}
-local BOH_Conn = nil
-local BOH_CachedBall = nil
-local BOH_LastSearch = 0
-local BOH_FloatingBtn = nil
-
--- ---------- DETECÇÃO ----------
-local BALL_NAMES_9 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function isBallName9(name)
-    for _, n in ipairs(BALL_NAMES_9) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function findBall9()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName9(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- LOOP ----------
-local function bohStart()
-    if BOH_Conn then BOH_Conn:Disconnect() end
-    BOH_Conn = RunService.RenderStepped:Connect(function()
-        if not State.BallOnHead.Enabled then return end
-        local char = LP.Character
-        if not char then return end
-        local head = char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
-        if not head then return end
-
-        local now = tick()
-        if not BOH_CachedBall or not BOH_CachedBall.Parent or (now - BOH_LastSearch) > 1 then
-            BOH_LastSearch = now
-            BOH_CachedBall = findBall9()
-        end
-        local ball = BOH_CachedBall
-        if not ball then return end
-
-        local headSize = head.Size
-        local offsetY = (headSize.Y / 2) + (ball.Size.Y / 2) + State.BallOnHead.HeightOffset
-        local targetPos = head.Position + Vector3.new(0, offsetY, 0)
-        local targetCF = CFrame.new(targetPos)
-
-        pcall(function()
-            if State.BallOnHead.Smooth then
-                local k = math.clamp(State.BallOnHead.Smoothness, 0.05, 1)
-                ball.CFrame = ball.CFrame:Lerp(targetCF, k)
-            else
-                ball.CFrame = targetCF
-            end
-        end)
-
-        pcall(function()
-            ball.AssemblyLinearVelocity = Vector3.zero
-            ball.AssemblyAngularVelocity = Vector3.zero
-        end)
-    end)
-end
-
-local function bohUpdateBtnVisual()
-    if not BOH_FloatingBtn or not BOH_FloatingBtn.Parent then return end
-    if State.BallOnHead.Enabled then
-        BOH_FloatingBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 40)
-        BOH_FloatingBtn.Text = "HEAD ON"
-    else
-        BOH_FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        BOH_FloatingBtn.Text = "HEAD OFF"
-    end
-end
-
-local function bohUpdateLockVisual()
-    if not BOH_FloatingBtn or not BOH_FloatingBtn.Parent then return end
-    local lockIcon = BOH_FloatingBtn:FindFirstChild("VST_BOHLock")
-    if State.BallOnHeadBtn.Locked then
-        if not lockIcon then
-            create("TextLabel", {
-                Name = "VST_BOHLock",
-                Size = UDim2.fromOffset(18, 18),
-                Position = UDim2.new(1, -20, 0, 2),
-                BackgroundTransparency = 1,
-                Text = "L",
-                Font = Enum.Font.GothamBold,
-                TextSize = 12,
-                TextColor3 = Color3.fromRGB(255, 220, 60),
-                ZIndex = 100000,
-                Parent = BOH_FloatingBtn,
-            })
-        end
-    else
-        if lockIcon then lockIcon:Destroy() end
-    end
-end
-
--- ---------- API ----------
-function BallOnHeadModule.setEnabled(on)
-    State.BallOnHead.Enabled = on
-    if on then
-        bohStart()
-        notify("Ball on Head ativado", "good")
-    else
-        if BOH_Conn then BOH_Conn:Disconnect(); BOH_Conn = nil end
-        notify("Ball on Head desativado", "bad")
-    end
-    bohUpdateBtnVisual()
-end
-
-function BallOnHeadModule.setHeight(v) State.BallOnHead.HeightOffset = v end
-function BallOnHeadModule.setSmooth(on) State.BallOnHead.Smooth = on end
-function BallOnHeadModule.setSmoothness(v) State.BallOnHead.Smoothness = v end
-
-function BallOnHeadModule.reset()
-    State.BallOnHead.Enabled = false
-    if BOH_Conn then BOH_Conn:Disconnect(); BOH_Conn = nil end
-    BOH_CachedBall = nil
-    bohUpdateBtnVisual()
-    notify("Ball on Head resetado", "bad")
-end
-
--- ---------- BOTÃO FLUTUANTE ----------
-local BallOnHeadBtnModule = {}
-local BOH_Dragging = false
-local BOH_DragStart = nil
-local BOH_StartPos = nil
-local BOH_PressTime = 0
-local BOH_PressPos = nil
-
-local function bohCreateFloatingBtn()
-    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
-        BOH_FloatingBtn.Visible = true
-        bohUpdateLockVisual()
-        return
-    end
-
-    BOH_FloatingBtn = create("TextButton", {
-        Name = "VST_BallOnHeadBtn",
-        Size = UDim2.fromOffset(64, 64),
-        Position = State.BallOnHeadBtn.Position,
-        BackgroundColor3 = Color3.fromRGB(40, 40, 50),
-        BorderSizePixel = 0,
-        Text = "HEAD OFF",
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = Color3.new(1, 1, 1),
-        AutoButtonColor = false,
-        ZIndex = 99999,
-        Parent = ScreenOverlay,
-    })
-    corner(32, BOH_FloatingBtn)
-    stroke(ActiveTheme.Accent, 2, 0.3, BOH_FloatingBtn)
-    bohUpdateBtnVisual()
-    bohUpdateLockVisual()
-
-    BOH_FloatingBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            BOH_Dragging = true
-            BOH_DragStart = input.Position
-            BOH_StartPos = BOH_FloatingBtn.Position
-            BOH_PressTime = tick()
-            BOH_PressPos = input.Position
-        end
-    end)
-    UIS.InputChanged:Connect(function(input)
-        if not BOH_Dragging then return end
-        if State.BallOnHeadBtn.Locked then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            local delta = input.Position - BOH_DragStart
-            if math.abs(delta.X) > 8 or math.abs(delta.Y) > 8 then
-                BOH_FloatingBtn.Position = UDim2.new(
-                    BOH_StartPos.X.Scale, BOH_StartPos.X.Offset + delta.X,
-                    BOH_StartPos.Y.Scale, BOH_StartPos.Y.Offset + delta.Y
-                )
-                State.BallOnHeadBtn.Position = BOH_FloatingBtn.Position
-            end
-        end
-    end)
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            BOH_Dragging = false
-            if BOH_PressPos then
-                local fDelta = input.Position - BOH_PressPos
-                local moved = math.abs(fDelta.X) + math.abs(fDelta.Y)
-                local elapsed = tick() - BOH_PressTime
-                if moved < 12 and elapsed < 0.5 then
-                    BallOnHeadModule.setEnabled(not State.BallOnHead.Enabled)
-                end
-            end
-            BOH_PressPos = nil
-        end
-    end)
-end
-
-function BallOnHeadBtnModule.show()
-    bohCreateFloatingBtn()
-    State.BallOnHeadBtn.Visible = true
-    notify("Botao Head criado", "good")
-end
-
-function BallOnHeadBtnModule.hide()
-    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
-        BOH_FloatingBtn:Destroy()
-        BOH_FloatingBtn = nil
-    end
-    State.BallOnHeadBtn.Visible = false
-    notify("Botao Head removido", "bad")
-end
-
-function BallOnHeadBtnModule.toggle()
-    if State.BallOnHeadBtn.Visible then
-        BallOnHeadBtnModule.hide()
-    else
-        BallOnHeadBtnModule.show()
-    end
-end
-
-function BallOnHeadBtnModule.setLocked(locked)
-    State.BallOnHeadBtn.Locked = locked
-    if BOH_FloatingBtn and BOH_FloatingBtn.Parent then
-        State.BallOnHeadBtn.Position = BOH_FloatingBtn.Position
-    end
-    bohUpdateLockVisual()
-    notify(locked and "Botao travado" or "Botao liberado", locked and "good" or "bad")
-end
-
---====================================================================
--- ABA CABEÇA
---====================================================================
-createTab("Cabeça", "BOH")
-
-do
-    local page = Tabs["Cabeça"].page
-
-    local sec = section("Ball na Cabeca")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Ball on Head", State.BallOnHead.Enabled, function(on)
-        BallOnHeadModule.setEnabled(on)
-    end, 1)
-
-    sliderRow(sec, "Altura (studs)", 0, 15, State.BallOnHead.HeightOffset, function(v)
-        BallOnHeadModule.setHeight(v)
-    end, 2)
-
-    toggleRow(sec, "Movimento Suave", State.BallOnHead.Smooth, function(on)
-        BallOnHeadModule.setSmooth(on)
-    end, 3)
-
-    sliderRow(sec, "Suavidade (x100)", 5, 100, math.floor(State.BallOnHead.Smoothness * 100), function(v)
-        BallOnHeadModule.setSmoothness(v / 100)
-    end, 4)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Bola fica em cima da cabeca. Apenas voce ve — outros continuam vendo no lugar real.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 5,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- BOTÃO FLUTUANTE
-    local floatSec = section("Botao Flutuante")
-    floatSec.Parent = page
-
-    buttonRow(floatSec, "Criar / Remover Botao", function()
-        BallOnHeadBtnModule.toggle()
-    end, 1)
-
-    toggleRow(floatSec, "Travar Botao no Lugar", State.BallOnHeadBtn.Locked, function(on)
-        BallOnHeadBtnModule.setLocked(on)
-    end, 2)
-
-    local lockInfo = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Toque pra ligar/desligar. Arraste pra mover. Trave pra fixar.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = floatSec,
-    })
-    themed(lockInfo, "TextColor3", "Sub")
-
-    -- Aviso
-    local warnSec = section("Aviso")
-    warnSec.Parent = page
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
-        BackgroundTransparency = 1,
-        Text = "AVISO: mexer no CFrame da bola e detectavel por anti-cheat. Use apenas em alt.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = warnSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
-
-    buttonRow(warnSec, "Desativar", function()
-        BallOnHeadModule.reset()
-        BallOnHeadBtnModule.hide()
-    end, 2)
-end
-
-local _prevBOH = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevBOH then _prevBOH() end
-    pcall(function()
-        BallOnHeadModule.reset()
-        BallOnHeadBtnModule.hide()
-    end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function()
-            BallOnHeadModule.reset()
-            BallOnHeadBtnModule.hide()
-        end)
-    end
-end)
-
-print("[VoidStrap] Ball on Head + Botao carregado.")--====================================================================
 -- PARTE 10 — STRETCH SCREEN (FOV)
 --====================================================================
 
@@ -3514,4 +2965,215 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Stretch (FOV) carregado.")
+print("[VoidStrap] Stretch (FOV) carregado.")--====================================================================
+-- PARTE 11 — REACH (Alcance)
+-- Aumenta o alcance do seu toque na bola.
+--====================================================================
+
+State.Reach = State.Reach or {
+    Enabled = false,
+    Distance = 5,        -- studs de alcance
+    AutoTouch = true,    -- dispara touch automaticamente
+    PullBall = false,    -- puxa a bola pra perto
+}
+
+local ReachModule = {}
+local RE_Conn = nil
+local RE_CachedBall = nil
+local RE_LastSearch = 0
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES_11 = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function isBallName11(name)
+    for _, n in ipairs(BALL_NAMES_11) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function findBall11()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallName11(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- LOOP PRINCIPAL ----------
+local function reStart()
+    if RE_Conn then RE_Conn:Disconnect() end
+
+    RE_Conn = RunService.Heartbeat:Connect(function()
+        if not State.Reach.Enabled then return end
+
+        local char = LP.Character
+        if not char then return end
+
+        -- Pega a "perna" (pra simular o toque como se fosse chute)
+        local leg = char:FindFirstChild("Right Leg")
+            or char:FindFirstChild("Right Lower Leg")
+            or char:FindFirstChild("Left Leg")
+            or char:FindFirstChild("Left Lower Leg")
+            or char:FindFirstChild("HumanoidRootPart")
+        if not leg then return end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        -- Cache da bola
+        local now = tick()
+        if not RE_CachedBall or not RE_CachedBall.Parent or (now - RE_LastSearch) > 0.5 then
+            RE_LastSearch = now
+            RE_CachedBall = findBall11()
+        end
+        local ball = RE_CachedBall
+        if not ball then return end
+
+        -- Calcula distância
+        local distance = (leg.Position - ball.Position).Magnitude
+        if distance > State.Reach.Distance then return end
+
+        -- ---------- AUTO TOUCH ----------
+        if State.Reach.AutoTouch then
+            if firetouchinterest then
+                pcall(function()
+                    firetouchinterest(ball, leg, 0)
+                    firetouchinterest(ball, leg, 1)
+                end)
+            end
+        end
+
+        -- ---------- PULL BALL ----------
+        if State.Reach.PullBall then
+            pcall(function()
+                local direction = (leg.Position - ball.Position)
+                if direction.Magnitude > 0.1 then
+                    local targetPos = ball.Position + direction.Unit * math.min(direction.Magnitude * 0.5, 3)
+                    ball.CFrame = CFrame.new(targetPos)
+                end
+            end)
+        end
+    end)
+end
+
+-- ---------- API ----------
+function ReachModule.setEnabled(on)
+    State.Reach.Enabled = on
+    if on then
+        reStart()
+        notify("Reach ativado (" .. State.Reach.Distance .. " studs)", "good")
+    else
+        if RE_Conn then RE_Conn:Disconnect(); RE_Conn = nil end
+        notify("Reach desativado", "bad")
+    end
+end
+
+function ReachModule.setDistance(v)
+    State.Reach.Distance = v
+    if State.Reach.Enabled then
+        notify("Reach: " .. v .. " studs", "good")
+    end
+end
+
+function ReachModule.setAutoTouch(on)
+    State.Reach.AutoTouch = on
+end
+
+function ReachModule.setPullBall(on)
+    State.Reach.PullBall = on
+end
+
+function ReachModule.reset()
+    State.Reach.Enabled = false
+    if RE_Conn then RE_Conn:Disconnect(); RE_Conn = nil end
+    RE_CachedBall = nil
+    notify("Reach resetado", "bad")
+end
+
+--====================================================================
+-- ABA REACH
+--====================================================================
+createTab("Reach", "RCH")
+
+do
+    local page = Tabs["Reach"].page
+
+    local sec = section("Alcance (Reach)")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Reach", State.Reach.Enabled, function(on)
+        ReachModule.setEnabled(on)
+    end, 1)
+
+    sliderRow(sec, "Distancia (studs)", 1, 20, State.Reach.Distance, function(v)
+        ReachModule.setDistance(v)
+    end, 2)
+
+    toggleRow(sec, "Auto Touch", State.Reach.AutoTouch, function(on)
+        ReachModule.setAutoTouch(on)
+    end, 3)
+
+    toggleRow(sec, "Puxar Bola (Pull)", State.Reach.PullBall, function(on)
+        ReachModule.setPullBall(on)
+        notify(on and "Pull ativado" or "Pull desativado", on and "good" or "bad")
+    end, 4)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 80),
+        BackgroundTransparency = 1,
+        Text = "Aumenta o alcance do toque na bola.\nAutoTouch = dispara o toque automaticamente. Pull = puxa a bola pra perto.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 5,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Aviso
+    local warnSec = section("Aviso")
+    warnSec.Parent = page
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 80),
+        BackgroundTransparency = 1,
+        Text = "AVISO: Reach e altamente detectavel por anti-cheat server-side. Mexe direto na fisica da bola. Use APENAS em alt. Pode causar ban permanente.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = warnSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
+
+    buttonRow(warnSec, "Desativar tudo", function()
+        ReachModule.reset()
+    end, 2)
+end
+
+-- ---------- CLEANUP ----------
+local _prevRE = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevRE then _prevRE() end
+    pcall(function() ReachModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() ReachModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Reach carregado.")
