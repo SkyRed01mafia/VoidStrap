@@ -290,6 +290,7 @@ State.AutoFollow = State.AutoFollow or {
 State.AutoFollowBtn = State.AutoFollowBtn or {
     Visible = false,
     Position = UDim2.new(0, 20, 0.3, 0),
+    Locked = false,
 }
 
 local AutoFollowModule = {}
@@ -363,7 +364,7 @@ local function updateFloatingBtnVisual()
     end
 end
 
--- ---------- LOOP PRINCIPAL (BodyVelocity estilo Dio Brando) ----------
+-- ---------- LOOP PRINCIPAL ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
@@ -392,7 +393,7 @@ local function afStart()
         local ball = AF_CachedBall
         if not ball then afCleanupBodyVel() return end
 
-        -- Lock (Owner)
+        -- Lock
         if State.AutoFollow.PauseOnLock then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
@@ -409,7 +410,7 @@ local function afStart()
             AF_LockedByMe = false
         end
 
-        -- Movimento (BodyVelocity como no Dio Brando)
+        -- Movimento
         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
@@ -438,7 +439,7 @@ local function afStart()
     end)
 end
 
--- ---------- REACH (estilo Dio Brando) ----------
+-- ---------- REACH ----------
 local function afStartReach()
     if AF_ReachConn then AF_ReachConn:Disconnect(); AF_ReachConn = nil end
 
@@ -550,7 +551,7 @@ function AutoFollowModule.reset()
     notify("Auto Follow resetado", "bad")
 end
 
--- ---------- BOTÃO FLUTUANTE ARRASTÁVEL ----------
+-- ---------- BOTÃO FLUTUANTE ARRASTÁVEL + LOCK ----------
 local AutoFollowBtnModule = {}
 local IsDragging = false
 local DragStart = nil
@@ -558,9 +559,33 @@ local StartPos = nil
 local PressStartTime = 0
 local PressStartPos = nil
 
+local function updateLockVisual()
+    if not FloatingBtn or not FloatingBtn.Parent then return end
+    local lockIcon = FloatingBtn:FindFirstChild("VST_LockIcon")
+    if State.AutoFollowBtn.Locked then
+        if not lockIcon then
+            create("TextLabel", {
+                Name = "VST_LockIcon",
+                Size = UDim2.fromOffset(18, 18),
+                Position = UDim2.new(1, -20, 0, 2),
+                BackgroundTransparency = 1,
+                Text = "L",
+                Font = Enum.Font.GothamBold,
+                TextSize = 12,
+                TextColor3 = Color3.fromRGB(255, 220, 60),
+                ZIndex = 100000,
+                Parent = FloatingBtn,
+            })
+        end
+    else
+        if lockIcon then lockIcon:Destroy() end
+    end
+end
+
 local function createFloatingBtn()
     if FloatingBtn and FloatingBtn.Parent then
         FloatingBtn.Visible = true
+        updateLockVisual()
         return
     end
 
@@ -582,6 +607,7 @@ local function createFloatingBtn()
     stroke(ActiveTheme.Accent, 2, 0.3, FloatingBtn)
 
     updateFloatingBtnVisual()
+    updateLockVisual()
 
     FloatingBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -596,6 +622,8 @@ local function createFloatingBtn()
 
     UIS.InputChanged:Connect(function(input)
         if not IsDragging then return end
+        if State.AutoFollowBtn.Locked then return end
+
         if input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch then
             local delta = input.Position - DragStart
@@ -654,6 +682,19 @@ function AutoFollowBtnModule.toggle()
     else
         AutoFollowBtnModule.show()
     end
+end
+
+function AutoFollowBtnModule.setLocked(locked)
+    State.AutoFollowBtn.Locked = locked
+    if FloatingBtn and FloatingBtn.Parent then
+        State.AutoFollowBtn.Position = FloatingBtn.Position
+    end
+    updateLockVisual()
+    notify(locked and "Botao travado" or "Botao liberado", locked and "good" or "bad")
+end
+
+function AutoFollowBtnModule.toggleLock()
+    AutoFollowBtnModule.setLocked(not State.AutoFollowBtn.Locked)
 end
 
 -- ---------- ABA AUTO FOLLOW ----------
@@ -734,6 +775,24 @@ do
         AutoFollowBtnModule.toggle()
     end, 1)
 
+    toggleRow(floatSec, "Travar Botao no Lugar", State.AutoFollowBtn.Locked, function(on)
+        AutoFollowBtnModule.setLocked(on)
+    end, 2)
+
+    local lockInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Quando travado, o botao fica fixo no lugar. Voce ainda pode tocar pra ligar/desligar.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = floatSec,
+    })
+    themed(lockInfo, "TextColor3", "Sub")
+
     -- Reset
     local resetSec = section("Restaurar")
     resetSec.Parent = page
@@ -763,7 +822,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Follow (Dio Brando style) carregado.")--====================================================================
+print("[VoidStrap] Auto Follow (Dio Brando style + Lock) carregado.")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
