@@ -2007,7 +2007,7 @@ local AF_TouchDebounce = 0
 
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall", "VEF"
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall", "VEF", "AIFA"
 }
 
 local function isBallName(name)
