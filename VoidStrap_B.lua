@@ -1049,4 +1049,249 @@ _G.VoidStrapUnload = function()
     if _prevChars then _prevChars() end
 end
 
-print("[VoidStrap] Chars carregado.")
+print("[VoidStrap] Chars carregado.")--====================================================================
+-- PARTE 7 — CUSTOM BALL (Cor)
+--====================================================================
+
+State.BallColor = State.BallColor or {
+    Enabled = false,
+    Color = nil,
+}
+
+local BallColorModule = {}
+local BallColorTarget = nil
+local BallColorBackup = nil
+local BallColorConn = nil
+
+-- ---------- PALETA ----------
+local BALL_COLORS = {
+    { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
+    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
+    { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
+    { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
+    { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
+    { name = "Amarelo",    color = Color3.fromRGB(240, 220, 60) },
+    { name = "Verde",      color = Color3.fromRGB(60, 200, 80) },
+    { name = "Azul",       color = Color3.fromRGB(60, 130, 220) },
+    { name = "Roxo",       color = Color3.fromRGB(150, 80, 220) },
+    { name = "Rosa",       color = Color3.fromRGB(240, 130, 200) },
+    { name = "Ciano",      color = Color3.fromRGB(80, 220, 240) },
+    { name = "Dourado",    color = Color3.fromRGB(230, 190, 50) },
+    { name = "Neon Verde", color = Color3.fromRGB(80, 255, 120) },
+    { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
+    { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
+    { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
+}
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES_7 = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function isBallName7(name)
+    for _, n in ipairs(BALL_NAMES_7) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function findBall7()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallName7(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- APLICAR / RESTAURAR ----------
+local function applyBallColor(ball, color)
+    if not ball then return end
+    if not BallColorBackup then
+        BallColorBackup = {
+            Color = ball.Color,
+            Material = ball.Material,
+        }
+    end
+    pcall(function()
+        ball.Color = color
+    end)
+end
+
+local function restoreBallColor()
+    if BallColorTarget and BallColorTarget.Parent and BallColorBackup then
+        pcall(function()
+            BallColorTarget.Color = BallColorBackup.Color
+            BallColorTarget.Material = BallColorBackup.Material
+        end)
+    end
+    BallColorBackup = nil
+end
+
+-- ---------- MONITOR DE RESPAWN ----------
+local function startBallColorMonitor()
+    if BallColorConn then BallColorConn:Disconnect() end
+    local lastSearch = 0
+
+    BallColorConn = RunService.Heartbeat:Connect(function()
+        if not State.BallColor.Enabled then return end
+        if not BallColorTarget or not BallColorTarget.Parent then
+            local now = tick()
+            if now - lastSearch < 1.5 then return end
+            lastSearch = now
+            task.spawn(function()
+                local b = findBall7()
+                if b and State.BallColor.Enabled then
+                    BallColorTarget = b
+                    BallColorBackup = nil
+                    if State.BallColor.Color then
+                        applyBallColor(b, State.BallColor.Color)
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+-- ---------- API ----------
+function BallColorModule.setEnabled(on)
+    State.BallColor.Enabled = on
+    if on then
+        task.spawn(function()
+            BallColorTarget = findBall7()
+            if BallColorTarget then
+                if State.BallColor.Color then
+                    applyBallColor(BallColorTarget, State.BallColor.Color)
+                end
+                notify("Ball Color ativado", "good")
+            else
+                notify("Bola nao encontrada", "bad")
+            end
+            startBallColorMonitor()
+        end)
+    else
+        restoreBallColor()
+        if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
+        BallColorTarget = nil
+        notify("Ball Color desativado", "bad")
+    end
+end
+
+function BallColorModule.setColor(name)
+    for _, e in ipairs(BALL_COLORS) do
+        if e.name == name then
+            State.BallColor.Color = e.color
+            if BallColorTarget and BallColorTarget.Parent then
+                applyBallColor(BallColorTarget, e.color)
+            end
+            notify("Cor: " .. name, "good")
+            return
+        end
+    end
+end
+
+function BallColorModule.refresh()
+    task.spawn(function()
+        local b = findBall7()
+        if b then
+            BallColorTarget = b
+            BallColorBackup = nil
+            if State.BallColor.Color then
+                applyBallColor(b, State.BallColor.Color)
+            end
+            notify("Bola reconectada", "good")
+        else
+            notify("Nenhuma bola encontrada", "bad")
+        end
+    end)
+end
+
+function BallColorModule.reset()
+    State.BallColor.Enabled = false
+    State.BallColor.Color = nil
+    restoreBallColor()
+    if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
+    BallColorTarget = nil
+    notify("Bola restaurada", "bad")
+end
+
+-- ---------- ABA ----------
+createTab("Ball", "BALL")
+
+do
+    local page = Tabs["Ball"].page
+
+    local mainSec = section("Cor da Bola")
+    mainSec.Parent = page
+
+    toggleRow(mainSec, "Ativar Cor Custom", State.BallColor.Enabled, function(on)
+        BallColorModule.setEnabled(on)
+    end, 1)
+
+    buttonRow(mainSec, "Reconectar Bola", function()
+        BallColorModule.refresh()
+    end, 2)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Muda a cor da bola localmente. Apenas voce ve.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = mainSec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local colorSec = section("Cores")
+    colorSec.Parent = page
+
+    for i, e in ipairs(BALL_COLORS) do
+        local row = buttonRow(colorSec, e.name, function()
+            BallColorModule.setColor(e.name)
+        end, i)
+
+        local swatch = create("Frame", {
+            Size = UDim2.fromOffset(18, 18),
+            Position = UDim2.new(0, 8, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundColor3 = e.color,
+            BorderSizePixel = 0,
+            Parent = row,
+        })
+        corner(4, swatch)
+
+        local lbl = row:FindFirstChildOfClass("TextLabel")
+        if lbl then
+            lbl.Position = UDim2.new(0, 34, 0, 0)
+        end
+    end
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Restaurar cor original", function()
+        BallColorModule.reset()
+    end, 1)
+end
+
+-- ---------- CLEANUP ----------
+local _prevBall = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevBall then _prevBall() end
+    pcall(function() BallColorModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() BallColorModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Ball Color carregado.")
