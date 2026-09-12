@@ -1050,7 +1050,7 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor)
+-- PARTE 7 — CUSTOM BALL (Cor via Texture.Color3)
 --====================================================================
 
 State.BallColor = State.BallColor or {
@@ -1066,7 +1066,7 @@ local BallColorConn = nil
 -- ---------- PALETA ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
-    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
+    { name = "Preto",      color = Color3.fromRGB(40, 40, 40) },
     { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
     { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
     { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
@@ -1108,26 +1108,67 @@ local function findBall7()
     return nil
 end
 
--- ---------- APLICAR / RESTAURAR ----------
+-- ---------- APLICAR COR (CORRIGIDO) ----------
 local function applyBallColor(ball, color)
     if not ball then return end
+
+    -- Backup na primeira vez
     if not BallColorBackup then
         BallColorBackup = {
             Color = ball.Color,
             Material = ball.Material,
+            TextureColor = nil,
+            HasTexture = false,
+            TextureTransparency = nil,
         }
+        local tex = ball:FindFirstChildOfClass("Texture")
+        if tex then
+            BallColorBackup.HasTexture = true
+            BallColorBackup.TextureColor = tex.Color3
+            BallColorBackup.TextureTransparency = tex.Transparency
+        end
     end
-    pcall(function()
-        ball.Color = color
-    end)
+
+    -- 1) Cor da Part (caso não tenha textura cobrindo tudo)
+    pcall(function() ball.Color = color end)
+
+    -- 2) Texture.Color3 — tinge a imagem aplicada
+    local tex = ball:FindFirstChildOfClass("Texture")
+    if tex then
+        pcall(function() tex.Color3 = color end)
+    end
+
+    -- 3) Decals também (caso existam)
+    for _, d in ipairs(ball:GetChildren()) do
+        if d:IsA("Decal") then
+            pcall(function() d.Color3 = color end)
+        end
+    end
 end
 
+-- ---------- RESTAURAR ----------
 local function restoreBallColor()
     if BallColorTarget and BallColorTarget.Parent and BallColorBackup then
         pcall(function()
             BallColorTarget.Color = BallColorBackup.Color
             BallColorTarget.Material = BallColorBackup.Material
         end)
+        if BallColorBackup.HasTexture then
+            local tex = BallColorTarget:FindFirstChildOfClass("Texture")
+            if tex then
+                if BallColorBackup.TextureColor then
+                    pcall(function() tex.Color3 = BallColorBackup.TextureColor end)
+                end
+                if BallColorBackup.TextureTransparency ~= nil then
+                    pcall(function() tex.Transparency = BallColorBackup.TextureTransparency end)
+                end
+            end
+        end
+        for _, d in ipairs(BallColorTarget:GetChildren()) do
+            if d:IsA("Decal") then
+                pcall(function() d.Color3 = Color3.new(1, 1, 1) end)
+            end
+        end
     end
     BallColorBackup = nil
 end
@@ -1136,7 +1177,6 @@ end
 local function startBallColorMonitor()
     if BallColorConn then BallColorConn:Disconnect() end
     local lastSearch = 0
-
     BallColorConn = RunService.Heartbeat:Connect(function()
         if not State.BallColor.Enabled then return end
         if not BallColorTarget or not BallColorTarget.Parent then
@@ -1239,7 +1279,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Muda a cor da bola localmente. Apenas voce ve.",
+        Text = "Tinge a textura da bola via Texture.Color3. Apenas voce ve.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1294,4 +1334,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Color carregado.")
+print("[VoidStrap] Ball Color (Texture) carregado.")
