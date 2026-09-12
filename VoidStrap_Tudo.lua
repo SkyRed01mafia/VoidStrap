@@ -2569,177 +2569,192 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] 6.2 OK")--====================================================================
--- PARTE 6.2 — AUTO FOLLOW (ABAS UI)
+-- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
--- ABA BÁSICO
-createTab("AF Basico", "AF")
+State.Chars = State.Chars or { Enabled = true }
 
-do
-    local page = Tabs["AF Basico"].page
+local CharsModule = {}
 
-    local sec = section("Seguir Bola")
-    sec.Parent = page
+-- ---------- LISTA DE CHARS ----------
+local CHAR_LIST = {
+    "MiguelCalebeGamer202",
+    "guto785662",
+    "beastsxc",
+    "89felip3",
+    "guto_01games",
+    "feliou23",
+    "LeozzinnTxz",
+    "aerovah",
+    "novaes_wc",
+    "GHOST_INFINITI07",
+    "16alvez",
+    "mikaelfacada10",
+    "keny_tcs",
+    "3qu",
+    "hel",
+    "phzin123271",
+    "portuga_xz3",
+    "j12ufdo",
+    "shadow_samuel1347k",
+    "131felipe6",
+    "mnbzzaicsn",
+    "careca12492",
+    "sunno_mm2",
+    "rangeamandio",
+    "rosa_skillsz",
+    "DAVILUCASPLU2VC",
+    "rayagaj3",
+    "Felliou",
+    "ythek9on1",
+    "Bernardow_w",
+    "Samblox_Xd",
+    "mica1203ely5",
+}
 
-    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on)
-        AutoFollowModule.setEnabled(on)
-    end, 1)
+-- ---------- ENVIAR MENSAGEM NO CHAT ----------
+local function sendChat(msg)
+    local ok = false
 
-    dropdownRow(sec, "Alvo",
-        { "Todas", "Minha", "MaisProxima" },
-        State.AutoFollow.TargetMode,
-        function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
-
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
-        AutoFollowModule.setSpeed(v)
-    end, 3)
-
-    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
-        AutoFollowModule.setStopDistance(v)
-    end, 4)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
-        BackgroundTransparency = 1,
-        Text = "Todas = qualquer bola. Minha = so quando VOCE tem a posse. MaisProxima = a mais perto de voce.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 5,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local floatSec = section("Botao Flutuante")
-    floatSec.Parent = page
-
-    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
-        AutoFollowBtnModule.toggle()
-    end, 1)
-
-    local floatInfo = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Cria um botao na tela. Toque pra ligar/desligar. Arraste pra mover.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 2,
-        Parent = floatSec,
-    })
-    themed(floatInfo, "TextColor3", "Sub")
-end
-
--- ABA AVANÇADO
-createTab("AF Avancado", "AF+")
-
-do
-    local page = Tabs["AF Avancado"].page
-
-    local sec = section("Seguir Bola (Avancado)")
-    sec.Parent = page
-
-    toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
-        AutoFollowModule.setTouchToEnable(on)
-    end, 1)
-
-    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
-        AutoFollowModule.setPauseOnLock(on)
-    end, 2)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Triscar = encostar na bola reativa o AF. Lock = pausa quando alguem tem a posse.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local reachSec = section("Reach (Alcance)")
-    reachSec.Parent = page
-
-    toggleRow(reachSec, "Ativar Reach", State.AutoFollow.ReachEnabled, function(on)
-        AutoFollowModule.setReachEnabled(on)
-    end, 1)
-
-    sliderRow(reachSec, "Distancia (Studs)", 1, 12, State.AutoFollow.ReachDistance, function(v)
-        AutoFollowModule.setReachDistance(v)
-    end, 2)
-
-    local reachWarn = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "AVISO: Reach empurra a bola via CFrame. Pode ser detectado por anti-cheat.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = reachSec,
-    })
-    themed(reachWarn, "TextColor3", "Bad")
-
-    local floatSec = section("Botao Flutuante (Avancado)")
-    floatSec.Parent = page
-
-    toggleRow(floatSec, "Travar Botao no Lugar", State.AutoFollowBtn.Locked, function(on)
-        AutoFollowBtnModule.setLocked(on)
-    end, 1)
-
-    local lockInfo = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Quando travado, o botao fica fixo no lugar. Voce ainda pode tocar pra ligar/desligar.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 2,
-        Parent = floatSec,
-    })
-    themed(lockInfo, "TextColor3", "Sub")
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-
-    buttonRow(resetSec, "Desativar tudo", function()
-        AutoFollowModule.reset()
-        AutoFollowBtnModule.hide()
-    end, 1)
-end
-
--- CLEANUP
-local _prevAF = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevAF then _prevAF() end
     pcall(function()
-        AutoFollowModule.reset()
-        AutoFollowBtnModule.hide()
+        local RS = game:GetService("ReplicatedStorage")
+        local events = RS:FindFirstChild("DefaultChatSystemChatEvents")
+        if events then
+            local say = events:FindFirstChild("SayMessageRequest")
+            if say then
+                say:FireServer(msg, "All")
+                ok = true
+            end
+        end
     end)
-end
 
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
+    if not ok then
         pcall(function()
-            AutoFollowModule.reset()
-            AutoFollowBtnModule.hide()
+            local TCS = game:GetService("TextChatService")
+            if TCS and TCS.ChatVersion == Enum.ChatVersion.TextChatService then
+                local channels = TCS:FindFirstChild("TextChannels")
+                if channels then
+                    local general = channels:FindFirstChild("RBXGeneral")
+                    if general then
+                        general:SendAsync(msg)
+                        ok = true
+                    end
+                end
+            end
         end)
     end
-end)
 
-print("[VoidStrap] 6.2 OK")--====================================================================
+    return ok
+end
+
+-- ---------- API ----------
+function CharsModule.apply(charName)
+    if not charName or charName == "" then return end
+    local cmd = ":char " .. charName
+    if sendChat(cmd) then
+        notify("Char: " .. charName, "good")
+    else
+        notify("Falha ao enviar chat", "bad")
+    end
+end
+
+function CharsModule.applyById(id)
+    if not id or id == "" then return end
+    local cmd = ":char " .. id
+    if sendChat(cmd) then
+        notify("Char ID: " .. id, "good")
+    else
+        notify("Falha ao enviar chat", "bad")
+    end
+end
+
+--====================================================================
+-- ABA CHARS
+--====================================================================
+createTab("Chars", "CH")
+
+do
+    local page = Tabs["Chars"].page
+
+    -- Secao de info
+    local secInfo = section("Aplicar Char via Chat")
+    secInfo.Parent = page
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Clique num char pra enviar :char NOME no chat automaticamente.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = secInfo,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Secao de ID custom
+    local secId = section("Char por ID")
+    secId.Parent = page
+
+    -- Input de texto simples
+    local inputFrame = create("Frame", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = ActiveTheme.Surface2,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = secId,
+    })
+    themed(inputFrame, "BackgroundColor3", "Surface2")
+    corner(8, inputFrame)
+
+    local textBox = create("TextBox", {
+        Size = UDim2.new(1, -100, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Digite o ID do char...",
+        PlaceholderColor3 = ActiveTheme.Sub,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextColor3 = ActiveTheme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = inputFrame,
+    })
+    themed(textBox, "TextColor3", "Text")
+    themed(textBox, "PlaceholderColor3", "Sub")
+
+    buttonRow(secId, "Aplicar ID do Char", function()
+        local id = textBox.Text
+        if id and id ~= "" then
+            CharsModule.applyById(id)
+        else
+            notify("Digite um ID primeiro", "bad")
+        end
+    end, 2)
+
+    -- Secao da lista
+    local charSec = section("Lista de Chars")
+    charSec.Parent = page
+
+    for i, name in ipairs(CHAR_LIST) do
+        buttonRow(charSec, name, function()
+            CharsModule.apply(name)
+        end, i)
+    end
+end
+
+--====================================================================
+-- CLEANUP
+--====================================================================
+local _prevChars = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevChars then _prevChars() end
+end
+
+print("[VoidStrap] Chars carregado.")--====================================================================
 -- PARTE 7 — CUSTOM BALL (Cor)
 --====================================================================
 
@@ -3347,4 +3362,283 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Reach carregado.")
+print("[VoidStrap] Reach carregado.")--====================================================================
+-- PARTE 12 — AUTO CATCH (Goleiro pega a bola na mão)
+-- Quando a bola entra no raio da mão do goleiro, dispara touch.
+--====================================================================
+
+State.AutoCatch = State.AutoCatch or {
+    Enabled = false,
+    Range = 6,           -- studs do alcance da mão
+    GoalSide = "Home",   -- "Home" (Goal222) ou "Away" (Goal111)
+    OnlyMyGoal = false,  -- só funciona se você estiver no gol escolhido
+    Notify = true,       -- avisa quando pega
+}
+
+local AutoCatchModule = {}
+local AC_Conn = nil
+local AC_CachedBall = nil
+local AC_CachedGoal = nil
+local AC_LastSearch = 0
+local AC_GoalLastSearch = 0
+local AC_LastCatch = 0
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES_12 = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function isBallName12(name)
+    for _, n in ipairs(BALL_NAMES_12) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function findBall12()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallName12(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- DETECÇÃO DO GOL ----------
+local function findGoal12()
+    local goalName = (State.AutoCatch.GoalSide == "Home") and "Goal222" or "Goal111"
+    local goal = Workspace:FindFirstChild(goalName, true)
+    if goal then return goal end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower() == goalName:lower() then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- ---------- LOOP PRINCIPAL ----------
+local function acStart()
+    if AC_Conn then AC_Conn:Disconnect() end
+
+    AC_Conn = RunService.Heartbeat:Connect(function()
+        if not State.AutoCatch.Enabled then return end
+
+        local char = LP.Character
+        if not char then return end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not root or not hum or hum.Health <= 0 then return end
+
+        -- Cache da bola
+        local now = tick()
+        if not AC_CachedBall or not AC_CachedBall.Parent or (now - AC_LastSearch) > 0.5 then
+            AC_LastSearch = now
+            AC_CachedBall = findBall12()
+        end
+        local ball = AC_CachedBall
+        if not ball then return end
+
+        -- Cache do gol
+        if not AC_CachedGoal or not AC_CachedGoal.Parent or (now - AC_GoalLastSearch) > 3 then
+            AC_GoalLastSearch = now
+            AC_CachedGoal = findGoal12()
+        end
+        local goal = AC_CachedGoal
+
+        -- Se OnlyMyGoal, exige que você esteja perto do gol escolhido
+        if State.AutoCatch.OnlyMyGoal and goal then
+            local distToGoal = (root.Position - goal.Position).Magnitude
+            if distToGoal > 30 then return end
+        end
+
+        -- Pega os "braços" do goleiro (Hands ou LowerArms)
+        local hands = {}
+        local handNames = {
+            "RightHand", "LeftHand",
+            "RightLowerArm", "LeftLowerArm",
+            "RightUpperArm", "LeftUpperArm",
+            "Right Arm", "Left Arm",
+            "RightLowerLeg", "LeftLowerLeg",
+            "RightUpperLeg", "LeftUpperLeg",
+            "HumanoidRootPart"
+        }
+        for _, name in ipairs(handNames) do
+            local part = char:FindFirstChild(name)
+            if part then table.insert(hands, part) end
+        end
+
+        if #hands == 0 then return end
+
+        -- Checa distância mínima entre qualquer membro do goleiro e a bola
+        local minDist = math.huge
+        local closestPart = nil
+        for _, part in ipairs(hands) do
+            local d = (part.Position - ball.Position).Magnitude
+            if d < minDist then
+                minDist = d
+                closestPart = part
+            end
+        end
+
+        -- Se está dentro do alcance, "pega" a bola
+        if minDist <= State.AutoCatch.Range then
+            -- Debounce pra não spammar
+            if now - AC_LastCatch < 0.3 then return end
+            AC_LastCatch = now
+
+            -- Dispara o touch (simula a mão pegando)
+            if firetouchinterest and closestPart then
+                pcall(function()
+                    firetouchinterest(ball, closestPart, 0)
+                    firetouchinterest(ball, closestPart, 1)
+                end)
+            end
+
+            -- Se a bola é MeshPart/Part, zera a velocidade local
+            pcall(function()
+                ball.AssemblyLinearVelocity = Vector3.zero
+                ball.AssemblyAngularVelocity = Vector3.zero
+            end)
+
+            if State.AutoCatch.Notify then
+                notify("Pegou a bola!", "good")
+            end
+        end
+    end)
+end
+
+-- ---------- API ----------
+function AutoCatchModule.setEnabled(on)
+    State.AutoCatch.Enabled = on
+    if on then
+        AC_CachedGoal = nil
+        AC_GoalLastSearch = 0
+        AC_LastCatch = 0
+        acStart()
+        notify("Auto Catch ativado", "good")
+    else
+        if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
+        notify("Auto Catch desativado", "bad")
+    end
+end
+
+function AutoCatchModule.setRange(v) State.AutoCatch.Range = v end
+function AutoCatchModule.setNotify(on) State.AutoCatch.Notify = on end
+function AutoCatchModule.setOnlyMyGoal(on) State.AutoCatch.OnlyMyGoal = on end
+
+function AutoCatchModule.setGoalSide(side)
+    State.AutoCatch.GoalSide = side
+    AC_CachedGoal = nil
+    AC_GoalLastSearch = 0
+    notify("Gol: " .. side, "good")
+end
+
+function AutoCatchModule.refresh()
+    AC_CachedBall = nil
+    AC_CachedGoal = nil
+    AC_LastSearch = 0
+    AC_GoalLastSearch = 0
+end
+
+function AutoCatchModule.reset()
+    State.AutoCatch.Enabled = false
+    if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
+    AC_CachedBall = nil
+    AC_CachedGoal = nil
+    notify("Auto Catch resetado", "bad")
+end
+
+--====================================================================
+-- ABA AUTO CATCH
+--====================================================================
+createTab("Auto Catch", "AC")
+
+do
+    local page = Tabs["Auto Catch"].page
+
+    local sec = section("Auto Catch")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Auto Catch", State.AutoCatch.Enabled, function(on)
+        AutoCatchModule.setEnabled(on)
+    end, 1)
+
+    dropdownRow(sec, "Gol",
+        { "Home", "Away" },
+        State.AutoCatch.GoalSide,
+        function(opt) AutoCatchModule.setGoalSide(opt) end, 2)
+
+    sliderRow(sec, "Alcance da Mao", 2, 12, State.AutoCatch.Range, function(v)
+        AutoCatchModule.setRange(v)
+    end, 3)
+
+    toggleRow(sec, "So no Meu Gol", State.AutoCatch.OnlyMyGoal, function(on)
+        AutoCatchModule.setOnlyMyGoal(on)
+    end, 4)
+
+    toggleRow(sec, "Notificar", State.AutoCatch.Notify, function(on)
+        AutoCatchModule.setNotify(on)
+    end, 5)
+
+    buttonRow(sec, "Reconectar", function()
+        AutoCatchModule.refresh()
+        notify("Reconectado", "good")
+    end, 6)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 80),
+        BackgroundTransparency = 1,
+        Text = "Quando a bola entra no alcance da mao do goleiro, dispara touch automaticamente pra pegar.\n\nHome = Goal222 | Away = Goal111.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 7,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Aviso
+    local warnSec = section("Aviso")
+    warnSec.Parent = page
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 60),
+        BackgroundTransparency = 1,
+        Text = "AVISO: dispara touch automatico na bola. Detectavel. Use apenas em alt.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = warnSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
+
+    buttonRow(warnSec, "Desativar tudo", function()
+        AutoCatchModule.reset()
+    end, 2)
+end
+
+-- ---------- CLEANUP ----------
+local _prevAC = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevAC then _prevAC() end
+    pcall(function() AutoCatchModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() AutoCatchModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Auto Catch carregado.")
