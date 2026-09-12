@@ -1050,13 +1050,18 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor + Textura)
+-- PARTE 7 — CUSTOM BALL (Cor + Textura com ajuste UV)
 --====================================================================
 
 State.BallColor = State.BallColor or {
     Enabled = false,
     Color = nil,
     TextureId = nil,
+    StudsU = 4,
+    StudsV = 4,
+    OffsetU = 0,
+    OffsetV = 0,
+    Face = "Front",
 }
 
 local BallColorModule = {}
@@ -1090,6 +1095,15 @@ local BALL_TEXTURES = {
     { name = "Bola Custom 3", id = "98841211444401" },
 }
 
+local FACE_OPTIONS = {
+    { name = "Front",  value = Enum.NormalId.Front },
+    { name = "Back",   value = Enum.NormalId.Back },
+    { name = "Left",   value = Enum.NormalId.Left },
+    { name = "Right",  value = Enum.NormalId.Right },
+    { name = "Top",    value = Enum.NormalId.Top },
+    { name = "Bottom", value = Enum.NormalId.Bottom },
+}
+
 local BALL_NAMES_7 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -1114,6 +1128,13 @@ local function findBall7()
     return nil
 end
 
+local function getFaceValue(name)
+    for _, f in ipairs(FACE_OPTIONS) do
+        if f.name == name then return f.value end
+    end
+    return Enum.NormalId.Front
+end
+
 local function captureBackup(ball)
     if BallColorBackup then return end
     BallColorBackup = {
@@ -1123,6 +1144,11 @@ local function captureBackup(ball)
         TextureColor = nil,
         TextureTransparency = nil,
         TextureId = nil,
+        TextureFace = nil,
+        StudsU = nil,
+        StudsV = nil,
+        OffsetU = nil,
+        OffsetV = nil,
     }
     local tex = ball:FindFirstChildOfClass("Texture")
     if tex then
@@ -1130,6 +1156,11 @@ local function captureBackup(ball)
         BallColorBackup.TextureColor = tex.Color3
         BallColorBackup.TextureTransparency = tex.Transparency
         BallColorBackup.TextureId = tex.Texture
+        BallColorBackup.TextureFace = tex.Face
+        BallColorBackup.StudsU = tex.StudsPerTileU
+        BallColorBackup.StudsV = tex.StudsPerTileV
+        BallColorBackup.OffsetU = tex.OffsetStudsU
+        BallColorBackup.OffsetV = tex.OffsetStudsV
     end
 end
 
@@ -1158,13 +1189,46 @@ local function applyBallTexture(ball, textureId)
         tex.Face = Enum.NormalId.Front
         tex.Parent = ball
     end
+
     if textureId == nil then
         if BallColorBackup.TextureId then
             pcall(function() tex.Texture = BallColorBackup.TextureId end)
         end
+        if BallColorBackup.TextureFace then
+            pcall(function() tex.Face = BallColorBackup.TextureFace end)
+        end
+        if BallColorBackup.StudsU then
+            pcall(function() tex.StudsPerTileU = BallColorBackup.StudsU end)
+        end
+        if BallColorBackup.StudsV then
+            pcall(function() tex.StudsPerTileV = BallColorBackup.StudsV end)
+        end
+        if BallColorBackup.OffsetU then
+            pcall(function() tex.OffsetStudsU = BallColorBackup.OffsetU end)
+        end
+        if BallColorBackup.OffsetV then
+            pcall(function() tex.OffsetStudsV = BallColorBackup.OffsetV end)
+        end
     else
         pcall(function() tex.Texture = "rbxassetid://" .. textureId end)
+        pcall(function() tex.Face = getFaceValue(State.BallColor.Face) end)
+        pcall(function() tex.StudsPerTileU = State.BallColor.StudsU end)
+        pcall(function() tex.StudsPerTileV = State.BallColor.StudsV end)
+        pcall(function() tex.OffsetStudsU = State.BallColor.OffsetU end)
+        pcall(function() tex.OffsetStudsV = State.BallColor.OffsetV end)
     end
+end
+
+local function reapplyUV()
+    if not BallColorTarget or not BallColorTarget.Parent then return end
+    if not State.BallColor.TextureId then return end
+    local tex = BallColorTarget:FindFirstChildOfClass("Texture")
+    if not tex then return end
+    pcall(function() tex.Face = getFaceValue(State.BallColor.Face) end)
+    pcall(function() tex.StudsPerTileU = State.BallColor.StudsU end)
+    pcall(function() tex.StudsPerTileV = State.BallColor.StudsV end)
+    pcall(function() tex.OffsetStudsU = State.BallColor.OffsetU end)
+    pcall(function() tex.OffsetStudsV = State.BallColor.OffsetV end)
 end
 
 local function restoreBallColor()
@@ -1184,6 +1248,21 @@ local function restoreBallColor()
                 end
                 if BallColorBackup.TextureId then
                     pcall(function() tex.Texture = BallColorBackup.TextureId end)
+                end
+                if BallColorBackup.TextureFace then
+                    pcall(function() tex.Face = BallColorBackup.TextureFace end)
+                end
+                if BallColorBackup.StudsU then
+                    pcall(function() tex.StudsPerTileU = BallColorBackup.StudsU end)
+                end
+                if BallColorBackup.StudsV then
+                    pcall(function() tex.StudsPerTileV = BallColorBackup.StudsV end)
+                end
+                if BallColorBackup.OffsetU then
+                    pcall(function() tex.OffsetStudsU = BallColorBackup.OffsetU end)
+                end
+                if BallColorBackup.OffsetV then
+                    pcall(function() tex.OffsetStudsV = BallColorBackup.OffsetV end)
                 end
             end
         end
@@ -1274,6 +1353,32 @@ function BallColorModule.setTexture(name)
     end
 end
 
+function BallColorModule.setStudsU(v)
+    State.BallColor.StudsU = v
+    reapplyUV()
+end
+
+function BallColorModule.setStudsV(v)
+    State.BallColor.StudsV = v
+    reapplyUV()
+end
+
+function BallColorModule.setOffsetU(v)
+    State.BallColor.OffsetU = v
+    reapplyUV()
+end
+
+function BallColorModule.setOffsetV(v)
+    State.BallColor.OffsetV = v
+    reapplyUV()
+end
+
+function BallColorModule.setFace(name)
+    State.BallColor.Face = name
+    reapplyUV()
+    notify("Face: " .. name, "good")
+end
+
 function BallColorModule.refresh()
     task.spawn(function()
         local b = findBall7()
@@ -1322,7 +1427,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Muda cor e textura da bola localmente. Apenas voce ve.",
+        Text = "Muda cor e textura da bola. Apenas voce ve.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1332,6 +1437,55 @@ do
         Parent = mainSec,
     })
     themed(info, "TextColor3", "Sub")
+
+    -- TEXTURAS
+    local texSec = section("Texturas")
+    texSec.Parent = page
+
+    for i, e in ipairs(BALL_TEXTURES) do
+        buttonRow(texSec, e.name, function()
+            BallColorModule.setTexture(e.name)
+        end, i)
+    end
+
+    -- AJUSTE DA TEXTURA (UV)
+    local uvSec = section("Ajuste da Textura")
+    uvSec.Parent = page
+
+    dropdownRow(uvSec, "Face", 
+        { "Front", "Back", "Left", "Right", "Top", "Bottom" },
+        State.BallColor.Face,
+        function(opt) BallColorModule.setFace(opt) end, 1)
+
+    sliderRow(uvSec, "Studs U", 1, 20, State.BallColor.StudsU, function(v)
+        BallColorModule.setStudsU(v)
+    end, 2)
+
+    sliderRow(uvSec, "Studs V", 1, 20, State.BallColor.StudsV, function(v)
+        BallColorModule.setStudsV(v)
+    end, 3)
+
+    sliderRow(uvSec, "Offset U", -10, 10, State.BallColor.OffsetU, function(v)
+        BallColorModule.setOffsetU(v)
+    end, 4)
+
+    sliderRow(uvSec, "Offset V", -10, 10, State.BallColor.OffsetV, function(v)
+        BallColorModule.setOffsetV(v)
+    end, 5)
+
+    local uvInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundTransparency = 1,
+        Text = "Ajuste para melhorar a projecao da textura na bola. Studs U/V mudam o tamanho. Offset U/V movem. Faca testes.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 6,
+        Parent = uvSec,
+    })
+    themed(uvInfo, "TextColor3", "Sub")
 
     -- CORES
     local colorSec = section("Cores")
@@ -1358,16 +1512,6 @@ do
         end
     end
 
-    -- TEXTURAS
-    local texSec = section("Texturas")
-    texSec.Parent = page
-
-    for i, e in ipairs(BALL_TEXTURES) do
-        buttonRow(texSec, e.name, function()
-            BallColorModule.setTexture(e.name)
-        end, i)
-    end
-
     -- RESET
     local resetSec = section("Restaurar")
     resetSec.Parent = page
@@ -1388,4 +1532,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Custom carregado.")
+print("[VoidStrap] Ball Custom (cor + textura + UV) carregado.")
