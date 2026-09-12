@@ -273,7 +273,7 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6.1 — AUTO FOLLOW (NÚCLEO + BOTÃO FLUTUANTE)
+-- PARTE 6.1 — AUTO FOLLOW (NÚCLEO)
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
@@ -303,7 +303,6 @@ local AF_LockedByMe = false
 local AF_TouchConn = nil
 local AF_TouchDebounce = 0
 
--- DETECÇÃO DE BOLA
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -337,10 +336,23 @@ local function afFindAllBalls()
 end
 
 local function afFindMyBall()
+    local char = LP.Character
+    if not char then return nil end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local best, bestDist = nil, math.huge
     for _, b in ipairs(afFindAllBalls()) do
         if getBallOwner(b) == LP then return b end
+        local owner = getBallOwner(b)
+        if owner == nil or owner == LP then
+            local d = (b.Position - root.Position).Magnitude
+            if d < 6 and d < bestDist then
+                bestDist = d
+                best = b
+            end
+        end
     end
-    return nil
+    return best
 end
 
 local function afFindClosestBall()
@@ -387,7 +399,6 @@ local function afCleanupBodyVel()
     AF_BodyVel = nil
 end
 
--- BOTÃO FLUTUANTE
 local FloatingBtn = nil
 
 local function updateFloatingBtnVisual()
@@ -405,7 +416,6 @@ local function updateFloatingBtnVisual()
     end
 end
 
--- LOOP PRINCIPAL
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
     AF_Conn = RunService.RenderStepped:Connect(function()
@@ -459,7 +469,6 @@ local function afStart()
     end)
 end
 
--- REACH
 local function afStartReach()
     if AF_ReachConn then AF_ReachConn:Disconnect(); AF_ReachConn = nil end
     AF_ReachConn = RunService.Heartbeat:Connect(function()
@@ -483,7 +492,6 @@ local function afStartReach()
     end)
 end
 
--- TRISCAR
 local function afStartTouchDetection()
     if AF_TouchConn then AF_TouchConn:Disconnect(); AF_TouchConn = nil end
     AF_TouchConn = RunService.Heartbeat:Connect(function()
@@ -510,7 +518,6 @@ local function afStartTouchDetection()
     end)
 end
 
--- API
 function AutoFollowModule.setEnabled(on)
     State.AutoFollow.Enabled = on
     if on then
@@ -553,7 +560,6 @@ function AutoFollowModule.reset()
     notify("Auto Follow resetado", "bad")
 end
 
--- BOTÃO FLUTUANTE
 local AutoFollowBtnModule = {}
 local IsDragging = false
 local DragStart = nil
@@ -619,7 +625,6 @@ local function createFloatingBtn()
             PressStartPos = input.Position
         end
     end)
-
     UIS.InputChanged:Connect(function(input)
         if not IsDragging then return end
         if State.AutoFollowBtn.Locked then return end
@@ -635,7 +640,6 @@ local function createFloatingBtn()
             end
         end
     end)
-
     UIS.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
@@ -651,7 +655,6 @@ local function createFloatingBtn()
             PressStartPos = nil
         end
     end)
-
     FloatingBtn.MouseEnter:Connect(function()
         tween(FloatingBtn, 0.15, { Size = UDim2.fromOffset(72, 72) })
     end)
@@ -696,7 +699,7 @@ print("[VoidStrap] 6.1 OK")--===================================================
 -- PARTE 6.2 — AUTO FOLLOW (ABAS UI)
 --====================================================================
 
--- ABA BASICO
+-- ABA BÁSICO
 createTab("AF Basico", "AF")
 
 do
@@ -758,7 +761,7 @@ do
     themed(floatInfo, "TextColor3", "Sub")
 end
 
--- ABA AVANCADO
+-- ABA AVANÇADO
 createTab("AF Avancado", "AF+")
 
 do
@@ -871,7 +874,6 @@ State.Chars = State.Chars or { Enabled = true }
 
 local CharsModule = {}
 
--- ---------- LISTA DE CHARS ----------
 local CHAR_LIST = {
     "MiguelCalebeGamer202",
     "guto785662",
@@ -907,10 +909,10 @@ local CHAR_LIST = {
     "mica1203ely5",
 }
 
--- ---------- ENVIAR MENSAGEM NO CHAT ----------
 local function sendChat(msg)
     local ok = false
 
+    -- Método 1: Legacy chat
     pcall(function()
         local RS = game:GetService("ReplicatedStorage")
         local events = RS:FindFirstChild("DefaultChatSystemChatEvents")
@@ -923,6 +925,7 @@ local function sendChat(msg)
         end
     end)
 
+    -- Método 2: TextChatService
     if not ok then
         pcall(function()
             local TCS = game:GetService("TextChatService")
@@ -942,7 +945,6 @@ local function sendChat(msg)
     return ok
 end
 
--- ---------- API ----------
 function CharsModule.apply(charName)
     if not charName or charName == "" then return end
     local cmd = ":char " .. charName
@@ -971,7 +973,6 @@ createTab("Chars", "CH")
 do
     local page = Tabs["Chars"].page
 
-    -- Secao de info
     local secInfo = section("Aplicar Char via Chat")
     secInfo.Parent = page
 
@@ -989,11 +990,10 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
-    -- Secao de ID custom
+    -- Char por ID
     local secId = section("Char por ID")
     secId.Parent = page
 
-    -- Input de texto simples
     local inputFrame = create("Frame", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = ActiveTheme.Surface2,
@@ -1030,7 +1030,7 @@ do
         end
     end, 2)
 
-    -- Secao da lista
+    -- Lista de chars
     local charSec = section("Lista de Chars")
     charSec.Parent = page
 
@@ -1041,27 +1041,19 @@ do
     end
 end
 
---====================================================================
 -- CLEANUP
---====================================================================
 local _prevChars = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevChars then _prevChars() end
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor + Textura com ajuste UV)
+-- PARTE 7 — CUSTOM BALL (Cor)
 --====================================================================
 
 State.BallColor = State.BallColor or {
     Enabled = false,
     Color = nil,
-    TextureId = nil,
-    StudsU = 4,
-    StudsV = 4,
-    OffsetU = 0,
-    OffsetV = 0,
-    Face = "Front",
 }
 
 local BallColorModule = {}
@@ -1069,9 +1061,10 @@ local BallColorTarget = nil
 local BallColorBackup = nil
 local BallColorConn = nil
 
+-- ---------- PALETA ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
-    { name = "Preto",      color = Color3.fromRGB(40, 40, 40) },
+    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
     { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
     { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
     { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
@@ -1088,22 +1081,7 @@ local BALL_COLORS = {
     { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
 }
 
-local BALL_TEXTURES = {
-    { name = "Original",      id = nil },
-    { name = "Bola Custom 1", id = "5767385379" },
-    { name = "Bola Custom 2", id = "126904127959280" },
-    { name = "Bola Custom 3", id = "110053224424205" },
-}
-
-local FACE_OPTIONS = {
-    { name = "Front",  value = Enum.NormalId.Front },
-    { name = "Back",   value = Enum.NormalId.Back },
-    { name = "Left",   value = Enum.NormalId.Left },
-    { name = "Right",  value = Enum.NormalId.Right },
-    { name = "Top",    value = Enum.NormalId.Top },
-    { name = "Bottom", value = Enum.NormalId.Bottom },
-}
-
+-- ---------- DETECÇÃO DA BOLA ----------
 local BALL_NAMES_7 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -1128,107 +1106,18 @@ local function findBall7()
     return nil
 end
 
-local function getFaceValue(name)
-    for _, f in ipairs(FACE_OPTIONS) do
-        if f.name == name then return f.value end
-    end
-    return Enum.NormalId.Front
-end
-
-local function captureBackup(ball)
-    if BallColorBackup then return end
-    BallColorBackup = {
-        Color = ball.Color,
-        Material = ball.Material,
-        HasTexture = false,
-        TextureColor = nil,
-        TextureTransparency = nil,
-        TextureId = nil,
-        TextureFace = nil,
-        StudsU = nil,
-        StudsV = nil,
-        OffsetU = nil,
-        OffsetV = nil,
-    }
-    local tex = ball:FindFirstChildOfClass("Texture")
-    if tex then
-        BallColorBackup.HasTexture = true
-        BallColorBackup.TextureColor = tex.Color3
-        BallColorBackup.TextureTransparency = tex.Transparency
-        BallColorBackup.TextureId = tex.Texture
-        BallColorBackup.TextureFace = tex.Face
-        BallColorBackup.StudsU = tex.StudsPerTileU
-        BallColorBackup.StudsV = tex.StudsPerTileV
-        BallColorBackup.OffsetU = tex.OffsetStudsU
-        BallColorBackup.OffsetV = tex.OffsetStudsV
-    end
-end
-
+-- ---------- APLICAR / RESTAURAR ----------
 local function applyBallColor(ball, color)
     if not ball then return end
-    captureBackup(ball)
-    pcall(function() ball.Color = color end)
-    local tex = ball:FindFirstChildOfClass("Texture")
-    if tex then
-        pcall(function() tex.Color3 = color end)
+    if not BallColorBackup then
+        BallColorBackup = {
+            Color = ball.Color,
+            Material = ball.Material,
+        }
     end
-    for _, d in ipairs(ball:GetChildren()) do
-        if d:IsA("Decal") then
-            pcall(function() d.Color3 = color end)
-        end
-    end
-end
-
-local function applyBallTexture(ball, textureId)
-    if not ball then return end
-    captureBackup(ball)
-    local tex = ball:FindFirstChildOfClass("Texture")
-    if not tex then
-        tex = Instance.new("Texture")
-        tex.Name = "VST_BallTexture"
-        tex.Face = Enum.NormalId.Front
-        tex.Parent = ball
-    end
-
-    if textureId == nil then
-        if BallColorBackup.TextureId then
-            pcall(function() tex.Texture = BallColorBackup.TextureId end)
-        end
-        if BallColorBackup.TextureFace then
-            pcall(function() tex.Face = BallColorBackup.TextureFace end)
-        end
-        if BallColorBackup.StudsU then
-            pcall(function() tex.StudsPerTileU = BallColorBackup.StudsU end)
-        end
-        if BallColorBackup.StudsV then
-            pcall(function() tex.StudsPerTileV = BallColorBackup.StudsV end)
-        end
-        if BallColorBackup.OffsetU then
-            pcall(function() tex.OffsetStudsU = BallColorBackup.OffsetU end)
-        end
-        if BallColorBackup.OffsetV then
-            pcall(function() tex.OffsetStudsV = BallColorBackup.OffsetV end)
-        end
-    else
-        pcall(function() tex.Texture = "rbxassetid://" .. textureId end)
-        pcall(function() tex.Face = getFaceValue(State.BallColor.Face) end)
-        pcall(function() tex.StudsPerTileU = State.BallColor.StudsU end)
-        pcall(function() tex.StudsPerTileV = State.BallColor.StudsV end)
-        pcall(function() tex.OffsetStudsU = State.BallColor.OffsetU end)
-        pcall(function() tex.OffsetStudsV = State.BallColor.OffsetV end)
-    end
-end
-
-local function reapplyUV()
-    if not BallColorTarget or not BallColorTarget.Parent then return end
-    if not State.BallColor.TextureId then return end
-    local tex = BallColorTarget:FindFirstChildOfClass("Texture")
-    if not tex then return end
-    pcall(function() tex.Face = getFaceValue(State.BallColor.Face) end)
-    pcall(function() tex.StudsPerTileU = State.BallColor.StudsU end)
-    pcall(function() tex.StudsPerTileV = State.BallColor.StudsV end)
-    pcall(function() tex.OffsetStudsU = State.BallColor.OffsetU end)
-    pcall(function() tex.OffsetStudsV = State.BallColor.OffsetV end)
+    pcall(function()
+        ball.Color = color
+    end)
 end
 
 local function restoreBallColor()
@@ -1237,47 +1126,15 @@ local function restoreBallColor()
             BallColorTarget.Color = BallColorBackup.Color
             BallColorTarget.Material = BallColorBackup.Material
         end)
-        if BallColorBackup.HasTexture then
-            local tex = BallColorTarget:FindFirstChildOfClass("Texture")
-            if tex then
-                if BallColorBackup.TextureColor then
-                    pcall(function() tex.Color3 = BallColorBackup.TextureColor end)
-                end
-                if BallColorBackup.TextureTransparency ~= nil then
-                    pcall(function() tex.Transparency = BallColorBackup.TextureTransparency end)
-                end
-                if BallColorBackup.TextureId then
-                    pcall(function() tex.Texture = BallColorBackup.TextureId end)
-                end
-                if BallColorBackup.TextureFace then
-                    pcall(function() tex.Face = BallColorBackup.TextureFace end)
-                end
-                if BallColorBackup.StudsU then
-                    pcall(function() tex.StudsPerTileU = BallColorBackup.StudsU end)
-                end
-                if BallColorBackup.StudsV then
-                    pcall(function() tex.StudsPerTileV = BallColorBackup.StudsV end)
-                end
-                if BallColorBackup.OffsetU then
-                    pcall(function() tex.OffsetStudsU = BallColorBackup.OffsetU end)
-                end
-                if BallColorBackup.OffsetV then
-                    pcall(function() tex.OffsetStudsV = BallColorBackup.OffsetV end)
-                end
-            end
-        end
-        for _, d in ipairs(BallColorTarget:GetChildren()) do
-            if d:IsA("Decal") then
-                pcall(function() d.Color3 = Color3.new(1, 1, 1) end)
-            end
-        end
     end
     BallColorBackup = nil
 end
 
+-- ---------- MONITOR DE RESPAWN ----------
 local function startBallColorMonitor()
     if BallColorConn then BallColorConn:Disconnect() end
     local lastSearch = 0
+
     BallColorConn = RunService.Heartbeat:Connect(function()
         if not State.BallColor.Enabled then return end
         if not BallColorTarget or not BallColorTarget.Parent then
@@ -1292,15 +1149,13 @@ local function startBallColorMonitor()
                     if State.BallColor.Color then
                         applyBallColor(b, State.BallColor.Color)
                     end
-                    if State.BallColor.TextureId then
-                        applyBallTexture(b, State.BallColor.TextureId)
-                    end
                 end
             end)
         end
     end)
 end
 
+-- ---------- API ----------
 function BallColorModule.setEnabled(on)
     State.BallColor.Enabled = on
     if on then
@@ -1310,10 +1165,7 @@ function BallColorModule.setEnabled(on)
                 if State.BallColor.Color then
                     applyBallColor(BallColorTarget, State.BallColor.Color)
                 end
-                if State.BallColor.TextureId then
-                    applyBallTexture(BallColorTarget, State.BallColor.TextureId)
-                end
-                notify("Ball Custom ativado", "good")
+                notify("Ball Color ativado", "good")
             else
                 notify("Bola nao encontrada", "bad")
             end
@@ -1323,7 +1175,7 @@ function BallColorModule.setEnabled(on)
         restoreBallColor()
         if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
         BallColorTarget = nil
-        notify("Ball Custom desativado", "bad")
+        notify("Ball Color desativado", "bad")
     end
 end
 
@@ -1340,45 +1192,6 @@ function BallColorModule.setColor(name)
     end
 end
 
-function BallColorModule.setTexture(name)
-    for _, e in ipairs(BALL_TEXTURES) do
-        if e.name == name then
-            State.BallColor.TextureId = e.id
-            if BallColorTarget and BallColorTarget.Parent then
-                applyBallTexture(BallColorTarget, e.id)
-            end
-            notify("Textura: " .. name, "good")
-            return
-        end
-    end
-end
-
-function BallColorModule.setStudsU(v)
-    State.BallColor.StudsU = v
-    reapplyUV()
-end
-
-function BallColorModule.setStudsV(v)
-    State.BallColor.StudsV = v
-    reapplyUV()
-end
-
-function BallColorModule.setOffsetU(v)
-    State.BallColor.OffsetU = v
-    reapplyUV()
-end
-
-function BallColorModule.setOffsetV(v)
-    State.BallColor.OffsetV = v
-    reapplyUV()
-end
-
-function BallColorModule.setFace(name)
-    State.BallColor.Face = name
-    reapplyUV()
-    notify("Face: " .. name, "good")
-end
-
 function BallColorModule.refresh()
     task.spawn(function()
         local b = findBall7()
@@ -1387,9 +1200,6 @@ function BallColorModule.refresh()
             BallColorBackup = nil
             if State.BallColor.Color then
                 applyBallColor(b, State.BallColor.Color)
-            end
-            if State.BallColor.TextureId then
-                applyBallTexture(b, State.BallColor.TextureId)
             end
             notify("Bola reconectada", "good")
         else
@@ -1401,22 +1211,22 @@ end
 function BallColorModule.reset()
     State.BallColor.Enabled = false
     State.BallColor.Color = nil
-    State.BallColor.TextureId = nil
     restoreBallColor()
     if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
     BallColorTarget = nil
     notify("Bola restaurada", "bad")
 end
 
+-- ---------- ABA ----------
 createTab("Ball", "BALL")
 
 do
     local page = Tabs["Ball"].page
 
-    local mainSec = section("Custom Bola")
+    local mainSec = section("Cor da Bola")
     mainSec.Parent = page
 
-    toggleRow(mainSec, "Ativar Custom", State.BallColor.Enabled, function(on)
+    toggleRow(mainSec, "Ativar Cor Custom", State.BallColor.Enabled, function(on)
         BallColorModule.setEnabled(on)
     end, 1)
 
@@ -1427,7 +1237,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Muda cor e textura da bola. Apenas voce ve.",
+        Text = "Muda a cor da bola localmente. Apenas voce ve.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1438,56 +1248,6 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
-    -- TEXTURAS
-    local texSec = section("Texturas")
-    texSec.Parent = page
-
-    for i, e in ipairs(BALL_TEXTURES) do
-        buttonRow(texSec, e.name, function()
-            BallColorModule.setTexture(e.name)
-        end, i)
-    end
-
-    -- AJUSTE DA TEXTURA (UV)
-    local uvSec = section("Ajuste da Textura")
-    uvSec.Parent = page
-
-    dropdownRow(uvSec, "Face", 
-        { "Front", "Back", "Left", "Right", "Top", "Bottom" },
-        State.BallColor.Face,
-        function(opt) BallColorModule.setFace(opt) end, 1)
-
-    sliderRow(uvSec, "Studs U", 1, 20, State.BallColor.StudsU, function(v)
-        BallColorModule.setStudsU(v)
-    end, 2)
-
-    sliderRow(uvSec, "Studs V", 1, 20, State.BallColor.StudsV, function(v)
-        BallColorModule.setStudsV(v)
-    end, 3)
-
-    sliderRow(uvSec, "Offset U", -10, 10, State.BallColor.OffsetU, function(v)
-        BallColorModule.setOffsetU(v)
-    end, 4)
-
-    sliderRow(uvSec, "Offset V", -10, 10, State.BallColor.OffsetV, function(v)
-        BallColorModule.setOffsetV(v)
-    end, 5)
-
-    local uvInfo = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
-        BackgroundTransparency = 1,
-        Text = "Ajuste para melhorar a projecao da textura na bola. Studs U/V mudam o tamanho. Offset U/V movem. Faca testes.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 6,
-        Parent = uvSec,
-    })
-    themed(uvInfo, "TextColor3", "Sub")
-
-    -- CORES
     local colorSec = section("Cores")
     colorSec.Parent = page
 
@@ -1512,14 +1272,14 @@ do
         end
     end
 
-    -- RESET
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar bola original", function()
+    buttonRow(resetSec, "Restaurar cor original", function()
         BallColorModule.reset()
     end, 1)
 end
 
+-- ---------- CLEANUP ----------
 local _prevBall = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevBall then _prevBall() end
@@ -1532,7 +1292,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Custom (cor + textura + UV) carregado.")--====================================================================
+print("[VoidStrap] Ball Color carregado.")--====================================================================
 -- PARTE 9 — BALL NA CABEÇA
 -- Faz a bola ficar em cima da cabeça do personagem.
 --====================================================================
