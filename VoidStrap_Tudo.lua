@@ -2755,403 +2755,6 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor)
---====================================================================
-
-State.BallColor = State.BallColor or {
-    Enabled = false,
-    Color = nil,
-}
-
-local BallColorModule = {}
-local BallColorTarget = nil
-local BallColorBackup = nil
-local BallColorConn = nil
-
--- ---------- PALETA ----------
-local BALL_COLORS = {
-    { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
-    { name = "Preto",      color = Color3.fromRGB(20, 20, 20) },
-    { name = "Cinza",      color = Color3.fromRGB(140, 140, 145) },
-    { name = "Vermelho",   color = Color3.fromRGB(220, 50, 50) },
-    { name = "Laranja",    color = Color3.fromRGB(255, 140, 40) },
-    { name = "Amarelo",    color = Color3.fromRGB(240, 220, 60) },
-    { name = "Verde",      color = Color3.fromRGB(60, 200, 80) },
-    { name = "Azul",       color = Color3.fromRGB(60, 130, 220) },
-    { name = "Roxo",       color = Color3.fromRGB(150, 80, 220) },
-    { name = "Rosa",       color = Color3.fromRGB(240, 130, 200) },
-    { name = "Ciano",      color = Color3.fromRGB(80, 220, 240) },
-    { name = "Dourado",    color = Color3.fromRGB(230, 190, 50) },
-    { name = "Neon Verde", color = Color3.fromRGB(80, 255, 120) },
-    { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
-    { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
-    { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
-}
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_7 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function isBallName7(name)
-    for _, n in ipairs(BALL_NAMES_7) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function findBall7()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName7(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- APLICAR / RESTAURAR ----------
-local function applyBallColor(ball, color)
-    if not ball then return end
-    if not BallColorBackup then
-        BallColorBackup = {
-            Color = ball.Color,
-            Material = ball.Material,
-        }
-    end
-    pcall(function()
-        ball.Color = color
-    end)
-end
-
-local function restoreBallColor()
-    if BallColorTarget and BallColorTarget.Parent and BallColorBackup then
-        pcall(function()
-            BallColorTarget.Color = BallColorBackup.Color
-            BallColorTarget.Material = BallColorBackup.Material
-        end)
-    end
-    BallColorBackup = nil
-end
-
--- ---------- MONITOR DE RESPAWN ----------
-local function startBallColorMonitor()
-    if BallColorConn then BallColorConn:Disconnect() end
-    local lastSearch = 0
-
-    BallColorConn = RunService.Heartbeat:Connect(function()
-        if not State.BallColor.Enabled then return end
-        if not BallColorTarget or not BallColorTarget.Parent then
-            local now = tick()
-            if now - lastSearch < 1.5 then return end
-            lastSearch = now
-            task.spawn(function()
-                local b = findBall7()
-                if b and State.BallColor.Enabled then
-                    BallColorTarget = b
-                    BallColorBackup = nil
-                    if State.BallColor.Color then
-                        applyBallColor(b, State.BallColor.Color)
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- ---------- API ----------
-function BallColorModule.setEnabled(on)
-    State.BallColor.Enabled = on
-    if on then
-        task.spawn(function()
-            BallColorTarget = findBall7()
-            if BallColorTarget then
-                if State.BallColor.Color then
-                    applyBallColor(BallColorTarget, State.BallColor.Color)
-                end
-                notify("Ball Color ativado", "good")
-            else
-                notify("Bola nao encontrada", "bad")
-            end
-            startBallColorMonitor()
-        end)
-    else
-        restoreBallColor()
-        if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
-        BallColorTarget = nil
-        notify("Ball Color desativado", "bad")
-    end
-end
-
-function BallColorModule.setColor(name)
-    for _, e in ipairs(BALL_COLORS) do
-        if e.name == name then
-            State.BallColor.Color = e.color
-            if BallColorTarget and BallColorTarget.Parent then
-                applyBallColor(BallColorTarget, e.color)
-            end
-            notify("Cor: " .. name, "good")
-            return
-        end
-    end
-end
-
-function BallColorModule.refresh()
-    task.spawn(function()
-        local b = findBall7()
-        if b then
-            BallColorTarget = b
-            BallColorBackup = nil
-            if State.BallColor.Color then
-                applyBallColor(b, State.BallColor.Color)
-            end
-            notify("Bola reconectada", "good")
-        else
-            notify("Nenhuma bola encontrada", "bad")
-        end
-    end)
-end
-
-function BallColorModule.reset()
-    State.BallColor.Enabled = false
-    State.BallColor.Color = nil
-    restoreBallColor()
-    if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
-    BallColorTarget = nil
-    notify("Bola restaurada", "bad")
-end
-
--- ---------- ABA ----------
-createTab("Ball", "BALL")
-
-do
-    local page = Tabs["Ball"].page
-
-    local mainSec = section("Cor da Bola")
-    mainSec.Parent = page
-
-    toggleRow(mainSec, "Ativar Cor Custom", State.BallColor.Enabled, function(on)
-        BallColorModule.setEnabled(on)
-    end, 1)
-
-    buttonRow(mainSec, "Reconectar Bola", function()
-        BallColorModule.refresh()
-    end, 2)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundTransparency = 1,
-        Text = "Muda a cor da bola localmente. Apenas voce ve.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 3,
-        Parent = mainSec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local colorSec = section("Cores")
-    colorSec.Parent = page
-
-    for i, e in ipairs(BALL_COLORS) do
-        local row = buttonRow(colorSec, e.name, function()
-            BallColorModule.setColor(e.name)
-        end, i)
-
-        local swatch = create("Frame", {
-            Size = UDim2.fromOffset(18, 18),
-            Position = UDim2.new(0, 8, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundColor3 = e.color,
-            BorderSizePixel = 0,
-            Parent = row,
-        })
-        corner(4, swatch)
-
-        local lbl = row:FindFirstChildOfClass("TextLabel")
-        if lbl then
-            lbl.Position = UDim2.new(0, 34, 0, 0)
-        end
-    end
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar cor original", function()
-        BallColorModule.reset()
-    end, 1)
-end
-
--- ---------- CLEANUP ----------
-local _prevBall = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevBall then _prevBall() end
-    pcall(function() BallColorModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() BallColorModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Ball Color carregado.")--====================================================================
--- PARTE 10 — STRETCH SCREEN (FOV)
---====================================================================
-
-State.Stretch = State.Stretch or {
-    Enabled = false,
-    Preset = "Baixa",
-    Intensity = 1.0,
-}
-
-local StretchModule = {}
-local ST_OriginalFOV = nil
-local ST_BaseFOV = 70
-local ST_Conn = nil
-
-local STRETCH_PRESETS = {
-    { name = "Baixa",  fov = 85,  desc = "85 FOV" },
-    { name = "Media",  fov = 100, desc = "100 FOV" },
-    { name = "Alta",   fov = 115, desc = "115 FOV" },
-    { name = "Ultra",  fov = 130, desc = "130 FOV" },
-}
-
-local function stGetPreset(name)
-    for _, p in ipairs(STRETCH_PRESETS) do
-        if p.name == name then return p end
-    end
-    return STRETCH_PRESETS[1]
-end
-
-local function stApply()
-    if not Camera then return end
-    if not ST_OriginalFOV then
-        ST_OriginalFOV = Camera.FieldOfView
-        ST_BaseFOV = Camera.FieldOfView
-    end
-    if not State.Stretch.Enabled then
-        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
-        return
-    end
-    local p = stGetPreset(State.Stretch.Preset)
-    local targetFOV = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
-    pcall(function() Camera.FieldOfView = targetFOV end)
-end
-
-local function stStart()
-    if ST_Conn then ST_Conn:Disconnect() end
-    ST_Conn = RunService.RenderStepped:Connect(function()
-        if not State.Stretch.Enabled then return end
-        if not Camera then return end
-        local p = stGetPreset(State.Stretch.Preset)
-        local target = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
-        if math.abs(Camera.FieldOfView - target) > 0.5 then
-            pcall(function() Camera.FieldOfView = target end)
-        end
-    end)
-end
-
-function StretchModule.setEnabled(on)
-    State.Stretch.Enabled = on
-    if on then
-        if not ST_OriginalFOV and Camera then
-            ST_OriginalFOV = Camera.FieldOfView
-            ST_BaseFOV = Camera.FieldOfView
-        end
-        stStart()
-        stApply()
-        notify("Stretch: " .. State.Stretch.Preset, "good")
-    else
-        if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
-        stApply()
-        notify("Stretch desativado", "bad")
-    end
-end
-
-function StretchModule.setPreset(name)
-    State.Stretch.Preset = name
-    if State.Stretch.Enabled then
-        stApply()
-        notify("Stretch: " .. name, "good")
-    end
-end
-
-function StretchModule.setIntensity(v)
-    State.Stretch.Intensity = v
-    if State.Stretch.Enabled then stApply() end
-end
-
-function StretchModule.reset()
-    State.Stretch.Enabled = false
-    State.Stretch.Preset = "Baixa"
-    State.Stretch.Intensity = 1.0
-    if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
-    if Camera and ST_OriginalFOV then
-        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
-    end
-    notify("Stretch resetado", "bad")
-end
-
-createTab("Stretch", "STR")
-
-do
-    local page = Tabs["Stretch"].page
-
-    local sec = section("Esticar Tela (FOV)")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Stretch", State.Stretch.Enabled, function(on)
-        StretchModule.setEnabled(on)
-    end, 1)
-
-    dropdownRow(sec, "Proporcao",
-        { "Baixa", "Media", "Alta", "Ultra" },
-        State.Stretch.Preset,
-        function(opt) StretchModule.setPreset(opt) end, 2)
-
-    sliderRow(sec, "Intensidade (x100)", 50, 200, math.floor(State.Stretch.Intensity * 100), function(v)
-        StretchModule.setIntensity(v / 100)
-    end, 3)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "Baixa=85 | Media=100 | Alta=115 | Ultra=130 FOV.\n\nIntensidade: 0.5x a 2x do efeito.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 4,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Resetar Stretch", function()
-        StretchModule.reset()
-    end, 1)
-end
-
-local _prevStr = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevStr then _prevStr() end
-    pcall(function() StretchModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() StretchModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Stretch (FOV) carregado.")--====================================================================
 -- PARTE 13 — CUSTOM BALL (Cor visual em TODAS as bolas)
 -- Tinge ball.Color + Texture.Color3 + SpecialMesh.VertexColor
 --====================================================================
@@ -3445,6 +3048,158 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Color (all balls + Mesh) carregado.")--====================================================================
+-- PARTE 10 — STRETCH SCREEN (FOV)
+--====================================================================
+
+State.Stretch = State.Stretch or {
+    Enabled = false,
+    Preset = "Baixa",
+    Intensity = 1.0,
+}
+
+local StretchModule = {}
+local ST_OriginalFOV = nil
+local ST_BaseFOV = 70
+local ST_Conn = nil
+
+local STRETCH_PRESETS = {
+    { name = "Baixa",  fov = 85,  desc = "85 FOV" },
+    { name = "Media",  fov = 100, desc = "100 FOV" },
+    { name = "Alta",   fov = 115, desc = "115 FOV" },
+    { name = "Ultra",  fov = 130, desc = "130 FOV" },
+}
+
+local function stGetPreset(name)
+    for _, p in ipairs(STRETCH_PRESETS) do
+        if p.name == name then return p end
+    end
+    return STRETCH_PRESETS[1]
+end
+
+local function stApply()
+    if not Camera then return end
+    if not ST_OriginalFOV then
+        ST_OriginalFOV = Camera.FieldOfView
+        ST_BaseFOV = Camera.FieldOfView
+    end
+    if not State.Stretch.Enabled then
+        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
+        return
+    end
+    local p = stGetPreset(State.Stretch.Preset)
+    local targetFOV = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
+    pcall(function() Camera.FieldOfView = targetFOV end)
+end
+
+local function stStart()
+    if ST_Conn then ST_Conn:Disconnect() end
+    ST_Conn = RunService.RenderStepped:Connect(function()
+        if not State.Stretch.Enabled then return end
+        if not Camera then return end
+        local p = stGetPreset(State.Stretch.Preset)
+        local target = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
+        if math.abs(Camera.FieldOfView - target) > 0.5 then
+            pcall(function() Camera.FieldOfView = target end)
+        end
+    end)
+end
+
+function StretchModule.setEnabled(on)
+    State.Stretch.Enabled = on
+    if on then
+        if not ST_OriginalFOV and Camera then
+            ST_OriginalFOV = Camera.FieldOfView
+            ST_BaseFOV = Camera.FieldOfView
+        end
+        stStart()
+        stApply()
+        notify("Stretch: " .. State.Stretch.Preset, "good")
+    else
+        if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
+        stApply()
+        notify("Stretch desativado", "bad")
+    end
+end
+
+function StretchModule.setPreset(name)
+    State.Stretch.Preset = name
+    if State.Stretch.Enabled then
+        stApply()
+        notify("Stretch: " .. name, "good")
+    end
+end
+
+function StretchModule.setIntensity(v)
+    State.Stretch.Intensity = v
+    if State.Stretch.Enabled then stApply() end
+end
+
+function StretchModule.reset()
+    State.Stretch.Enabled = false
+    State.Stretch.Preset = "Baixa"
+    State.Stretch.Intensity = 1.0
+    if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
+    if Camera and ST_OriginalFOV then
+        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
+    end
+    notify("Stretch resetado", "bad")
+end
+
+createTab("Stretch", "STR")
+
+do
+    local page = Tabs["Stretch"].page
+
+    local sec = section("Esticar Tela (FOV)")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Stretch", State.Stretch.Enabled, function(on)
+        StretchModule.setEnabled(on)
+    end, 1)
+
+    dropdownRow(sec, "Proporcao",
+        { "Baixa", "Media", "Alta", "Ultra" },
+        State.Stretch.Preset,
+        function(opt) StretchModule.setPreset(opt) end, 2)
+
+    sliderRow(sec, "Intensidade (x100)", 50, 200, math.floor(State.Stretch.Intensity * 100), function(v)
+        StretchModule.setIntensity(v / 100)
+    end, 3)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 80),
+        BackgroundTransparency = 1,
+        Text = "Baixa=85 | Media=100 | Alta=115 | Ultra=130 FOV.\n\nIntensidade: 0.5x a 2x do efeito.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 4,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Resetar Stretch", function()
+        StretchModule.reset()
+    end, 1)
+end
+
+local _prevStr = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevStr then _prevStr() end
+    pcall(function() StretchModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() StretchModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Stretch (FOV) carregado.")--====================================================================
 -- PARTE 12 — AUTO CATCH (aumenta alcance da mao)
 -- Quando a bola entra no range, dispara touch das maos.
 --====================================================================
