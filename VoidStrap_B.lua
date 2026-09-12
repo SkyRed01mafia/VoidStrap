@@ -1050,12 +1050,13 @@ _G.VoidStrapUnload = function()
 end
 
 print("[VoidStrap] Chars carregado.")--====================================================================
--- PARTE 7 — CUSTOM BALL (Cor via Texture.Color3)
+-- PARTE 7 — CUSTOM BALL (Cor + Textura)
 --====================================================================
 
 State.BallColor = State.BallColor or {
     Enabled = false,
     Color = nil,
+    TextureId = nil,
 }
 
 local BallColorModule = {}
@@ -1063,7 +1064,7 @@ local BallColorTarget = nil
 local BallColorBackup = nil
 local BallColorConn = nil
 
--- ---------- PALETA ----------
+-- ---------- PALETA DE CORES ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
     { name = "Preto",      color = Color3.fromRGB(40, 40, 40) },
@@ -1081,6 +1082,14 @@ local BALL_COLORS = {
     { name = "Neon Roxo",  color = Color3.fromRGB(180, 60, 255) },
     { name = "Inferno",    color = Color3.fromRGB(255, 60, 0) },
     { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
+}
+
+-- ---------- LISTA DE TEXTURAS ----------
+local BALL_TEXTURES = {
+    { name = "Original",      id = nil },
+    { name = "Bola Custom 1", id = "5767385379" },
+    { name = "Bola Custom 2", id = "126904127959280" },
+    { name = "Bola Custom 3", id = "98841211444401" },
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
@@ -1108,41 +1117,67 @@ local function findBall7()
     return nil
 end
 
--- ---------- APLICAR COR (CORRIGIDO) ----------
+-- ---------- BACKUP ----------
+local function captureBackup(ball)
+    if BallColorBackup then return end
+    BallColorBackup = {
+        Color = ball.Color,
+        Material = ball.Material,
+        HasTexture = false,
+        TextureColor = nil,
+        TextureTransparency = nil,
+        TextureId = nil,
+    }
+    local tex = ball:FindFirstChildOfClass("Texture")
+    if tex then
+        BallColorBackup.HasTexture = true
+        BallColorBackup.TextureColor = tex.Color3
+        BallColorBackup.TextureTransparency = tex.Transparency
+        BallColorBackup.TextureId = tex.Texture
+    end
+end
+
+-- ---------- APLICAR COR ----------
 local function applyBallColor(ball, color)
     if not ball then return end
+    captureBackup(ball)
 
-    -- Backup na primeira vez
-    if not BallColorBackup then
-        BallColorBackup = {
-            Color = ball.Color,
-            Material = ball.Material,
-            TextureColor = nil,
-            HasTexture = false,
-            TextureTransparency = nil,
-        }
-        local tex = ball:FindFirstChildOfClass("Texture")
-        if tex then
-            BallColorBackup.HasTexture = true
-            BallColorBackup.TextureColor = tex.Color3
-            BallColorBackup.TextureTransparency = tex.Transparency
-        end
-    end
-
-    -- 1) Cor da Part (caso não tenha textura cobrindo tudo)
     pcall(function() ball.Color = color end)
 
-    -- 2) Texture.Color3 — tinge a imagem aplicada
     local tex = ball:FindFirstChildOfClass("Texture")
     if tex then
         pcall(function() tex.Color3 = color end)
     end
 
-    -- 3) Decals também (caso existam)
     for _, d in ipairs(ball:GetChildren()) do
         if d:IsA("Decal") then
             pcall(function() d.Color3 = color end)
         end
+    end
+end
+
+-- ---------- APLICAR TEXTURA ----------
+local function applyBallTexture(ball, textureId)
+    if not ball then return end
+    captureBackup(ball)
+
+    local tex = ball:FindFirstChildOfClass("Texture")
+    if not tex then
+        tex = Instance.new("Texture")
+        tex.Name = "VST_BallTexture"
+        tex.Face = Enum.NormalId.Front
+        tex.Parent = ball
+    end
+
+    if textureId == nil then
+        -- Volta pra textura original
+        if BallColorBackup.TextureId then
+            pcall(function() tex.Texture = BallColorBackup.TextureId end)
+        end
+    else
+        pcall(function()
+            tex.Texture = "rbxassetid://" .. textureId
+        end)
     end
 end
 
@@ -1161,6 +1196,9 @@ local function restoreBallColor()
                 end
                 if BallColorBackup.TextureTransparency ~= nil then
                     pcall(function() tex.Transparency = BallColorBackup.TextureTransparency end)
+                end
+                if BallColorBackup.TextureId then
+                    pcall(function() tex.Texture = BallColorBackup.TextureId end)
                 end
             end
         end
@@ -1191,6 +1229,9 @@ local function startBallColorMonitor()
                     if State.BallColor.Color then
                         applyBallColor(b, State.BallColor.Color)
                     end
+                    if State.BallColor.TextureId then
+                        applyBallTexture(b, State.BallColor.TextureId)
+                    end
                 end
             end)
         end
@@ -1207,7 +1248,10 @@ function BallColorModule.setEnabled(on)
                 if State.BallColor.Color then
                     applyBallColor(BallColorTarget, State.BallColor.Color)
                 end
-                notify("Ball Color ativado", "good")
+                if State.BallColor.TextureId then
+                    applyBallTexture(BallColorTarget, State.BallColor.TextureId)
+                end
+                notify("Ball Custom ativado", "good")
             else
                 notify("Bola nao encontrada", "bad")
             end
@@ -1217,7 +1261,7 @@ function BallColorModule.setEnabled(on)
         restoreBallColor()
         if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
         BallColorTarget = nil
-        notify("Ball Color desativado", "bad")
+        notify("Ball Custom desativado", "bad")
     end
 end
 
@@ -1234,6 +1278,19 @@ function BallColorModule.setColor(name)
     end
 end
 
+function BallColorModule.setTexture(name)
+    for _, e in ipairs(BALL_TEXTURES) do
+        if e.name == name then
+            State.BallColor.TextureId = e.id
+            if BallColorTarget and BallColorTarget.Parent then
+                applyBallTexture(BallColorTarget, e.id)
+            end
+            notify("Textura: " .. name, "good")
+            return
+        end
+    end
+end
+
 function BallColorModule.refresh()
     task.spawn(function()
         local b = findBall7()
@@ -1242,6 +1299,9 @@ function BallColorModule.refresh()
             BallColorBackup = nil
             if State.BallColor.Color then
                 applyBallColor(b, State.BallColor.Color)
+            end
+            if State.BallColor.TextureId then
+                applyBallTexture(b, State.BallColor.TextureId)
             end
             notify("Bola reconectada", "good")
         else
@@ -1253,6 +1313,7 @@ end
 function BallColorModule.reset()
     State.BallColor.Enabled = false
     State.BallColor.Color = nil
+    State.BallColor.TextureId = nil
     restoreBallColor()
     if BallColorConn then BallColorConn:Disconnect(); BallColorConn = nil end
     BallColorTarget = nil
@@ -1265,10 +1326,10 @@ createTab("Ball", "BALL")
 do
     local page = Tabs["Ball"].page
 
-    local mainSec = section("Cor da Bola")
+    local mainSec = section("Custom Bola")
     mainSec.Parent = page
 
-    toggleRow(mainSec, "Ativar Cor Custom", State.BallColor.Enabled, function(on)
+    toggleRow(mainSec, "Ativar Custom", State.BallColor.Enabled, function(on)
         BallColorModule.setEnabled(on)
     end, 1)
 
@@ -1279,7 +1340,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundTransparency = 1,
-        Text = "Tinge a textura da bola via Texture.Color3. Apenas voce ve.",
+        Text = "Muda cor e textura da bola localmente. Apenas voce ve.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
@@ -1290,6 +1351,7 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
+    -- CORES
     local colorSec = section("Cores")
     colorSec.Parent = page
 
@@ -1314,9 +1376,20 @@ do
         end
     end
 
+    -- TEXTURAS
+    local texSec = section("Texturas")
+    texSec.Parent = page
+
+    for i, e in ipairs(BALL_TEXTURES) do
+        buttonRow(texSec, e.name, function()
+            BallColorModule.setTexture(e.name)
+        end, i)
+    end
+
+    -- RESET
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Restaurar cor original", function()
+    buttonRow(resetSec, "Restaurar bola original", function()
         BallColorModule.reset()
     end, 1)
 end
@@ -1334,4 +1407,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Color (Texture) carregado.")
+print("[VoidStrap] Ball Custom (cor + textura) carregado.")
