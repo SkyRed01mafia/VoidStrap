@@ -3641,4 +3641,38 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Auto Catch carregado.")
+print("[VoidStrap] Auto Catch carregado.")--====================================================================
+-- REMOVE TODOS OS AVISOS (warnLbl)
+-- Percorre a UI e remove qualquer TextLabel com cor vermelha (Bad)
+--====================================================================
+
+task.defer(function()
+    task.wait(1)  -- espera a UI carregar
+
+    local function isWarnLabel(lbl)
+        if not lbl:IsA("TextLabel") then return false end
+        -- Detecta pelo texto (a maioria tem "AVISO" no início)
+        local t = lbl.Text or ""
+        if t:find("AVISO") or t:find("aviso") then return true end
+        -- Detecta pela cor vermelha (Bad)
+        local c = lbl.TextColor3
+        if c.R > 0.7 and c.G < 0.5 and c.B < 0.5 then return true end
+        return false
+    end
+
+    local removed = 0
+    for _, gui in ipairs(LP:WaitForChild("PlayerGui"):GetChildren()) do
+        if gui.Name:find("VoidStrap") then
+            for _, obj in ipairs(gui:GetDescendants()) do
+                if isWarnLabel(obj) then
+                    obj:Destroy()
+                    removed = removed + 1
+                end
+            end
+        end
+    end
+
+    print("[VoidStrap] Avisos removidos:", removed)
+end)
+
+print("[VoidStrap] Remocao de avisos carregada.")
