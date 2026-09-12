@@ -1533,6 +1533,298 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Custom (cor + textura + UV) carregado.")--====================================================================
+-- PARTE 8 — AUTO GOLEIRO (GK) — Goal111 / Goal222
+--====================================================================
+
+State.AutoGK = State.AutoGK or {
+    Enabled = false,
+    Speed = 24,
+    AreaRadius = 15,
+    GoalSide = "Home",   -- "Home" (Goal222) ou "Away" (Goal111)
+    FollowBallY = false,
+}
+
+local AutoGKModule = {}
+local AGK_Conn = nil
+local AGK_CachedBall = nil
+local AGK_LastSearch = 0
+local AGK_BodyVel = nil
+local AGK_CachedGoal = nil
+local AGK_GoalLastSearch = 0
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES_8 = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function isBallName8(name)
+    for _, n in ipairs(BALL_NAMES_8) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function findBall8()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallName8(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- DETECÇÃO DO GOL ----------
+-- Home = Goal222
+-- Away = Goal111
+local function findGoal()
+    local goalName = (State.AutoGK.GoalSide == "Home") and "Goal222" or "Goal111"
+
+    local goal = Workspace:FindFirstChild(goalName, true)
+    if goal then return goal end
+
+    -- Fallback: procura em todos os descendentes
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Name:lower() == goalName:lower() then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- ---------- CLEANUP ----------
+local function agkCleanupBodyVel()
+    if AGK_BodyVel and AGK_BodyVel.Parent then
+        pcall(function() AGK_BodyVel:Destroy() end)
+    end
+    AGK_BodyVel = nil
+end
+
+-- ---------- LOOP PRINCIPAL ----------
+local function agkStart()
+    if AGK_Conn then AGK_Conn:Disconnect() end
+
+    AGK_Conn = RunService.RenderStepped:Connect(function()
+        if not State.AutoGK.Enabled then
+            agkCleanupBodyVel()
+            return
+        end
+
+        local char = LP.Character
+        if not char then agkCleanupBodyVel() return end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not root or not humanoid or humanoid.Health <= 0 then
+            agkCleanupBodyVel()
+            return
+        end
+
+        -- Cache da bola
+        local now = tick()
+        if not AGK_CachedBall or not AGK_CachedBall.Parent or (now - AGK_LastSearch) > 1 then
+            AGK_LastSearch = now
+            AGK_CachedBall = findBall8()
+        end
+        local ball = AGK_CachedBall
+        if not ball then agkCleanupBodyVel() return end
+
+        -- Cache do gol
+        if not AGK_CachedGoal or not AGK_CachedGoal.Parent or (now - AGK_GoalLastSearch) > 3 then
+            AGK_GoalLastSearch = now
+            AGK_CachedGoal = findGoal()
+        end
+        local goal = AGK_CachedGoal
+        if not goal then agkCleanupBodyVel() return end
+
+        local goalPos = goal.Position
+
+        -- Só se a bola estiver dentro do raio da pequena área
+        local ballToGoal = (ball.Position - goalPos).Magnitude
+        if ballToGoal > State.AutoGK.AreaRadius then
+            agkCleanupBodyVel()
+            return
+        end
+
+        -- Posição alvo: entre o gol e a bola (mas dentro do raio)
+        local dirToBall = (ball.Position - goalPos)
+        local dist = dirToBall.Magnitude
+
+        local targetPos
+        if dist > 1 then
+            -- Ponto a 40% do caminho entre gol e bola
+            local partial = dirToBall.Unit * math.min(dist * 0.6, State.AutoGK.AreaRadius)
+            targetPos = goalPos + partial
+        else
+            targetPos = goalPos
+        end
+
+        -- Mantém a altura do chão (ou segue a bola se FollowBallY)
+        if State.AutoGK.FollowBallY then
+            targetPos = Vector3.new(targetPos.X, ball.Position.Y, targetPos.Z)
+        else
+            targetPos = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
+        end
+
+        local distance = (root.Position - targetPos).Magnitude
+        if distance < 1.5 then
+            agkCleanupBodyVel()
+            return
+        end
+
+        -- BodyVelocity
+        if not AGK_BodyVel or AGK_BodyVel.Parent ~= root then
+            agkCleanupBodyVel()
+            AGK_BodyVel = Instance.new("BodyVelocity")
+            AGK_BodyVel.Name = "VST_AutoGK"
+            AGK_BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
+            AGK_BodyVel.Velocity = Vector3.zero
+            AGK_BodyVel.Parent = root
+        end
+
+        local dir = (targetPos - root.Position).Unit
+        local speed = State.AutoGK.Speed
+        pcall(function()
+            root.CFrame = CFrame.lookAt(root.Position, ball.Position)
+        end)
+        pcall(function()
+            AGK_BodyVel.Velocity = dir * speed
+        end)
+    end)
+end
+
+-- ---------- API ----------
+function AutoGKModule.setEnabled(on)
+    State.AutoGK.Enabled = on
+    if on then
+        AGK_CachedGoal = nil
+        AGK_GoalLastSearch = 0
+        agkStart()
+        notify("Auto Goleiro ativado (" .. State.AutoGK.GoalSide .. ")", "good")
+    else
+        agkCleanupBodyVel()
+        if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
+        notify("Auto Goleiro desativado", "bad")
+    end
+end
+
+function AutoGKModule.setSpeed(v) State.AutoGK.Speed = v end
+function AutoGKModule.setAreaRadius(v) State.AutoGK.AreaRadius = v end
+function AutoGKModule.setFollowBallY(v) State.AutoGK.FollowBallY = v end
+
+function AutoGKModule.setGoalSide(side)
+    State.AutoGK.GoalSide = side
+    AGK_CachedGoal = nil
+    AGK_GoalLastSearch = 0
+    notify("Gol: " .. side .. " (" .. (side == "Home" and "Goal222" or "Goal111") .. ")", "good")
+end
+
+function AutoGKModule.refresh()
+    AGK_CachedBall = nil
+    AGK_CachedGoal = nil
+    AGK_LastSearch = 0
+    AGK_GoalLastSearch = 0
+    notify("Reconectado", "good")
+end
+
+function AutoGKModule.reset()
+    State.AutoGK.Enabled = false
+    agkCleanupBodyVel()
+    if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
+    notify("Auto Goleiro resetado", "bad")
+end
+
+--====================================================================
+-- ABA AUTO GOLEIRO
+--====================================================================
+createTab("GK", "GK")
+
+do
+    local page = Tabs["GK"].page
+
+    local sec = section("Auto Goleiro")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Auto Goleiro", State.AutoGK.Enabled, function(on)
+        AutoGKModule.setEnabled(on)
+    end, 1)
+
+    -- SELETOR DE GOL
+    dropdownRow(sec, "Gol (Home/Away)",
+        { "Home", "Away" },
+        State.AutoGK.GoalSide,
+        function(opt) AutoGKModule.setGoalSide(opt) end, 2)
+
+    sliderRow(sec, "Velocidade", 8, 60, State.AutoGK.Speed, function(v)
+        AutoGKModule.setSpeed(v)
+    end, 3)
+
+    sliderRow(sec, "Raio da Area", 5, 40, State.AutoGK.AreaRadius, function(v)
+        AutoGKModule.setAreaRadius(v)
+    end, 4)
+
+    toggleRow(sec, "Seguir Altura da Bola", State.AutoGK.FollowBallY, function(on)
+        AutoGKModule.setFollowBallY(on)
+    end, 5)
+
+    buttonRow(sec, "Reconectar", function()
+        AutoGKModule.refresh()
+    end, 6)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 80),
+        BackgroundTransparency = 1,
+        Text = "Home = segue Goal222 | Away = segue Goal111. O goleiro se posiciona entre o gol e a bola quando a bola estiver dentro do raio.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 7,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    -- Aviso
+    local warnSec = section("Aviso")
+    warnSec.Parent = page
+
+    local warnLbl = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 60),
+        BackgroundTransparency = 1,
+        Text = "AVISO: Auto Goleiro da vantagem competitiva. Use em alt.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 1,
+        Parent = warnSec,
+    })
+    themed(warnLbl, "TextColor3", "Bad")
+
+    buttonRow(warnSec, "Desativar tudo", function()
+        AutoGKModule.reset()
+    end, 2)
+end
+
+-- ---------- CLEANUP ----------
+local _prevGK = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevGK then _prevGK() end
+    pcall(function() AutoGKModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() AutoGKModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Auto Goleiro (Home/Away) carregado.")--====================================================================
 -- PARTE 9 — BALL NA CABEÇA
 -- Faz a bola ficar em cima da cabeça do personagem.
 --====================================================================
@@ -1725,301 +2017,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball on Head carregado.")--====================================================================
--- PARTE 8 — AUTO GOLEIRO (GK)
--- Move o goleiro dentro da pequena área para interceptar a bola.
---====================================================================
-
-State.AutoGK = State.AutoGK or {
-    Enabled = false,
-    Speed = 24,
-    AreaRadius = 12,      -- raio da pequena área (studs)
-    OnlyMyTeam = true,    -- só ativa se você for o goleiro
-    TrackBallY = false,   -- seguir também altura da bola
-}
-
-local AutoGKModule = {}
-local AGK_Conn = nil
-local AGK_CachedBall = nil
-local AGK_LastSearch = 0
-local AGK_BodyVel = nil
-local AGK_GoalieChar = nil
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_8 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function isBallName8(name)
-    for _, n in ipairs(BALL_NAMES_8) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function findBall8()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallName8(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- DETECÇÃO DO GOLEIRO ----------
--- 1) Se VOCÊ é o goleiro, retorna seu Character
--- 2) Se não, procura por um NPC/part nomeado "Goalkeeper", "Goleiro", "GK"
-local function findGoalie()
-    local char = LP.Character
-    if not char then return nil end
-
-    -- Checa se o jogador tem alguma tag de goleiro
-    -- (o TPS usa vários métodos: nome do character, Team, Leaderstats, etc)
-    -- Por simplicidade, vamos usar a proximidade da pequena área
-    return char
-end
-
--- ---------- DETECÇÃO DO GOL (small area center) ----------
--- Procura por Parts nomeadas "Goal", "Gol", "Pequena Area", "GoalArea", "GKArea"
-local function findGoalArea()
-    local goalNames = {
-        "Goal", "Gol", "GoalArea", "PequenaArea", "Pequena Area",
-        "GKArea", "GoalkeeperArea", "SmallArea", "Small Area"
-    }
-    for _, name in ipairs(goalNames) do
-        local obj = Workspace:FindFirstChild(name, true)
-        if obj then return obj end
-    end
-    return nil
-end
-
--- Fallback: acha o gol mais próximo do goleiro
-local function findClosestGoal(myPos)
-    local goals = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local n = obj.Name:lower()
-            if n:find("goal") or n:find("gol") then
-                table.insert(goals, obj)
-            end
-        end
-    end
-
-    local closest, minDist = nil, math.huge
-    for _, g in ipairs(goals) do
-        local d = (g.Position - myPos).Magnitude
-        if d < minDist then
-            minDist = d
-            closest = g
-        end
-    end
-    return closest
-end
-
--- ---------- CLEANUP ----------
-local function agkCleanupBodyVel()
-    if AGK_BodyVel and AGK_BodyVel.Parent then
-        pcall(function() AGK_BodyVel:Destroy() end)
-    end
-    AGK_BodyVel = nil
-end
-
--- ---------- LOOP PRINCIPAL ----------
-local function agkStart()
-    if AGK_Conn then AGK_Conn:Disconnect() end
-
-    AGK_Conn = RunService.RenderStepped:Connect(function()
-        if not State.AutoGK.Enabled then
-            agkCleanupBodyVel()
-            return
-        end
-
-        local char = LP.Character
-        if not char then agkCleanupBodyVel() return end
-
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid or humanoid.Health <= 0 then
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- Cache da bola
-        local now = tick()
-        if not AGK_CachedBall or not AGK_CachedBall.Parent or (now - AGK_LastSearch) > 1 then
-            AGK_LastSearch = now
-            AGK_CachedBall = findBall8()
-        end
-        local ball = AGK_CachedBall
-        if not ball then agkCleanupBodyVel() return end
-
-        -- Acha o gol/pequena área mais próximo
-        local goal = findGoalArea() or findClosestGoal(root.Position)
-        if not goal then agkCleanupBodyVel() return end
-
-        local goalPos = goal.Position
-
-        -- Calcula se a bola está dentro do raio da pequena área
-        local ballToGoal = (ball.Position - goalPos).Magnitude
-        if ballToGoal > State.AutoGK.AreaRadius then
-            -- Bola está longe da pequena área — fica parado no gol
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- Move o goleiro em direção à bola, mas sem sair da pequena área
-        local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
-
-        -- Limita o alvo pra não sair muito da área
-        local toTarget = targetPos - goalPos
-        if toTarget.Magnitude > State.AutoGK.AreaRadius then
-            toTarget = toTarget.Unit * State.AutoGK.AreaRadius
-            targetPos = goalPos + toTarget
-            targetPos = Vector3.new(targetPos.X, root.Position.Y, targetPos.Z)
-        end
-
-        local distance = (root.Position - targetPos).Magnitude
-        if distance < 1.5 then
-            -- Já está na posição
-            agkCleanupBodyVel()
-            return
-        end
-
-        -- Aplica BodyVelocity
-        if not AGK_BodyVel or AGK_BodyVel.Parent ~= root then
-            agkCleanupBodyVel()
-            AGK_BodyVel = Instance.new("BodyVelocity")
-            AGK_BodyVel.Name = "VST_AutoGK"
-            AGK_BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
-            AGK_BodyVel.Velocity = Vector3.zero
-            AGK_BodyVel.Parent = root
-        end
-
-        local dir = (targetPos - root.Position).Unit
-        local speed = State.AutoGK.Speed
-        pcall(function()
-            root.CFrame = CFrame.lookAt(root.Position, targetPos)
-        end)
-        pcall(function()
-            AGK_BodyVel.Velocity = dir * speed
-        end)
-    end)
-end
-
--- ---------- API ----------
-function AutoGKModule.setEnabled(on)
-    State.AutoGK.Enabled = on
-    if on then
-        agkStart()
-        notify("Auto Goleiro ativado", "good")
-    else
-        agkCleanupBodyVel()
-        if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
-        notify("Auto Goleiro desativado", "bad")
-    end
-end
-
-function AutoGKModule.setSpeed(v) State.AutoGK.Speed = v end
-function AutoGKModule.setAreaRadius(v) State.AutoGK.AreaRadius = v end
-function AutoGKModule.setOnlyMyTeam(v) State.AutoGK.OnlyMyTeam = v end
-function AutoGKModule.setTrackBallY(v) State.AutoGK.TrackBallY = v end
-
-function AutoGKModule.refresh()
-    AGK_CachedBall = nil
-    AGK_LastSearch = 0
-    notify("Reconectado", "good")
-end
-
-function AutoGKModule.reset()
-    State.AutoGK.Enabled = false
-    agkCleanupBodyVel()
-    if AGK_Conn then AGK_Conn:Disconnect(); AGK_Conn = nil end
-    notify("Auto Goleiro resetado", "bad")
-end
-
---====================================================================
--- ABA AUTO GOLEIRO
---====================================================================
-createTab("GK", "GK")
-
-do
-    local page = Tabs["GK"].page
-
-    local sec = section("Auto Goleiro")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Auto Goleiro", State.AutoGK.Enabled, function(on)
-        AutoGKModule.setEnabled(on)
-    end, 1)
-
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoGK.Speed, function(v)
-        AutoGKModule.setSpeed(v)
-    end, 2)
-
-    sliderRow(sec, "Raio da Area", 5, 30, State.AutoGK.AreaRadius, function(v)
-        AutoGKModule.setAreaRadius(v)
-    end, 3)
-
-    toggleRow(sec, "Seguir Altura da Bola", State.AutoGK.TrackBallY, function(on)
-        AutoGKModule.setTrackBallY(on)
-    end, 4)
-
-    buttonRow(sec, "Reconectar Bola", function()
-        AutoGKModule.refresh()
-    end, 5)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
-        BackgroundTransparency = 1,
-        Text = "Move o goleiro dentro da pequena area para interceptar a bola. So funciona quando a bola esta dentro do raio.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 6,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Aviso
-    local warnSec = section("Aviso")
-    warnSec.Parent = page
-
-    local warnLbl = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
-        BackgroundTransparency = 1,
-        Text = "AVISO: Auto Goleiro da vantagem competitiva. Pode ser detectado. Use apenas em alt.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Bad,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = warnSec,
-    })
-    themed(warnLbl, "TextColor3", "Bad")
-
-    buttonRow(warnSec, "Desativar tudo", function()
-        AutoGKModule.reset()
-    end, 2)
-end
-
--- ---------- CLEANUP ----------
-local _prevGK = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevGK then _prevGK() end
-    pcall(function() AutoGKModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() AutoGKModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Auto Goleiro carregado.")
+print("[VoidStrap] Ball on Head carregado.")
