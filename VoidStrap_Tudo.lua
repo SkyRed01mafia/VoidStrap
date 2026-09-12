@@ -2569,6 +2569,177 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] 6.2 OK")--====================================================================
+-- PARTE 6.2 — AUTO FOLLOW (ABAS UI)
+--====================================================================
+
+-- ABA BÁSICO
+createTab("AF Basico", "AF")
+
+do
+    local page = Tabs["AF Basico"].page
+
+    local sec = section("Seguir Bola")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on)
+        AutoFollowModule.setEnabled(on)
+    end, 1)
+
+    dropdownRow(sec, "Alvo",
+        { "Todas", "Minha", "MaisProxima" },
+        State.AutoFollow.TargetMode,
+        function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
+
+    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
+        AutoFollowModule.setSpeed(v)
+    end, 3)
+
+    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
+        AutoFollowModule.setStopDistance(v)
+    end, 4)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundTransparency = 1,
+        Text = "Todas = qualquer bola. Minha = so quando VOCE tem a posse. MaisProxima = a mais perto de voce.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 5,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local floatSec = section("Botao Flutuante")
+    floatSec.Parent = page
+
+    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
+        AutoFollowBtnModule.toggle()
+    end, 1)
+
+    local floatInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Cria um botao na tela. Toque pra ligar/desligar. Arraste pra mover.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2,
+        Parent = floatSec,
+    })
+    themed(floatInfo, "TextColor3", "Sub")
+end
+
+-- ABA AVANÇADO
+createTab("AF Avancado", "AF+")
+
+do
+    local page = Tabs["AF Avancado"].page
+
+    local sec = section("Seguir Bola (Avancado)")
+    sec.Parent = page
+
+    toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
+        AutoFollowModule.setTouchToEnable(on)
+    end, 1)
+
+    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
+        AutoFollowModule.setPauseOnLock(on)
+    end, 2)
+
+    local info = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "Triscar = encostar na bola reativa o AF. Lock = pausa quando alguem tem a posse.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = sec,
+    })
+    themed(info, "TextColor3", "Sub")
+
+    local reachSec = section("Reach (Alcance)")
+    reachSec.Parent = page
+
+    toggleRow(reachSec, "Ativar Reach", State.AutoFollow.ReachEnabled, function(on)
+        AutoFollowModule.setReachEnabled(on)
+    end, 1)
+
+    sliderRow(reachSec, "Distancia (Studs)", 1, 12, State.AutoFollow.ReachDistance, function(v)
+        AutoFollowModule.setReachDistance(v)
+    end, 2)
+
+    local reachWarn = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 55),
+        BackgroundTransparency = 1,
+        Text = "AVISO: Reach empurra a bola via CFrame. Pode ser detectado por anti-cheat.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Bad,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = reachSec,
+    })
+    themed(reachWarn, "TextColor3", "Bad")
+
+    local floatSec = section("Botao Flutuante (Avancado)")
+    floatSec.Parent = page
+
+    toggleRow(floatSec, "Travar Botao no Lugar", State.AutoFollowBtn.Locked, function(on)
+        AutoFollowBtnModule.setLocked(on)
+    end, 1)
+
+    local lockInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Quando travado, o botao fica fixo no lugar. Voce ainda pode tocar pra ligar/desligar.",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 2,
+        Parent = floatSec,
+    })
+    themed(lockInfo, "TextColor3", "Sub")
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+
+    buttonRow(resetSec, "Desativar tudo", function()
+        AutoFollowModule.reset()
+        AutoFollowBtnModule.hide()
+    end, 1)
+end
+
+-- CLEANUP
+local _prevAF = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevAF then _prevAF() end
+    pcall(function()
+        AutoFollowModule.reset()
+        AutoFollowBtnModule.hide()
+    end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function()
+            AutoFollowModule.reset()
+            AutoFollowBtnModule.hide()
+        end)
+    end
+end)
+
+print("[VoidStrap] 6.2 OK")--====================================================================
 -- PARTE 7 — CUSTOM BALL (Cor)
 --====================================================================
 
