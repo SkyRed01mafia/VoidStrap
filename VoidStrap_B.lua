@@ -1092,7 +1092,7 @@ local BALL_TEXTURES = {
     { name = "Original",      id = nil },
     { name = "Bola Custom 1", id = "5767385379" },
     { name = "Bola Custom 2", id = "126904127959280" },
-    { name = "Bola Custom 3", id = "98841211444401" },
+    { name = "Bola Custom 3", id = "110053224424205" },
 }
 
 local FACE_OPTIONS = {
