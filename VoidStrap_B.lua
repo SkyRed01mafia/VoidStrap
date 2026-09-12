@@ -1064,7 +1064,6 @@ local BallColorTarget = nil
 local BallColorBackup = nil
 local BallColorConn = nil
 
--- ---------- PALETA DE CORES ----------
 local BALL_COLORS = {
     { name = "Branco",     color = Color3.fromRGB(255, 255, 255) },
     { name = "Preto",      color = Color3.fromRGB(40, 40, 40) },
@@ -1084,7 +1083,6 @@ local BALL_COLORS = {
     { name = "Fantasma",   color = Color3.fromRGB(200, 200, 255) },
 }
 
--- ---------- LISTA DE TEXTURAS ----------
 local BALL_TEXTURES = {
     { name = "Original",      id = nil },
     { name = "Bola Custom 1", id = "5767385379" },
@@ -1092,7 +1090,6 @@ local BALL_TEXTURES = {
     { name = "Bola Custom 3", id = "98841211444401" },
 }
 
--- ---------- DETECÇÃO DA BOLA ----------
 local BALL_NAMES_7 = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
     "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
@@ -1117,7 +1114,6 @@ local function findBall7()
     return nil
 end
 
--- ---------- BACKUP ----------
 local function captureBackup(ball)
     if BallColorBackup then return end
     BallColorBackup = {
@@ -1137,18 +1133,14 @@ local function captureBackup(ball)
     end
 end
 
--- ---------- APLICAR COR ----------
 local function applyBallColor(ball, color)
     if not ball then return end
     captureBackup(ball)
-
     pcall(function() ball.Color = color end)
-
     local tex = ball:FindFirstChildOfClass("Texture")
     if tex then
         pcall(function() tex.Color3 = color end)
     end
-
     for _, d in ipairs(ball:GetChildren()) do
         if d:IsA("Decal") then
             pcall(function() d.Color3 = color end)
@@ -1156,11 +1148,9 @@ local function applyBallColor(ball, color)
     end
 end
 
--- ---------- APLICAR TEXTURA ----------
 local function applyBallTexture(ball, textureId)
     if not ball then return end
     captureBackup(ball)
-
     local tex = ball:FindFirstChildOfClass("Texture")
     if not tex then
         tex = Instance.new("Texture")
@@ -1168,20 +1158,15 @@ local function applyBallTexture(ball, textureId)
         tex.Face = Enum.NormalId.Front
         tex.Parent = ball
     end
-
     if textureId == nil then
-        -- Volta pra textura original
         if BallColorBackup.TextureId then
             pcall(function() tex.Texture = BallColorBackup.TextureId end)
         end
     else
-        pcall(function()
-            tex.Texture = "rbxassetid://" .. textureId
-        end)
+        pcall(function() tex.Texture = "rbxassetid://" .. textureId end)
     end
 end
 
--- ---------- RESTAURAR ----------
 local function restoreBallColor()
     if BallColorTarget and BallColorTarget.Parent and BallColorBackup then
         pcall(function()
@@ -1211,7 +1196,6 @@ local function restoreBallColor()
     BallColorBackup = nil
 end
 
--- ---------- MONITOR DE RESPAWN ----------
 local function startBallColorMonitor()
     if BallColorConn then BallColorConn:Disconnect() end
     local lastSearch = 0
@@ -1238,7 +1222,6 @@ local function startBallColorMonitor()
     end)
 end
 
--- ---------- API ----------
 function BallColorModule.setEnabled(on)
     State.BallColor.Enabled = on
     if on then
@@ -1320,7 +1303,6 @@ function BallColorModule.reset()
     notify("Bola restaurada", "bad")
 end
 
--- ---------- ABA ----------
 createTab("Ball", "BALL")
 
 do
@@ -1394,7 +1376,6 @@ do
     end, 1)
 end
 
--- ---------- CLEANUP ----------
 local _prevBall = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevBall then _prevBall() end
@@ -1407,4 +1388,4 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Ball Custom (cor + textura) carregado.")
+print("[VoidStrap] Ball Custom carregado.")
