@@ -1381,7 +1381,7 @@ local SKY_PRESETS = {
         ColorShift_Top   = Color3.fromRGB(30, 30, 70),
         ColorShift_Bottom= Color3.fromRGB(0, 0, 0),
     },
-    Espaço = {
+    Espaco = {
         Ambient          = Color3.fromRGB(2, 2, 8),
         OutdoorAmbient   = Color3.fromRGB(5, 5, 15),
         Brightness       = 0.1,
