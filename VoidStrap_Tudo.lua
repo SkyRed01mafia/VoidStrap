@@ -651,7 +651,7 @@ local function criarAba(nome, iconText)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = page,
     })
-    espacamento(page, 2, 4, 60, 2, 2)
+    espacamento(2, page, 4, 60, 2, 2)
 
     Tabs[nome] = { button = btn, page = page, indicador = indicador, txt = txt, icon = icon }
 
