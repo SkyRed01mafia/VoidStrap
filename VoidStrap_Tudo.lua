@@ -290,7 +290,6 @@ criar("UIListLayout", {
     Parent = NotificacoesHolder,
 })
 
--- ---------- JANELA PRINCIPAL ----------
 local Main = criar("Frame", {
     Name = "Main",
     Size = UDim2.fromOffset(660, 460),
@@ -311,7 +310,6 @@ criar("UIGradient", {
 contorno(TemaAtivo.Stroke, 1, 0.4, Main, 2)
 contorno(TemaAtivo.AccentDim, 2, 0.85, Main, 3)
 
--- ---------- TOPBAR ----------
 local TopBar = criar("Frame", {
     Size = UDim2.new(1, 0, 0, 56),
     BackgroundColor3 = TemaAtivo.Surface,
@@ -386,7 +384,6 @@ criar("TextLabel", {
     Parent = BadgeVersao,
 })
 
--- ---------- SIDEBAR ----------
 local Sidebar = criar("ScrollingFrame", {
     Size = UDim2.new(0, 160, 1, -56),
     Position = UDim2.new(0, 0, 0, 56),
@@ -413,7 +410,6 @@ criar("UIListLayout", {
     Parent = Sidebar,
 })
 
--- ---------- CONTENT ----------
 local Content = criar("Frame", {
     Size = UDim2.new(1, -160, 1, -56),
     Position = UDim2.new(0, 160, 0, 56),
@@ -426,7 +422,6 @@ local Content = criar("Frame", {
 comTema(Content, "BackgroundColor3", "Background")
 espacamento(Content, 16, 14, 14, 16, 16)
 
--- ---------- BOTÕES DA TOPBAR ----------
 local function botaoTopBar(icone, offsetDireita, callback)
     local btn = criar("TextButton", {
         Size = UDim2.fromOffset(34, 34),
@@ -455,25 +450,86 @@ local function botaoTopBar(icone, offsetDireita, callback)
     return btn
 end
 
-local EstadoMinimizado = false
 botaoTopBar("X", -48, function()
     tocarClique()
     if _G.VoidStrapUnload then _G.VoidStrapUnload() end
     ScreenGui:Destroy()
 end)
 
+--====================================================================
+-- BOTÃO FLUTUANTE "V" (minimizar)
+--====================================================================
+local BotaoFlutuanteMin = nil
+local BFM_Estado = { Posicao = UDim2.new(0.02, 0, 0.5, 0), Travado = false }
+local BFM_Arr, BFM_DragIni, BFM_PosIni = false, nil, nil
+
+local function mostrarBotaoFlutuanteMin()
+    if BotaoFlutuanteMin and BotaoFlutuanteMin.Parent then
+        BotaoFlutuanteMin.Visible = true
+        return
+    end
+
+    BotaoFlutuanteMin = criar("TextButton", {
+        Name = "VST_MinBtn",
+        Size = UDim2.fromOffset(50, 50),
+        Position = BFM_Estado.Posicao,
+        BackgroundColor3 = TemaAtivo.Accent,
+        BorderSizePixel = 0,
+        Text = "V",
+        Font = Enum.Font.GothamBold,
+        TextSize = 22,
+        TextColor3 = TemaAtivo.Text,
+        AutoButtonColor = false,
+        ZIndex = 99999,
+        Parent = ScreenOverlay,
+    })
+    canto(12, BotaoFlutuanteMin)
+    contorno(TemaAtivo.AccentDim, 2, 0.2, BotaoFlutuanteMin, 99999)
+
+    BotaoFlutuanteMin.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            BFM_Arr = true
+            BFM_DragIni = input.Position
+            BFM_PosIni = BotaoFlutuanteMin.Position
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if not BFM_Arr or BFM_Estado.Travado then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local d = input.Position - BFM_DragIni
+            if math.abs(d.X) > 6 or math.abs(d.Y) > 6 then
+                BotaoFlutuanteMin.Position = UDim2.new(
+                    BFM_PosIni.X.Scale, BFM_PosIni.X.Offset + d.X,
+                    BFM_PosIni.Y.Scale, BFM_PosIni.Y.Offset + d.Y)
+                BFM_Estado.Posicao = BotaoFlutuanteMin.Position
+            end
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            BFM_Arr = false
+        end
+    end)
+
+    BotaoFlutuanteMin.MouseButton1Click:Connect(function()
+        tocarClique()
+        BotaoFlutuanteMin.Visible = false
+        Main.Visible = true
+        animar(Main, 0.3, { Size = UDim2.fromOffset(660, 460) })
+    end)
+end
+
 botaoTopBar("-", -88, function()
     tocarClique()
-    EstadoMinimizado = not EstadoMinimizado
-    if EstadoMinimizado then
-        Sidebar.Visible = false
-        Content.Visible = false
-        animar(Main, 0.3, { Size = UDim2.fromOffset(660, 56) })
-    else
-        Sidebar.Visible = true
-        Content.Visible = true
-        animar(Main, 0.3, { Size = UDim2.fromOffset(660, 460) })
-    end
+    animar(Main, 0.3, { Size = UDim2.fromOffset(660, 56) })
+    task.wait(0.32)
+    Main.Visible = false
+    mostrarBotaoFlutuanteMin()
 end)
 
 print("[VoidStrap] Parte 1/8 carregada.")--====================================================================
@@ -1734,13 +1790,12 @@ function BoomBoxModule.tocarPorId(id)
 end
 
 --====================================================================
--- MÓDULO: AUTO FOLLOW
+-- MÓDULO: AUTO FOLLOW (fica colado na bola + botão flutuante)
 --====================================================================
 local AutoFollowModule = {}
 local AF_Estado = {
     Enabled = false,
     Speed = 22,
-    StopDistance = 2.5,
     TargetMode = "Mais Próxima",
     AntiStuck = true,
 }
@@ -1828,15 +1883,15 @@ local function iniciarAF()
         local bola = AF_CachedBall
         if not bola then limparBodyVelAF() return end
 
-        local alvo = Vector3.new(bola.Position.X, root.Position.Y, bola.Position.Z)
+        -- Fica exatamente em cima da bola (sem distância parada)
+        local alvo = bola.Position
         local distancia = (root.Position - alvo).Magnitude
 
-        if distancia < AF_Estado.StopDistance then
+        -- Se já está praticamente em cima, para
+        if distancia < 0.5 then
             if AF_BodyVel then
-                pcall(function() AF_BodyVel.Velocity = AF_BodyVel.Velocity * 0.5 end)
-                if AF_BodyVel.Velocity.Magnitude < 1 then limparBodyVelAF() end
+                pcall(function() AF_BodyVel.Velocity = Vector3.zero end)
             end
-            framesPreso = 0
             return
         end
 
@@ -1859,8 +1914,8 @@ local function iniciarAF()
             limparBodyVelAF()
             AF_BodyVel = Instance.new("BodyVelocity")
             AF_BodyVel.Name = "VST_AutoFollow"
-            AF_BodyVel.MaxForce = Vector3.new(4000, 0, 4000)
-            AF_BodyVel.P = 800
+            AF_BodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            AF_BodyVel.P = 100000
             AF_BodyVel.Velocity = Vector3.zero
             AF_BodyVel.Parent = root
         end
@@ -1880,10 +1935,10 @@ function AutoFollowModule.ativar(ligado)
         if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
         notificar("Auto Follow desativado", "bad")
     end
+    if atualizarBtnAF then atualizarBtnAF() end
 end
 
 function AutoFollowModule.definirVelocidade(v) AF_Estado.Speed = v end
-function AutoFollowModule.definirDistancia(v) AF_Estado.StopDistance = v end
 function AutoFollowModule.definirModo(modo)
     AF_Estado.TargetMode = modo
     AF_CachedBall = nil
@@ -1897,8 +1952,131 @@ function AutoFollowModule.resetar()
     limparBodyVelAF()
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
     AF_CachedBall = nil
+    if atualizarBtnAF then atualizarBtnAF() end
     notificar("Auto Follow resetado", "bad")
 end
+
+--====================================================================
+-- BOTÃO FLUTUANTE DO AUTO FOLLOW (arrastável + travável)
+--====================================================================
+local AF_Btn = nil
+local AF_BtnEstado = { Travado = false, Posicao = UDim2.new(0.85, 0, 0.3, 0) }
+local AF_BtnArr = false
+local AF_BtnDragIni, AF_BtnPosIni = nil, nil
+local AF_BtnTempoP, AF_BtnPosP = 0, nil
+
+function atualizarBtnAF()
+    if not AF_Btn or not AF_Btn.Parent then return end
+    if AF_Estado.Enabled then
+        AF_Btn.BackgroundColor3 = TemaAtivo.Good
+        AF_Btn.Text = "AF ON"
+    else
+        AF_Btn.BackgroundColor3 = TemaAtivo.Surface2
+        AF_Btn.Text = "AF OFF"
+    end
+    local lock = AF_Btn:FindFirstChild("VST_Lock")
+    if AF_BtnEstado.Travado then
+        if not lock then
+            criar("TextLabel", {
+                Name = "VST_Lock",
+                Size = UDim2.fromOffset(16, 16),
+                Position = UDim2.new(1, -18, 0, 2),
+                BackgroundTransparency = 1,
+                Text = "L",
+                Font = Enum.Font.GothamBold,
+                TextSize = 11,
+                TextColor3 = Color3.fromRGB(255, 220, 60),
+                ZIndex = 100001,
+                Parent = AF_Btn,
+            })
+        end
+    else
+        if lock then lock:Destroy() end
+    end
+end
+
+function AutoFollowModule.criarBotaoAF()
+    if AF_Btn and AF_Btn.Parent then
+        AF_Btn.Visible = true
+        atualizarBtnAF()
+        return
+    end
+
+    AF_Btn = criar("TextButton", {
+        Name = "VST_AutoFollowBtn",
+        Size = UDim2.fromOffset(64, 64),
+        Position = AF_BtnEstado.Posicao,
+        BackgroundColor3 = TemaAtivo.Surface2,
+        BorderSizePixel = 0,
+        Text = "AF OFF",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = TemaAtivo.Text,
+        AutoButtonColor = false,
+        ZIndex = 99998,
+        Parent = ScreenOverlay,
+    })
+    canto(32, AF_Btn)
+    contorno(TemaAtivo.AccentDim, 2, 0.2, AF_Btn, 99998)
+    atualizarBtnAF()
+
+    AF_Btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            AF_BtnArr = true
+            AF_BtnDragIni = input.Position
+            AF_BtnPosIni = AF_Btn.Position
+            AF_BtnTempoP = tick()
+            AF_BtnPosP = input.Position
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if not AF_BtnArr or AF_BtnEstado.Travado then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local d = input.Position - AF_BtnDragIni
+            if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
+                AF_Btn.Position = UDim2.new(
+                    AF_BtnPosIni.X.Scale, AF_BtnPosIni.X.Offset + d.X,
+                    AF_BtnPosIni.Y.Scale, AF_BtnPosIni.Y.Offset + d.Y)
+                AF_BtnEstado.Posicao = AF_Btn.Position
+            end
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            AF_BtnArr = false
+            if AF_BtnPosP then
+                local df = input.Position - AF_BtnPosP
+                local mov = math.abs(df.X) + math.abs(df.Y)
+                local tmp = tick() - AF_BtnTempoP
+                if mov < 12 and tmp < 0.5 then
+                    AutoFollowModule.ativar(not AF_Estado.Enabled)
+                end
+            end
+            AF_BtnPosP = nil
+        end
+    end)
+end
+
+function AutoFollowModule.esconderBotaoAF()
+    if AF_Btn and AF_Btn.Parent then AF_Btn:Destroy(); AF_Btn = nil end
+end
+
+function AutoFollowModule.travarBotaoAF(on)
+    AF_BtnEstado.Travado = on
+    atualizarBtnAF()
+    notificar(on and "Botao AF travado" or "Botao AF liberado",
+              on and "good" or "bad")
+end
+
+task.spawn(function()
+    task.wait(1)
+    AutoFollowModule.criarBotaoAF()
+end)
 
 print("[VoidStrap] Parte 5/8 carregada.")--====================================================================
 -- MÓDULO: AUTO CATCH + REACH
@@ -2166,17 +2344,19 @@ function TrailModule.resetar()
 end
 
 print("[VoidStrap] Parte 6/8 carregada.")--====================================================================
--- MÓDULO: TOTE (Curva Mobile)
+-- MÓDULO: TOTE (Curva com dois botões T e D)
 --====================================================================
 local ToteModule = {}
 local TO_Estado = {
-    Enabled = false, Forca = 1.0, Sentido = "Direita",
-    BtnVisivel = true, BtnTravado = false,
-    BtnPosicao = UDim2.new(0.85, 0, 0.6, 0), Ativando = false,
+    Enabled = false,
+    Forca = 1.0,
+    BtnVisivel = true,
+    BtnTravado = false,
+    BtnTPosicao = UDim2.new(0.75, 0, 0.65, 0),
+    BtnDPosicao = UDim2.new(0.90, 0, 0.65, 0),
+    Ativando = nil,
 }
-local TO_Btn, TO_Conn = nil, nil
-local arrastando, dragIni, posIni = false, nil, nil
-local tempoP, posP = 0, nil
+local TO_BtnT, TO_BtnD, TO_Conn = nil, nil, nil
 
 local BALL_NAMES_TO = {
     "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
@@ -2212,62 +2392,70 @@ local function aplicarCurva()
     if vel.Magnitude < 1 then return end
     local dir = vel.Unit
     local perp = Vector3.new(-dir.Z, 0, dir.X)
-    local sentido = (TO_Estado.Sentido == "Direita") and 1 or -1
+    local sentido = (TO_Estado.Ativando == "D") and 1 or -1
     pcall(function()
         bola.AssemblyLinearVelocity = vel + (perp * sentido * TO_Estado.Forca * 15)
     end)
 end
 
-local function atualizarBtn()
-    if not TO_Btn or not TO_Btn.Parent then return end
+local function atualizarBtn(btn, tipo)
+    if not btn or not btn.Parent then return end
     if not TO_Estado.Enabled then
-        TO_Btn.BackgroundColor3 = TemaAtivo.Surface2
-        TO_Btn.TextColor3 = TemaAtivo.Sub
-    elseif TO_Estado.Ativando then
-        TO_Btn.BackgroundColor3 = TemaAtivo.Good
-        TO_Btn.TextColor3 = TemaAtivo.Text
+        btn.BackgroundColor3 = TemaAtivo.Surface2
+        btn.TextColor3 = TemaAtivo.Sub
+    elseif TO_Estado.Ativando == tipo then
+        btn.BackgroundColor3 = TemaAtivo.Good
+        btn.TextColor3 = TemaAtivo.Text
     else
-        TO_Btn.BackgroundColor3 = TemaAtivo.Accent
-        TO_Btn.TextColor3 = TemaAtivo.Text
+        btn.BackgroundColor3 = TemaAtivo.Accent
+        btn.TextColor3 = TemaAtivo.Text
     end
 end
 
-function ToteModule.criarBotao()
-    if TO_Btn and TO_Btn.Parent then
-        TO_Btn.Visible = true
-        atualizarBtn()
-        return
+local function atualizarTodosBtns()
+    atualizarBtn(TO_BtnT, "T")
+    atualizarBtn(TO_BtnD, "D")
+end
+
+local function criarBotao(btnRef, tipo, posicao)
+    if btnRef and btnRef.Parent then
+        btnRef.Visible = true
+        atualizarBtn(btnRef, tipo)
+        return btnRef
     end
 
-    TO_Btn = criar("TextButton", {
-        Name = "VST_ToteBtn",
-        Size = UDim2.fromOffset(70, 70),
-        Position = TO_Estado.BtnPosicao,
+    local btn = criar("TextButton", {
+        Name = "VST_ToteBtn" .. tipo,
+        Size = UDim2.fromOffset(60, 60),
+        Position = posicao,
         BackgroundColor3 = TemaAtivo.Accent,
         BorderSizePixel = 0,
-        Text = "TOTE",
+        Text = tipo,
         Font = Enum.Font.GothamBold,
-        TextSize = 14,
+        TextSize = 22,
         TextColor3 = TemaAtivo.Text,
         AutoButtonColor = false,
         ZIndex = 99998,
         Parent = ScreenOverlay,
     })
-    canto(35, TO_Btn)
-    contorno(TemaAtivo.AccentDim, 2, 0.2, TO_Btn, 99998)
-    atualizarBtn()
+    canto(30, btn)
+    contorno(TemaAtivo.AccentDim, 2, 0.2, btn, 99998)
+    atualizarBtn(btn, tipo)
 
-    TO_Btn.InputBegan:Connect(function(input)
+    local arrastando, dragIni, posIni = false, nil, nil
+    local tempoP, posP = 0, nil
+
+    btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             arrastando = true
             dragIni = input.Position
-            posIni = TO_Btn.Position
+            posIni = btn.Position
             tempoP = tick()
             posP = input.Position
             if TO_Estado.Enabled then
-                TO_Estado.Ativando = true
-                atualizarBtn()
+                TO_Estado.Ativando = tipo
+                atualizarTodosBtns()
             end
         end
     end)
@@ -2278,10 +2466,11 @@ function ToteModule.criarBotao()
         or input.UserInputType == Enum.UserInputType.Touch then
             local d = input.Position - dragIni
             if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
-                TO_Btn.Position = UDim2.new(
+                btn.Position = UDim2.new(
                     posIni.X.Scale, posIni.X.Offset + d.X,
                     posIni.Y.Scale, posIni.Y.Offset + d.Y)
-                TO_Estado.BtnPosicao = TO_Btn.Position
+                if tipo == "T" then TO_Estado.BtnTPosicao = btn.Position
+                else TO_Estado.BtnDPosicao = btn.Position end
             end
         end
     end)
@@ -2290,8 +2479,10 @@ function ToteModule.criarBotao()
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             arrastando = false
-            TO_Estado.Ativando = false
-            atualizarBtn()
+            if TO_Estado.Ativando == tipo then
+                TO_Estado.Ativando = nil
+            end
+            atualizarTodosBtns()
             if posP then
                 local df = input.Position - posP
                 local mov = math.abs(df.X) + math.abs(df.Y)
@@ -2306,12 +2497,19 @@ function ToteModule.criarBotao()
                         if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
                         notificar("Tote desativado", "bad")
                     end
-                    atualizarBtn()
+                    atualizarTodosBtns()
                 end
             end
             posP = nil
         end
     end)
+
+    return btn
+end
+
+function ToteModule.criarBotoes()
+    TO_BtnT = criarBotao(TO_BtnT, "T", TO_Estado.BtnTPosicao)
+    TO_BtnD = criarBotao(TO_BtnD, "D", TO_Estado.BtnDPosicao)
 end
 
 function ToteModule.ativar(ligado)
@@ -2319,37 +2517,34 @@ function ToteModule.ativar(ligado)
     if ligado then
         if TO_Conn then TO_Conn:Disconnect() end
         TO_Conn = RunService.Heartbeat:Connect(aplicarCurva)
-        ToteModule.criarBotao()
+        ToteModule.criarBotoes()
         notificar("Tote ativado", "good")
     else
         if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
-        TO_Estado.Ativando = false
+        TO_Estado.Ativando = nil
         notificar("Tote desativado", "bad")
     end
-    atualizarBtn()
-end
-
-function ToteModule.definirSentido(opt)
-    TO_Estado.Sentido = opt
-    notificar("Curva: " .. opt, "good")
+    atualizarTodosBtns()
 end
 
 function ToteModule.definirForca(v) TO_Estado.Forca = v end
 
-function ToteModule.esconderBotao()
-    if TO_Btn and TO_Btn.Parent then TO_Btn:Destroy(); TO_Btn = nil end
+function ToteModule.esconderBotoes()
+    if TO_BtnT and TO_BtnT.Parent then TO_BtnT:Destroy(); TO_BtnT = nil end
+    if TO_BtnD and TO_BtnD.Parent then TO_BtnD:Destroy(); TO_BtnD = nil end
 end
 
-function ToteModule.travarBotao(on)
+function ToteModule.travarBotoes(on)
     TO_Estado.BtnTravado = on
-    notificar(on and "Botao travado" or "Botao liberado", on and "good" or "bad")
+    notificar(on and "Botoes T/D travados" or "Botoes T/D liberados",
+              on and "good" or "bad")
 end
 
 function ToteModule.resetar()
     TO_Estado.Enabled = false
-    TO_Estado.Ativando = false
+    TO_Estado.Ativando = nil
     if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
-    ToteModule.esconderBotao()
+    ToteModule.esconderBotoes()
     notificar("Tote resetado", "bad")
 end
 
@@ -2770,18 +2965,27 @@ do
         AutoFollowModule.definirVelocidade(v)
     end, 3)
 
-    sliderRow(sec, "Distancia Parada (x10)", 10, 100, 25, function(v)
-        AutoFollowModule.definirDistancia(v / 10)
-    end, 4)
-
     toggleRow(sec, "Anti-Stuck", true, function(on)
         AutoFollowModule.ativarAntiStuck(on)
-    end, 5)
+    end, 4)
+
+    local secBtn = section("Botao Flutuante")
+    secBtn.Parent = page
+
+    toggleRow(secBtn, "Mostrar Botao AF", true, function(on)
+        if on then AutoFollowModule.criarBotaoAF()
+        else AutoFollowModule.esconderBotaoAF() end
+    end, 1)
+
+    toggleRow(secBtn, "Travar Botao AF", false, function(on)
+        AutoFollowModule.travarBotaoAF(on)
+    end, 2)
 
     local resetSec = section("Restaurar")
     resetSec.Parent = page
     buttonRow(resetSec, "Desativar tudo", function()
         AutoFollowModule.resetar()
+        AutoFollowModule.esconderBotaoAF()
     end, 1)
 end
 
@@ -2872,34 +3076,44 @@ do
         ToteModule.ativar(on)
     end, 1)
 
-    dropdownRow(sec, "Sentido da Curva", {"Direita", "Esquerda"}, "Direita", function(opt)
-        ToteModule.definirSentido(opt)
-    end, 2)
-
     sliderRow(sec, "Forca da Curva (x10)", 1, 30, 10, function(v)
         ToteModule.definirForca(v / 10)
-    end, 3)
+    end, 2)
 
-    local secBtn = section("Botao Flutuante (Mobile)")
+    local info = criar("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Segure T (curva esquerda) ou D (curva direita) na tela.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = TemaAtivo.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = sec,
+    })
+    comTema(info, "TextColor3", "Sub")
+
+    local secBtn = section("Botoes Flutuantes (Mobile)")
     secBtn.Parent = page
 
-    toggleRow(secBtn, "Mostrar Botao", true, function(on)
-        if on then ToteModule.criarBotao() else ToteModule.esconderBotao() end
+    toggleRow(secBtn, "Mostrar Botoes T/D", true, function(on)
+        if on then ToteModule.criarBotoes() else ToteModule.esconderBotoes() end
     end, 1)
 
-    toggleRow(secBtn, "Travar Botao no Lugar", false, function(on)
-        ToteModule.travarBotao(on)
+    toggleRow(secBtn, "Travar Botoes no Lugar", false, function(on)
+        ToteModule.travarBotoes(on)
     end, 2)
 
     local resetSec = section("Restaurar")
     resetSec.Parent = page
-    buttonRow(resetSec, "Desativar Tote e remover botao", function()
+    buttonRow(resetSec, "Desativar Tote e remover botoes", function()
         ToteModule.resetar()
     end, 1)
 
     task.spawn(function()
         task.wait(0.5)
-        ToteModule.criarBotao()
+        ToteModule.criarBotoes()
     end)
 end
 
