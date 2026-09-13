@@ -541,284 +541,6 @@ comTema(Content, "BackgroundColor3", "Background")
 espacamento(16, Content, 14, 14, 16, 16)
 
 print("[VoidStrap] Bloco 1/8 carregado.")--====================================================================
--- COMPONENTE: SLIDER ROW (premium com gradiente)
---====================================================================
-local function sliderRow(parent, rotulo, minV, maxV, inicial, aoMudar, ordem)
-    local row = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 62),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        LayoutOrder = ordem or 0,
-        ZIndex = 22,
-        Parent = parent,
-    })
-    comTema(row, "BackgroundColor3", "Surface2")
-    canto(9, row)
-
-    local lbl = criar("TextLabel", {
-        Size = UDim2.new(1, -80, 0, 22),
-        Position = UDim2.new(0, 14, 0, 8),
-        BackgroundTransparency = 1,
-        Text = rotulo,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = TemaAtivo.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 23,
-        Parent = row,
-    })
-    comTema(lbl, "TextColor3", "Text")
-
-    local valueLabel = criar("TextLabel", {
-        Size = UDim2.fromOffset(60, 22),
-        Position = UDim2.new(1, -72, 0, 8),
-        BackgroundTransparency = 1,
-        Text = tostring(inicial),
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = TemaAtivo.Accent,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        ZIndex = 23,
-        Parent = row,
-    })
-    comTema(valueLabel, "TextColor3", "Accent")
-
-    local track = criar("Frame", {
-        Size = UDim2.new(1, -28, 0, 8),
-        Position = UDim2.new(0, 14, 0, 44),
-        BackgroundColor3 = TemaAtivo.Stroke,
-        BorderSizePixel = 0,
-        ZIndex = 23,
-        Parent = row,
-    })
-    comTema(track, "BackgroundColor3", "Stroke")
-    canto(4, track)
-
-    local fill = criar("Frame", {
-        Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = TemaAtivo.Accent,
-        BorderSizePixel = 0,
-        ZIndex = 24,
-        Parent = track,
-    })
-    comTema(fill, "BackgroundColor3", "Accent")
-    canto(4, fill)
-
-    criar("UIGradient", {
-        Color = ColorSequence.new(TemaAtivo.Accent, TemaAtivo.Accent2),
-        Rotation = 0,
-        Parent = fill,
-    })
-
-    local handle = criar("Frame", {
-        Size = UDim2.fromOffset(20, 20),
-        Position = UDim2.new(0, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        ZIndex = 25,
-        Parent = track,
-    })
-    canto(10, handle)
-    contorno(TemaAtivo.Accent, 2, 0, handle, 25)
-
-    local valor = inicial
-    local arrastando = false
-
-    local function atualizarDeX(x)
-        local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-        valor = math.floor(minV + (maxV - minV) * rel + 0.5)
-        fill.Size = UDim2.new(rel, 0, 1, 0)
-        handle.Position = UDim2.new(rel, 0, 0.5, 0)
-        valueLabel.Text = tostring(valor)
-        if aoMudar then aoMudar(valor) end
-    end
-
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            arrastando = true
-            atualizarDeX(input.Position.X)
-        end
-    end)
-    UIS.InputChanged:Connect(function(input)
-        if arrastando and (input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch) then
-            atualizarDeX(input.Position.X)
-        end
-    end)
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            arrastando = false
-        end
-    end)
-
-    task.defer(function()
-        local rel = (inicial - minV) / (maxV - minV)
-        fill.Size = UDim2.new(rel, 0, 1, 0)
-        handle.Position = UDim2.new(rel, 0, 0.5, 0)
-    end)
-
-    return row, function() return valor end
-end
-
---====================================================================
--- COMPONENTE: DROPDOWN ROW (premium com slide + seta rotativa)
---====================================================================
-local function dropdownRow(parent, rotulo, opcoes, inicial, aoMudar, ordem)
-    local row = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 46),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        LayoutOrder = ordem or 0,
-        ZIndex = 100,
-        Parent = parent,
-        ClipsDescendants = false,
-    })
-    comTema(row, "BackgroundColor3", "Surface2")
-    canto(9, row)
-
-    local lbl = criar("TextLabel", {
-        Size = UDim2.new(1, -170, 1, 0),
-        Position = UDim2.new(0, 14, 0, 0),
-        BackgroundTransparency = 1,
-        Text = rotulo,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = TemaAtivo.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 101,
-        Parent = row,
-    })
-    comTema(lbl, "TextColor3", "Text")
-
-    local selecionado = criar("TextButton", {
-        Size = UDim2.fromOffset(130, 32),
-        Position = UDim2.new(1, -144, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundColor3 = TemaAtivo.Background,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        Text = inicial,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Text,
-        AutoButtonColor = false,
-        ZIndex = 102,
-        Parent = row,
-    })
-    comTema(selecionado, "BackgroundColor3", "Background")
-    comTema(selecionado, "TextColor3", "Text")
-    canto(7, selecionado)
-    contorno(TemaAtivo.Stroke, 1, 0.5, selecionado, 102)
-
-    local seta = criar("TextLabel", {
-        Size = UDim2.fromOffset(16, 16),
-        Position = UDim2.new(1, -22, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        BackgroundTransparency = 1,
-        Text = "▾",
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Sub,
-        ZIndex = 103,
-        Parent = selecionado,
-    })
-    comTema(seta, "TextColor3", "Sub")
-
-    local lista = criar("Frame", {
-        Size = UDim2.new(0, 130, 0, #opcoes * 30 + 12),
-        Position = UDim2.new(1, -144, 1, 6),
-        BackgroundColor3 = TemaAtivo.Surface,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Visible = false,
-        ZIndex = 9999,
-        Parent = row,
-    })
-    comTema(lista, "BackgroundColor3", "Surface")
-    canto(8, lista)
-    contorno(TemaAtivo.Stroke, 1, 0.3, lista, 9999)
-    criar("UIListLayout", {
-        Padding = UDim.new(0, 2),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = lista,
-    })
-    espacamento(lista, 5)
-
-    for i, opt in ipairs(opcoes) do
-        local o = criar("TextButton", {
-            Size = UDim2.new(1, 0, 0, 26),
-            BackgroundColor3 = TemaAtivo.Surface,
-            BackgroundTransparency = 0.3,
-            BorderSizePixel = 0,
-            Text = opt,
-            Font = Enum.Font.GothamMedium,
-            TextSize = 12,
-            TextColor3 = TemaAtivo.Text,
-            AutoButtonColor = false,
-            LayoutOrder = i,
-            ZIndex = 10000,
-            Parent = lista,
-        })
-        comTema(o, "BackgroundColor3", "Surface")
-        comTema(o, "TextColor3", "Text")
-        canto(5, o)
-
-        o.MouseEnter:Connect(function()
-            animar(o, 0.12, { BackgroundColor3 = TemaAtivo.Surface3, BackgroundTransparency = 0 })
-        end)
-        o.MouseLeave:Connect(function()
-            animar(o, 0.12, { BackgroundColor3 = TemaAtivo.Surface, BackgroundTransparency = 0.3 })
-        end)
-        o.MouseButton1Click:Connect(function()
-            tocarClique()
-            selecionado.Text = opt
-            lista.Visible = false
-            animar(lista, 0.2, { BackgroundTransparency = 1 })
-            animar(seta, 0.2, { Rotation = 0 })
-            if aoMudar then aoMudar(opt) end
-        end)
-    end
-
-    selecionado.MouseButton1Click:Connect(function()
-        tocarClique()
-        local visivel = not lista.Visible
-        lista.Visible = visivel
-        if visivel then
-            animar(lista, 0.2, { BackgroundTransparency = 0 })
-            animar(seta, 0.2, { Rotation = 180 })
-        else
-            animar(lista, 0.15, { BackgroundTransparency = 1 })
-            animar(seta, 0.2, { Rotation = 0 })
-        end
-    end)
-
-    return row
-end
-
---====================================================================
--- FPS METER
---====================================================================
-local FPSLabel
-do
-    local frames, lastT = 0, tick()
-    RunService.RenderStepped:Connect(function()
-        frames = frames + 1
-        local now = tick()
-        if now - lastT >= 0.5 then
-            local fps = math.floor(frames / (now - lastT) + 0.5)
-            frames = 0
-            lastT = now
-            if FPSLabel then FPSLabel.Text = fps .. " FPS" end
-        end
-    end)
-end
-
-print("[VoidStrap] Bloco 2B/8 carregado.")--====================================================================
 -- SISTEMA DE ABAS (premium)
 --====================================================================
 local Tabs = {}
@@ -1168,6 +890,454 @@ local function toggleRow(parent, rotulo, inicial, aoMudar, ordem)
 end
 
 print("[VoidStrap] Bloco 2A/8 carregado.")--====================================================================
+-- COMPONENTE: SLIDER ROW (premium com gradiente)
+--====================================================================
+local function sliderRow(parent, rotulo, minV, maxV, inicial, aoMudar, ordem)
+    local row = criar("Frame", {
+        Size = UDim2.new(1, 0, 0, 62),
+        BackgroundColor3 = TemaAtivo.Surface2,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        LayoutOrder = ordem or 0,
+        ZIndex = 22,
+        Parent = parent,
+    })
+    comTema(row, "BackgroundColor3", "Surface2")
+    canto(9, row)
+
+    local lbl = criar("TextLabel", {
+        Size = UDim2.new(1, -80, 0, 22),
+        Position = UDim2.new(0, 14, 0, 8),
+        BackgroundTransparency = 1,
+        Text = rotulo,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = TemaAtivo.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 23,
+        Parent = row,
+    })
+    comTema(lbl, "TextColor3", "Text")
+
+    local valueLabel = criar("TextLabel", {
+        Size = UDim2.fromOffset(60, 22),
+        Position = UDim2.new(1, -72, 0, 8),
+        BackgroundTransparency = 1,
+        Text = tostring(inicial),
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = TemaAtivo.Accent,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        ZIndex = 23,
+        Parent = row,
+    })
+    comTema(valueLabel, "TextColor3", "Accent")
+
+    local track = criar("Frame", {
+        Size = UDim2.new(1, -28, 0, 8),
+        Position = UDim2.new(0, 14, 0, 44),
+        BackgroundColor3 = TemaAtivo.Stroke,
+        BorderSizePixel = 0,
+        ZIndex = 23,
+        Parent = row,
+    })
+    comTema(track, "BackgroundColor3", "Stroke")
+    canto(4, track)
+
+    local fill = criar("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = TemaAtivo.Accent,
+        BorderSizePixel = 0,
+        ZIndex = 24,
+        Parent = track,
+    })
+    comTema(fill, "BackgroundColor3", "Accent")
+    canto(4, fill)
+
+    criar("UIGradient", {
+        Color = ColorSequence.new(TemaAtivo.Accent, TemaAtivo.Accent2),
+        Rotation = 0,
+        Parent = fill,
+    })
+
+    local handle = criar("Frame", {
+        Size = UDim2.fromOffset(20, 20),
+        Position = UDim2.new(0, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        ZIndex = 25,
+        Parent = track,
+    })
+    canto(10, handle)
+    contorno(TemaAtivo.Accent, 2, 0, handle, 25)
+
+    local valor = inicial
+    local arrastando = false
+
+    local function atualizarDeX(x)
+        local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+        valor = math.floor(minV + (maxV - minV) * rel + 0.5)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        handle.Position = UDim2.new(rel, 0, 0.5, 0)
+        valueLabel.Text = tostring(valor)
+        if aoMudar then aoMudar(valor) end
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            arrastando = true
+            atualizarDeX(input.Position.X)
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if arrastando and (input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch) then
+            atualizarDeX(input.Position.X)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            arrastando = false
+        end
+    end)
+
+    task.defer(function()
+        local rel = (inicial - minV) / (maxV - minV)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        handle.Position = UDim2.new(rel, 0, 0.5, 0)
+    end)
+
+    return row, function() return valor end
+end
+
+--====================================================================
+-- COMPONENTE: DROPDOWN ROW (premium com slide + seta rotativa)
+--====================================================================
+local function dropdownRow(parent, rotulo, opcoes, inicial, aoMudar, ordem)
+    local row = criar("Frame", {
+        Size = UDim2.new(1, 0, 0, 46),
+        BackgroundColor3 = TemaAtivo.Surface2,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        LayoutOrder = ordem or 0,
+        ZIndex = 100,
+        Parent = parent,
+        ClipsDescendants = false,
+    })
+    comTema(row, "BackgroundColor3", "Surface2")
+    canto(9, row)
+
+    local lbl = criar("TextLabel", {
+        Size = UDim2.new(1, -170, 1, 0),
+        Position = UDim2.new(0, 14, 0, 0),
+        BackgroundTransparency = 1,
+        Text = rotulo,
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = TemaAtivo.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 101,
+        Parent = row,
+    })
+    comTema(lbl, "TextColor3", "Text")
+
+    local selecionado = criar("TextButton", {
+        Size = UDim2.fromOffset(130, 32),
+        Position = UDim2.new(1, -144, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundColor3 = TemaAtivo.Background,
+        BackgroundTransparency = 0.3,
+        BorderSizePixel = 0,
+        Text = inicial,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextColor3 = TemaAtivo.Text,
+        AutoButtonColor = false,
+        ZIndex = 102,
+        Parent = row,
+    })
+    comTema(selecionado, "BackgroundColor3", "Background")
+    comTema(selecionado, "TextColor3", "Text")
+    canto(7, selecionado)
+    contorno(TemaAtivo.Stroke, 1, 0.5, selecionado, 102)
+
+    local seta = criar("TextLabel", {
+        Size = UDim2.fromOffset(16, 16),
+        Position = UDim2.new(1, -22, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        Text = "▾",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = TemaAtivo.Sub,
+        ZIndex = 103,
+        Parent = selecionado,
+    })
+    comTema(seta, "TextColor3", "Sub")
+
+    local lista = criar("Frame", {
+        Size = UDim2.new(0, 130, 0, #opcoes * 30 + 12),
+        Position = UDim2.new(1, -144, 1, 6),
+        BackgroundColor3 = TemaAtivo.Surface,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Visible = false,
+        ZIndex = 9999,
+        Parent = row,
+    })
+    comTema(lista, "BackgroundColor3", "Surface")
+    canto(8, lista)
+    contorno(TemaAtivo.Stroke, 1, 0.3, lista, 9999)
+    criar("UIListLayout", {
+        Padding = UDim.new(0, 2),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = lista,
+    })
+    espacamento(lista, 5)
+
+    for i, opt in ipairs(opcoes) do
+        local o = criar("TextButton", {
+            Size = UDim2.new(1, 0, 0, 26),
+            BackgroundColor3 = TemaAtivo.Surface,
+            BackgroundTransparency = 0.3,
+            BorderSizePixel = 0,
+            Text = opt,
+            Font = Enum.Font.GothamMedium,
+            TextSize = 12,
+            TextColor3 = TemaAtivo.Text,
+            AutoButtonColor = false,
+            LayoutOrder = i,
+            ZIndex = 10000,
+            Parent = lista,
+        })
+        comTema(o, "BackgroundColor3", "Surface")
+        comTema(o, "TextColor3", "Text")
+        canto(5, o)
+
+        o.MouseEnter:Connect(function()
+            animar(o, 0.12, { BackgroundColor3 = TemaAtivo.Surface3, BackgroundTransparency = 0 })
+        end)
+        o.MouseLeave:Connect(function()
+            animar(o, 0.12, { BackgroundColor3 = TemaAtivo.Surface, BackgroundTransparency = 0.3 })
+        end)
+        o.MouseButton1Click:Connect(function()
+            tocarClique()
+            selecionado.Text = opt
+            lista.Visible = false
+            animar(lista, 0.2, { BackgroundTransparency = 1 })
+            animar(seta, 0.2, { Rotation = 0 })
+            if aoMudar then aoMudar(opt) end
+        end)
+    end
+
+    selecionado.MouseButton1Click:Connect(function()
+        tocarClique()
+        local visivel = not lista.Visible
+        lista.Visible = visivel
+        if visivel then
+            animar(lista, 0.2, { BackgroundTransparency = 0 })
+            animar(seta, 0.2, { Rotation = 180 })
+        else
+            animar(lista, 0.15, { BackgroundTransparency = 1 })
+            animar(seta, 0.2, { Rotation = 0 })
+        end
+    end)
+
+    return row
+end
+
+--====================================================================
+-- FPS METER
+--====================================================================
+local FPSLabel
+do
+    local frames, lastT = 0, tick()
+    RunService.RenderStepped:Connect(function()
+        frames = frames + 1
+        local now = tick()
+        if now - lastT >= 0.5 then
+            local fps = math.floor(frames / (now - lastT) + 0.5)
+            frames = 0
+            lastT = now
+            if FPSLabel then FPSLabel.Text = fps .. " FPS" end
+        end
+    end)
+end
+
+print("[VoidStrap] Bloco 2B/8 carregado.")--====================================================================
+-- MÓDULO: SKYBOX (presets de iluminação)
+--====================================================================
+local SkyboxModule = {}
+local LightingOriginal = nil
+
+local function capturarIluminacao()
+    if LightingOriginal then return end
+    LightingOriginal = {
+        Ambient          = Lighting.Ambient,
+        OutdoorAmbient   = Lighting.OutdoorAmbient,
+        Brightness       = Lighting.Brightness,
+        ClockTime        = Lighting.ClockTime,
+        FogColor         = Lighting.FogColor,
+        FogStart         = Lighting.FogStart,
+        FogEnd           = Lighting.FogEnd,
+        ColorShift_Top   = Lighting.ColorShift_Top,
+        ColorShift_Bottom= Lighting.ColorShift_Bottom,
+        GlobalShadows    = Lighting.GlobalShadows,
+        EnvironmentDiffuseScale  = Lighting.EnvironmentDiffuseScale,
+        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+    }
+end
+
+local SKY_PRESETS = {
+    Noite = {
+        Ambient          = Color3.fromRGB(10, 10, 25),
+        OutdoorAmbient   = Color3.fromRGB(15, 15, 35),
+        Brightness       = 0.3,
+        ClockTime        = 0,
+        FogColor         = Color3.fromRGB(5, 5, 15),
+        FogStart         = 30,
+        FogEnd           = 250,
+        ColorShift_Top   = Color3.fromRGB(30, 30, 70),
+        ColorShift_Bottom= Color3.fromRGB(0, 0, 0),
+    },
+    Espaço = {
+        Ambient          = Color3.fromRGB(2, 2, 8),
+        OutdoorAmbient   = Color3.fromRGB(5, 5, 15),
+        Brightness       = 0.1,
+        ClockTime        = 0,
+        FogColor         = Color3.fromRGB(0, 0, 5),
+        FogStart         = 5,
+        FogEnd           = 100,
+        ColorShift_Top   = Color3.fromRGB(10, 10, 30),
+        ColorShift_Bottom= Color3.fromRGB(0, 0, 0),
+    },
+    Vermelho = {
+        Ambient          = Color3.fromRGB(60, 10, 10),
+        OutdoorAmbient   = Color3.fromRGB(80, 15, 15),
+        Brightness       = 1.2,
+        ClockTime        = 17.5,
+        FogColor         = Color3.fromRGB(40, 5, 5),
+        FogStart         = 20,
+        FogEnd           = 300,
+        ColorShift_Top   = Color3.fromRGB(120, 20, 20),
+        ColorShift_Bottom= Color3.fromRGB(30, 0, 0),
+    },
+    Roxo = {
+        Ambient          = Color3.fromRGB(40, 15, 60),
+        OutdoorAmbient   = Color3.fromRGB(60, 20, 90),
+        Brightness       = 1.0,
+        ClockTime        = 18.5,
+        FogColor         = Color3.fromRGB(25, 5, 40),
+        FogStart         = 20,
+        FogEnd           = 280,
+        ColorShift_Top   = Color3.fromRGB(90, 40, 140),
+        ColorShift_Bottom= Color3.fromRGB(20, 0, 40),
+    },
+    Personalizado = {
+        Ambient          = Color3.fromRGB(25, 30, 40),
+        OutdoorAmbient   = Color3.fromRGB(40, 50, 70),
+        Brightness       = 0.8,
+        ClockTime        = 14,
+        FogColor         = Color3.fromRGB(10, 20, 30),
+        FogStart         = 40,
+        FogEnd           = 350,
+        ColorShift_Top   = Color3.fromRGB(60, 90, 130),
+        ColorShift_Bottom= Color3.fromRGB(10, 15, 25),
+    },
+}
+
+local ORDEM_SEGURA = {
+    "FogColor", "FogStart", "FogEnd",
+    "ColorShift_Top", "ColorShift_Bottom",
+    "Ambient", "OutdoorAmbient",
+    "Brightness", "ClockTime",
+}
+
+local function aplicarSkyboxPreset(nome)
+    capturarIluminacao()
+    if nome == "Padrão" then
+        SkyboxModule.restaurar()
+        return
+    end
+    local p = SKY_PRESETS[nome]
+    if not p then return end
+    for _, key in ipairs(ORDEM_SEGURA) do
+        if p[key] ~= nil then
+            pcall(function() Lighting[key] = p[key] end)
+        end
+    end
+end
+
+function SkyboxModule.aplicar(nome)
+    Estado.Skybox.Current = nome
+    if Estado.Skybox.Enabled then
+        aplicarSkyboxPreset(nome)
+    end
+    notificar("Skybox: " .. nome, "good")
+end
+
+function SkyboxModule.restaurar()
+    if not LightingOriginal then return end
+    for k, v in pairs(LightingOriginal) do
+        pcall(function() Lighting[k] = v end)
+    end
+end
+
+function SkyboxModule.ativar(ligado)
+    Estado.Skybox.Enabled = ligado
+    if ligado then
+        aplicarSkyboxPreset(Estado.Skybox.Current)
+        notificar("Skybox ativado", "good")
+    else
+        SkyboxModule.restaurar()
+        notificar("Skybox desativado", "bad")
+    end
+end
+
+--====================================================================
+-- MÓDULO: STRETCH SCREEN (FOV)
+--====================================================================
+local StretchModule = {}
+local FOV_JITTER = 0
+local StretchConn = nil
+
+local function aplicarStretch()
+    if not Camera then return end
+    if not Estado.Stretch.Enabled or Estado.Stretch.Intensity == 0 then
+        pcall(function() Camera.FieldOfView = Estado.Stretch.BaseFOV end)
+        return
+    end
+    local extra = (Estado.Stretch.Intensity / 100) * 50
+    FOV_JITTER = (math.random() - 0.5) * 1.0
+    pcall(function()
+        Camera.FieldOfView = Estado.Stretch.BaseFOV + extra + FOV_JITTER
+    end)
+end
+
+function StretchModule.ativar(ligado)
+    Estado.Stretch.Enabled = ligado
+    aplicarStretch()
+    notificar(ligado and "Stretch ativado" or "Stretch desativado",
+              ligado and "good" or "bad")
+end
+
+function StretchModule.definirIntensidade(v)
+    Estado.Stretch.Intensity = v
+    aplicarStretch()
+end
+
+function StretchModule.resetar()
+    Estado.Stretch.Enabled = false
+    Estado.Stretch.Intensity = 0
+    if Camera then
+        pcall(function() Camera.FieldOfView = Estado.Stretch.BaseFOV end)
+    end
+end
+
+print("[VoidStrap] Bloco 3A/8 carregado.")--====================================================================
 -- MÓDULO: GRASS COLOR (cor da grama)
 --====================================================================
 local GrassModule = {}
@@ -1346,488 +1516,6 @@ function FlagsModule.definirPreset(preset)
 end
 
 print("[VoidStrap] Bloco 3B/8 carregado.")--====================================================================
--- MÓDULO: SKYBOX (presets de iluminação)
---====================================================================
-local SkyboxModule = {}
-local LightingOriginal = nil
-
-local function capturarIluminacao()
-    if LightingOriginal then return end
-    LightingOriginal = {
-        Ambient          = Lighting.Ambient,
-        OutdoorAmbient   = Lighting.OutdoorAmbient,
-        Brightness       = Lighting.Brightness,
-        ClockTime        = Lighting.ClockTime,
-        FogColor         = Lighting.FogColor,
-        FogStart         = Lighting.FogStart,
-        FogEnd           = Lighting.FogEnd,
-        ColorShift_Top   = Lighting.ColorShift_Top,
-        ColorShift_Bottom= Lighting.ColorShift_Bottom,
-        GlobalShadows    = Lighting.GlobalShadows,
-        EnvironmentDiffuseScale  = Lighting.EnvironmentDiffuseScale,
-        EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-    }
-end
-
-local SKY_PRESETS = {
-    Noite = {
-        Ambient          = Color3.fromRGB(10, 10, 25),
-        OutdoorAmbient   = Color3.fromRGB(15, 15, 35),
-        Brightness       = 0.3,
-        ClockTime        = 0,
-        FogColor         = Color3.fromRGB(5, 5, 15),
-        FogStart         = 30,
-        FogEnd           = 250,
-        ColorShift_Top   = Color3.fromRGB(30, 30, 70),
-        ColorShift_Bottom= Color3.fromRGB(0, 0, 0),
-    },
-    Espaco = {
-        Ambient          = Color3.fromRGB(2, 2, 8),
-        OutdoorAmbient   = Color3.fromRGB(5, 5, 15),
-        Brightness       = 0.1,
-        ClockTime        = 0,
-        FogColor         = Color3.fromRGB(0, 0, 5),
-        FogStart         = 5,
-        FogEnd           = 100,
-        ColorShift_Top   = Color3.fromRGB(10, 10, 30),
-        ColorShift_Bottom= Color3.fromRGB(0, 0, 0),
-    },
-    Vermelho = {
-        Ambient          = Color3.fromRGB(60, 10, 10),
-        OutdoorAmbient   = Color3.fromRGB(80, 15, 15),
-        Brightness       = 1.2,
-        ClockTime        = 17.5,
-        FogColor         = Color3.fromRGB(40, 5, 5),
-        FogStart         = 20,
-        FogEnd           = 300,
-        ColorShift_Top   = Color3.fromRGB(120, 20, 20),
-        ColorShift_Bottom= Color3.fromRGB(30, 0, 0),
-    },
-    Roxo = {
-        Ambient          = Color3.fromRGB(40, 15, 60),
-        OutdoorAmbient   = Color3.fromRGB(60, 20, 90),
-        Brightness       = 1.0,
-        ClockTime        = 18.5,
-        FogColor         = Color3.fromRGB(25, 5, 40),
-        FogStart         = 20,
-        FogEnd           = 280,
-        ColorShift_Top   = Color3.fromRGB(90, 40, 140),
-        ColorShift_Bottom= Color3.fromRGB(20, 0, 40),
-    },
-    Personalizado = {
-        Ambient          = Color3.fromRGB(25, 30, 40),
-        OutdoorAmbient   = Color3.fromRGB(40, 50, 70),
-        Brightness       = 0.8,
-        ClockTime        = 14,
-        FogColor         = Color3.fromRGB(10, 20, 30),
-        FogStart         = 40,
-        FogEnd           = 350,
-        ColorShift_Top   = Color3.fromRGB(60, 90, 130),
-        ColorShift_Bottom= Color3.fromRGB(10, 15, 25),
-    },
-}
-
-local ORDEM_SEGURA = {
-    "FogColor", "FogStart", "FogEnd",
-    "ColorShift_Top", "ColorShift_Bottom",
-    "Ambient", "OutdoorAmbient",
-    "Brightness", "ClockTime",
-}
-
-local function aplicarSkyboxPreset(nome)
-    capturarIluminacao()
-    if nome == "Padrão" then
-        SkyboxModule.restaurar()
-        return
-    end
-    local p = SKY_PRESETS[nome]
-    if not p then return end
-    for _, key in ipairs(ORDEM_SEGURA) do
-        if p[key] ~= nil then
-            pcall(function() Lighting[key] = p[key] end)
-        end
-    end
-end
-
-function SkyboxModule.aplicar(nome)
-    Estado.Skybox.Current = nome
-    if Estado.Skybox.Enabled then
-        aplicarSkyboxPreset(nome)
-    end
-    notificar("Skybox: " .. nome, "good")
-end
-
-function SkyboxModule.restaurar()
-    if not LightingOriginal then return end
-    for k, v in pairs(LightingOriginal) do
-        pcall(function() Lighting[k] = v end)
-    end
-end
-
-function SkyboxModule.ativar(ligado)
-    Estado.Skybox.Enabled = ligado
-    if ligado then
-        aplicarSkyboxPreset(Estado.Skybox.Current)
-        notificar("Skybox ativado", "good")
-    else
-        SkyboxModule.restaurar()
-        notificar("Skybox desativado", "bad")
-    end
-end
-
---====================================================================
--- MÓDULO: STRETCH SCREEN (FOV)
---====================================================================
-local StretchModule = {}
-local FOV_JITTER = 0
-local StretchConn = nil
-
-local function aplicarStretch()
-    if not Camera then return end
-    if not Estado.Stretch.Enabled or Estado.Stretch.Intensity == 0 then
-        pcall(function() Camera.FieldOfView = Estado.Stretch.BaseFOV end)
-        return
-    end
-    local extra = (Estado.Stretch.Intensity / 100) * 50
-    FOV_JITTER = (math.random() - 0.5) * 1.0
-    pcall(function()
-        Camera.FieldOfView = Estado.Stretch.BaseFOV + extra + FOV_JITTER
-    end)
-end
-
-function StretchModule.ativar(ligado)
-    Estado.Stretch.Enabled = ligado
-    aplicarStretch()
-    notificar(ligado and "Stretch ativado" or "Stretch desativado",
-              ligado and "good" or "bad")
-end
-
-function StretchModule.definirIntensidade(v)
-    Estado.Stretch.Intensity = v
-    aplicarStretch()
-end
-
-function StretchModule.resetar()
-    Estado.Stretch.Enabled = false
-    Estado.Stretch.Intensity = 0
-    if Camera then
-        pcall(function() Camera.FieldOfView = Estado.Stretch.BaseFOV end)
-    end
-end
-
-print("[VoidStrap] Bloco 3A/8 carregado.")--====================================================================
--- MÓDULO: FIRE TRAIL NA BOLA (efeito de fogo + trail + luz)
--- 100% local (client-side), não replica para o servidor.
---====================================================================
-
-Estado.FireTrail = Estado.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
-
-local FireTrailModule = {}
-local BolaAtual = nil
-local InstanciasAtivas = {}
-
--- ---------- PRESETS DE COR ----------
-local FIRE_PRESETS = {
-    ["Fogo Clássico"] = {
-        fire = Color3.fromRGB(255, 120, 30),
-        secondary = Color3.fromRGB(255, 60, 0),
-        trail = Color3.fromRGB(255, 180, 60),
-        trailMid = Color3.fromRGB(255, 80, 20),
-        light = Color3.fromRGB(255, 140, 40),
-        size = 6,
-    },
-    ["Fogo Azul"] = {
-        fire = Color3.fromRGB(80, 180, 255),
-        secondary = Color3.fromRGB(30, 90, 220),
-        trail = Color3.fromRGB(150, 210, 255),
-        trailMid = Color3.fromRGB(50, 130, 255),
-        light = Color3.fromRGB(100, 180, 255),
-        size = 6,
-    },
-    ["Fogo Roxo"] = {
-        fire = Color3.fromRGB(180, 80, 255),
-        secondary = Color3.fromRGB(120, 30, 220),
-        trail = Color3.fromRGB(210, 150, 255),
-        trailMid = Color3.fromRGB(140, 60, 255),
-        light = Color3.fromRGB(180, 100, 255),
-        size = 6,
-    },
-    ["Fogo Verde"] = {
-        fire = Color3.fromRGB(100, 255, 120),
-        secondary = Color3.fromRGB(30, 200, 60),
-        trail = Color3.fromRGB(160, 255, 180),
-        trailMid = Color3.fromRGB(50, 220, 100),
-        light = Color3.fromRGB(120, 255, 140),
-        size = 6,
-    },
-    ["Fogo Branco"] = {
-        fire = Color3.fromRGB(255, 255, 255),
-        secondary = Color3.fromRGB(220, 240, 255),
-        trail = Color3.fromRGB(255, 255, 255),
-        trailMid = Color3.fromRGB(200, 220, 255),
-        light = Color3.fromRGB(255, 255, 255),
-        size = 6,
-    },
-    ["Fogo Sombrio"] = {
-        fire = Color3.fromRGB(80, 20, 100),
-        secondary = Color3.fromRGB(30, 5, 40),
-        trail = Color3.fromRGB(150, 50, 200),
-        trailMid = Color3.fromRGB(80, 10, 120),
-        light = Color3.fromRGB(120, 30, 180),
-        size = 6,
-    },
-    ["Inferno"] = {
-        fire = Color3.fromRGB(255, 80, 0),
-        secondary = Color3.fromRGB(255, 220, 60),
-        trail = Color3.fromRGB(255, 160, 30),
-        trailMid = Color3.fromRGB(255, 60, 0),
-        light = Color3.fromRGB(255, 120, 20),
-        size = 8,
-    },
-}
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_FT = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola(name)
-    for _, n in ipairs(BALL_NAMES_FT) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function encontrarBola()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- LIMPEZA ----------
-local function limparEfeitos()
-    for _, inst in ipairs(InstanciasAtivas) do
-        pcall(function()
-            if inst and inst.Parent then inst:Destroy() end
-        end)
-    end
-    InstanciasAtivas = {}
-    BolaAtual = nil
-end
-
--- ---------- APLICAR EFEITOS ----------
-local function aplicarEfeitos(ball, presetName)
-    limparEfeitos()
-    if not ball or not ball.Parent then return end
-
-    local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
-    BolaAtual = ball
-
-    -- 1) Fire
-    local fire = Instance.new("Fire")
-    fire.Name = "VST_Fire"
-    fire.Color = p.fire
-    fire.SecondaryColor = p.secondary
-    fire.Size = p.size
-    fire.Heat = 15
-    fire.Parent = ball
-    table.insert(InstanciasAtivas, fire)
-
-    -- 2) Attachments pro Trail
-    local offsetY = math.max(ball.Size.Y * 0.5, 1)
-
-    local a0 = Instance.new("Attachment")
-    a0.Name = "VST_TrailA0"
-    a0.Position = Vector3.new(0, offsetY, 0)
-    a0.Parent = ball
-    table.insert(InstanciasAtivas, a0)
-
-    local a1 = Instance.new("Attachment")
-    a1.Name = "VST_TrailA1"
-    a1.Position = Vector3.new(0, -offsetY, 0)
-    a1.Parent = ball
-    table.insert(InstanciasAtivas, a1)
-
-    -- 3) Trail
-    local trail = Instance.new("Trail")
-    trail.Name = "VST_Trail"
-    trail.Attachment0 = a0
-    trail.Attachment1 = a1
-    trail.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0.0, p.trail),
-        ColorSequenceKeypoint.new(0.5, p.trailMid),
-        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0, 0, 0)),
-    })
-    trail.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.15),
-        NumberSequenceKeypoint.new(0.6, 0.65),
-        NumberSequenceKeypoint.new(1.0, 1.0),
-    })
-    trail.Lifetime = 0.7
-    trail.LightEmission = 1
-    trail.LightInfluence = 0
-    trail.FaceCamera = true
-    trail.Parent = ball
-    table.insert(InstanciasAtivas, trail)
-
-    -- 4) Faíscas
-    local sparks = Instance.new("ParticleEmitter")
-    sparks.Name = "VST_Sparks"
-    sparks.Color = ColorSequence.new(p.fire, p.secondary)
-    sparks.Size = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.6),
-        NumberSequenceKeypoint.new(1.0, 0.0),
-    })
-    sparks.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0.0, 0.1),
-        NumberSequenceKeypoint.new(1.0, 1.0),
-    })
-    sparks.Lifetime = NumberRange.new(0.4, 0.9)
-    sparks.Rate = 45
-    sparks.Speed = NumberRange.new(3, 7)
-    sparks.SpreadAngle = Vector2.new(180, 180)
-    sparks.LightEmission = 1
-    sparks.LightInfluence = 0
-    sparks.Parent = ball
-    table.insert(InstanciasAtivas, sparks)
-
-    -- 5) Luz
-    local light = Instance.new("PointLight")
-    light.Name = "VST_Light"
-    light.Brightness = 3
-    light.Range = 14
-    light.Color = p.light
-    light.Shadows = false
-    light.Parent = ball
-    table.insert(InstanciasAtivas, light)
-end
-
--- ---------- API PÚBLICA ----------
-function FireTrailModule.ativar(ligado)
-    Estado.FireTrail.Enabled = ligado
-    if ligado then
-        local ball = encontrarBola()
-        if ball then
-            aplicarEfeitos(ball, Estado.FireTrail.Preset)
-            notificar("Fire Trail ativado", "good")
-        else
-            notificar("Bola não encontrada", "bad")
-        end
-    else
-        limparEfeitos()
-        notificar("Fire Trail desativado", "bad")
-    end
-end
-
-function FireTrailModule.definirPreset(nome)
-    Estado.FireTrail.Preset = nome
-    if Estado.FireTrail.Enabled then
-        local ball = BolaAtual
-        if not ball or not ball.Parent then ball = encontrarBola() end
-        if ball then
-            aplicarEfeitos(ball, nome)
-            notificar("Rastro: " .. nome, "good")
-        end
-    end
-end
-
-function FireTrailModule.reconectar()
-    local ball = encontrarBola()
-    if ball then
-        aplicarEfeitos(ball, Estado.FireTrail.Preset)
-        notificar("Bola reconectada", "good")
-    else
-        notificar("Nenhuma bola encontrada", "bad")
-    end
-end
-
-function FireTrailModule.resetar()
-    Estado.FireTrail.Enabled = false
-    limparEfeitos()
-    notificar("Fire Trail resetado", "bad")
-end
-
--- ---------- LOOP DE RE-DETECÇÃO (leve, 1x/s) ----------
-task.spawn(function()
-    while task.wait(1) do
-        if Estado.FireTrail.Enabled then
-            if not BolaAtual or not BolaAtual.Parent then
-                local ball = encontrarBola()
-                if ball then
-                    aplicarEfeitos(ball, Estado.FireTrail.Preset)
-                end
-            end
-        end
-    end
-end)
-
---====================================================================
--- ABA FIRE TRAIL
---====================================================================
-criarAba("Fire Trail", "🔥")
-
-do
-    local page = Tabs["Fire Trail"].page
-
-    local sec = section("Rastro de Fogo na Bola")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Fire Trail", Estado.FireTrail.Enabled, function(on)
-        FireTrailModule.ativar(on)
-    end, 1)
-
-    dropdownRow(sec, "Estilo",
-        { "Fogo Clássico", "Fogo Azul", "Fogo Roxo", "Fogo Verde",
-          "Fogo Branco", "Fogo Sombrio", "Inferno" },
-        Estado.FireTrail.Preset,
-        function(opt) FireTrailModule.definirPreset(opt) end, 2)
-
-    buttonRow(sec, "Forçar busca da bola", function()
-        FireTrailModule.reconectar()
-    end, 3)
-
-    local info = criar("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 48),
-        BackgroundTransparency = 1,
-        Text = "Anexa fogo, trail, faíscas e luz na bola. 100% local e reversível.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = TemaAtivo.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 4,
-        Parent = sec,
-    })
-    comTema(info, "TextColor3", "Sub")
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Remover efeitos da bola", function()
-        FireTrailModule.resetar()
-    end, 1)
-end
-
--- Cleanup
-local _prevUnload_ft = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevUnload_ft then _prevUnload_ft() end
-    pcall(function() FireTrailModule.resetar() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() FireTrailModule.resetar() end)
-    end
-end)
-
-print("[VoidStrap] Bloco 5/8 carregado.")--====================================================================
 -- MÓDULO: ILUMINAÇÃO (ClockTime 1–30)
 --====================================================================
 local LightingModule = {}
@@ -2327,6 +2015,318 @@ end
 
 print("[VoidStrap] Bloco 4/8 carregado.")
 print(("[VoidStrap] %s inicializado com sucesso."):format(VERSAO))--====================================================================
+-- MÓDULO: FIRE TRAIL NA BOLA (efeito de fogo + trail + luz)
+-- 100% local (client-side), não replica para o servidor.
+--====================================================================
+
+Estado.FireTrail = Estado.FireTrail or { Enabled = false, Preset = "Fogo Clássico" }
+
+local FireTrailModule = {}
+local BolaAtual = nil
+local InstanciasAtivas = {}
+
+-- ---------- PRESETS DE COR ----------
+local FIRE_PRESETS = {
+    ["Fogo Clássico"] = {
+        fire = Color3.fromRGB(255, 120, 30),
+        secondary = Color3.fromRGB(255, 60, 0),
+        trail = Color3.fromRGB(255, 180, 60),
+        trailMid = Color3.fromRGB(255, 80, 20),
+        light = Color3.fromRGB(255, 140, 40),
+        size = 6,
+    },
+    ["Fogo Azul"] = {
+        fire = Color3.fromRGB(80, 180, 255),
+        secondary = Color3.fromRGB(30, 90, 220),
+        trail = Color3.fromRGB(150, 210, 255),
+        trailMid = Color3.fromRGB(50, 130, 255),
+        light = Color3.fromRGB(100, 180, 255),
+        size = 6,
+    },
+    ["Fogo Roxo"] = {
+        fire = Color3.fromRGB(180, 80, 255),
+        secondary = Color3.fromRGB(120, 30, 220),
+        trail = Color3.fromRGB(210, 150, 255),
+        trailMid = Color3.fromRGB(140, 60, 255),
+        light = Color3.fromRGB(180, 100, 255),
+        size = 6,
+    },
+    ["Fogo Verde"] = {
+        fire = Color3.fromRGB(100, 255, 120),
+        secondary = Color3.fromRGB(30, 200, 60),
+        trail = Color3.fromRGB(160, 255, 180),
+        trailMid = Color3.fromRGB(50, 220, 100),
+        light = Color3.fromRGB(120, 255, 140),
+        size = 6,
+    },
+    ["Fogo Branco"] = {
+        fire = Color3.fromRGB(255, 255, 255),
+        secondary = Color3.fromRGB(220, 240, 255),
+        trail = Color3.fromRGB(255, 255, 255),
+        trailMid = Color3.fromRGB(200, 220, 255),
+        light = Color3.fromRGB(255, 255, 255),
+        size = 6,
+    },
+    ["Fogo Sombrio"] = {
+        fire = Color3.fromRGB(80, 20, 100),
+        secondary = Color3.fromRGB(30, 5, 40),
+        trail = Color3.fromRGB(150, 50, 200),
+        trailMid = Color3.fromRGB(80, 10, 120),
+        light = Color3.fromRGB(120, 30, 180),
+        size = 6,
+    },
+    ["Inferno"] = {
+        fire = Color3.fromRGB(255, 80, 0),
+        secondary = Color3.fromRGB(255, 220, 60),
+        trail = Color3.fromRGB(255, 160, 30),
+        trailMid = Color3.fromRGB(255, 60, 0),
+        light = Color3.fromRGB(255, 120, 20),
+        size = 8,
+    },
+}
+
+-- ---------- DETECÇÃO DA BOLA ----------
+local BALL_NAMES_FT = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function ehNomeBola(name)
+    for _, n in ipairs(BALL_NAMES_FT) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function encontrarBola()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and ehNomeBola(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- ---------- LIMPEZA ----------
+local function limparEfeitos()
+    for _, inst in ipairs(InstanciasAtivas) do
+        pcall(function()
+            if inst and inst.Parent then inst:Destroy() end
+        end)
+    end
+    InstanciasAtivas = {}
+    BolaAtual = nil
+end
+
+-- ---------- APLICAR EFEITOS ----------
+local function aplicarEfeitos(ball, presetName)
+    limparEfeitos()
+    if not ball or not ball.Parent then return end
+
+    local p = FIRE_PRESETS[presetName] or FIRE_PRESETS["Fogo Clássico"]
+    BolaAtual = ball
+
+    -- 1) Fire
+    local fire = Instance.new("Fire")
+    fire.Name = "VST_Fire"
+    fire.Color = p.fire
+    fire.SecondaryColor = p.secondary
+    fire.Size = p.size
+    fire.Heat = 15
+    fire.Parent = ball
+    table.insert(InstanciasAtivas, fire)
+
+    -- 2) Attachments pro Trail
+    local offsetY = math.max(ball.Size.Y * 0.5, 1)
+
+    local a0 = Instance.new("Attachment")
+    a0.Name = "VST_TrailA0"
+    a0.Position = Vector3.new(0, offsetY, 0)
+    a0.Parent = ball
+    table.insert(InstanciasAtivas, a0)
+
+    local a1 = Instance.new("Attachment")
+    a1.Name = "VST_TrailA1"
+    a1.Position = Vector3.new(0, -offsetY, 0)
+    a1.Parent = ball
+    table.insert(InstanciasAtivas, a1)
+
+    -- 3) Trail
+    local trail = Instance.new("Trail")
+    trail.Name = "VST_Trail"
+    trail.Attachment0 = a0
+    trail.Attachment1 = a1
+    trail.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.0, p.trail),
+        ColorSequenceKeypoint.new(0.5, p.trailMid),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(0, 0, 0)),
+    })
+    trail.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0.0, 0.15),
+        NumberSequenceKeypoint.new(0.6, 0.65),
+        NumberSequenceKeypoint.new(1.0, 1.0),
+    })
+    trail.Lifetime = 0.7
+    trail.LightEmission = 1
+    trail.LightInfluence = 0
+    trail.FaceCamera = true
+    trail.Parent = ball
+    table.insert(InstanciasAtivas, trail)
+
+    -- 4) Faíscas
+    local sparks = Instance.new("ParticleEmitter")
+    sparks.Name = "VST_Sparks"
+    sparks.Color = ColorSequence.new(p.fire, p.secondary)
+    sparks.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0.0, 0.6),
+        NumberSequenceKeypoint.new(1.0, 0.0),
+    })
+    sparks.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0.0, 0.1),
+        NumberSequenceKeypoint.new(1.0, 1.0),
+    })
+    sparks.Lifetime = NumberRange.new(0.4, 0.9)
+    sparks.Rate = 45
+    sparks.Speed = NumberRange.new(3, 7)
+    sparks.SpreadAngle = Vector2.new(180, 180)
+    sparks.LightEmission = 1
+    sparks.LightInfluence = 0
+    sparks.Parent = ball
+    table.insert(InstanciasAtivas, sparks)
+
+    -- 5) Luz
+    local light = Instance.new("PointLight")
+    light.Name = "VST_Light"
+    light.Brightness = 3
+    light.Range = 14
+    light.Color = p.light
+    light.Shadows = false
+    light.Parent = ball
+    table.insert(InstanciasAtivas, light)
+end
+
+-- ---------- API PÚBLICA ----------
+function FireTrailModule.ativar(ligado)
+    Estado.FireTrail.Enabled = ligado
+    if ligado then
+        local ball = encontrarBola()
+        if ball then
+            aplicarEfeitos(ball, Estado.FireTrail.Preset)
+            notificar("Fire Trail ativado", "good")
+        else
+            notificar("Bola não encontrada", "bad")
+        end
+    else
+        limparEfeitos()
+        notificar("Fire Trail desativado", "bad")
+    end
+end
+
+function FireTrailModule.definirPreset(nome)
+    Estado.FireTrail.Preset = nome
+    if Estado.FireTrail.Enabled then
+        local ball = BolaAtual
+        if not ball or not ball.Parent then ball = encontrarBola() end
+        if ball then
+            aplicarEfeitos(ball, nome)
+            notificar("Rastro: " .. nome, "good")
+        end
+    end
+end
+
+function FireTrailModule.reconectar()
+    local ball = encontrarBola()
+    if ball then
+        aplicarEfeitos(ball, Estado.FireTrail.Preset)
+        notificar("Bola reconectada", "good")
+    else
+        notificar("Nenhuma bola encontrada", "bad")
+    end
+end
+
+function FireTrailModule.resetar()
+    Estado.FireTrail.Enabled = false
+    limparEfeitos()
+    notificar("Fire Trail resetado", "bad")
+end
+
+-- ---------- LOOP DE RE-DETECÇÃO (leve, 1x/s) ----------
+task.spawn(function()
+    while task.wait(1) do
+        if Estado.FireTrail.Enabled then
+            if not BolaAtual or not BolaAtual.Parent then
+                local ball = encontrarBola()
+                if ball then
+                    aplicarEfeitos(ball, Estado.FireTrail.Preset)
+                end
+            end
+        end
+    end
+end)
+
+--====================================================================
+-- ABA FIRE TRAIL
+--====================================================================
+criarAba("Fire Trail", "🔥")
+
+do
+    local page = Tabs["Fire Trail"].page
+
+    local sec = section("Rastro de Fogo na Bola")
+    sec.Parent = page
+
+    toggleRow(sec, "Ativar Fire Trail", Estado.FireTrail.Enabled, function(on)
+        FireTrailModule.ativar(on)
+    end, 1)
+
+    dropdownRow(sec, "Estilo",
+        { "Fogo Clássico", "Fogo Azul", "Fogo Roxo", "Fogo Verde",
+          "Fogo Branco", "Fogo Sombrio", "Inferno" },
+        Estado.FireTrail.Preset,
+        function(opt) FireTrailModule.definirPreset(opt) end, 2)
+
+    buttonRow(sec, "Forçar busca da bola", function()
+        FireTrailModule.reconectar()
+    end, 3)
+
+    local info = criar("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundTransparency = 1,
+        Text = "Anexa fogo, trail, faíscas e luz na bola. 100% local e reversível.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = TemaAtivo.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 4,
+        Parent = sec,
+    })
+    comTema(info, "TextColor3", "Sub")
+
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Remover efeitos da bola", function()
+        FireTrailModule.resetar()
+    end, 1)
+end
+
+-- Cleanup
+local _prevUnload_ft = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevUnload_ft then _prevUnload_ft() end
+    pcall(function() FireTrailModule.resetar() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() FireTrailModule.resetar() end)
+    end
+end)
+
+print("[VoidStrap] Bloco 5/8 carregado.")--====================================================================
 -- MÓDULO: AUTO FOLLOW (núcleo com BodyVelocity)
 --====================================================================
 
@@ -2820,2212 +2820,948 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] Bloco 6/8 carregado.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 7/8: Chars
-]]
-
+print("[VoidStrap] Bloco 6/8 carregado.")--====================================================================
+-- PARTE 7 — CHARS
 --====================================================================
--- HELPERS DE UI (Criação de Abas, Seções e Botões)
---====================================================================
-local Paginas = {}
-local BotoesAbas = {}
+do
+    local pagChars = criarAba("Chars", "CH")
+    local secInfoChars = section("Aplicar Char via Chat")
+    secInfoChars.Parent = pagChars
 
--- Função para criar uma nova aba no menu lateral
-local function criarAba(nome, icone, ordem)
-    -- Botão da aba na Sidebar
-    local btnAba = criar("TextButton", {
-        Size = UDim2.new(1, 0, 0, 34),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BackgroundTransparency = 0.5,
-        BorderSizePixel = 0,
-        Text = "  " .. icone .. "  " .. nome,
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
+    local infoChars = criar("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "Clique em um char para enviar automaticamente o comando :char NOME no chat.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
         TextColor3 = TemaAtivo.Sub,
+        TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = ordem or 1,
-        AutoButtonColor = false,
-        Parent = Sidebar,
+        LayoutOrder = 1,
+        Parent = secInfoChars,
     })
-    comTema(btnAba, "BackgroundColor3", "Surface2")
-    comTema(btnAba, "TextColor3", "Sub")
-    canto(7, btnAba)
+    comTema(infoChars, "TextColor3", "Sub")
 
-    -- Página correspondente no Content
-    local pagina = criar("ScrollingFrame", {
-        Size = UDim2.fromScale(1, 1),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ScrollBarThickness = 3,
-        ScrollBarImageColor3 = TemaAtivo.Accent,
-        ScrollBarImageTransparency = 0.5,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        Visible = false,
-        Parent = Content,
-    })
-    espacamento(6, pagina, 6, 6, 6, 6)
-    criar("UIListLayout", {
-        Padding = UDim.new(0, 10),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = pagina,
-    })
+    local LISTA_CHARS = {
+        "MiguelCalebeGamer202", "guto785662", "beastsxc", "89felip3",
+        "guto_01games", "feliou23", "LeozzinnTxz", "aerovah",
+        "novaes_wc", "GHOST_INFINITI07", "16alvez", "mikaelfacada10",
+        "keny_tcs", "3qu", "hel", "phzin123271", "portuga_xz3",
+        "j12ufdo", "shadow_samuel1347k", "131felipe6", "mnbzzaicsn",
+        "careca12492", "sunno_mm2", "rangeamandio", "rosa_skillsz",
+        "DAVILUCASPLU2VC", "rayagaj3", "Felliou", "ythek9on1",
+        "Bernardow_w", "Samblox_Xd", "mica1203ely5",
+    }
 
-    table.insert(Paginas, pagina)
-    table.insert(BotoesAbas, btnAba)
-
-    -- Lógica de troca de abas
-    btnAba.MouseButton1Click:Connect(function()
-        tocarClique()
-        for _, p in ipairs(Paginas) do p.Visible = false end
-        for _, b in ipairs(BotoesAbas) do
-            animar(b, 0.2, { BackgroundColor3 = TemaAtivo.Surface2, TextColor3 = TemaAtivo.Sub })
-            b.BackgroundTransparency = 0.5
-        end
-        pagina.Visible = true
-        animar(btnAba, 0.2, { BackgroundColor3 = TemaAtivo.Accent, TextColor3 = TemaAtivo.Text })
-        btnAba.BackgroundTransparency = 0
-    end)
-
-    return pagina
-end
-
--- Função para criar uma seção (caixa com título)
-local function criarSecao(titulo, parent)
-    local frame = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-        BackgroundColor3 = TemaAtivo.Surface,
-        BackgroundTransparency = 0.3,
-        BorderSizePixel = 0,
-        Parent = parent,
-    })
-    comTema(frame, "BackgroundColor3", "Surface")
-    canto(10, frame)
-    contorno(TemaAtivo.Stroke, 1, 0.5, frame)
-    espacamento(12, frame)
-
-    criar("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 20),
-        BackgroundTransparency = 1,
-        Text = titulo,
-        Font = Enum.Font.GothamBold,
-        TextSize = 13,
-        TextColor3 = TemaAtivo.Accent,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = frame,
-    })
-    comTema(frame:FindFirstChildOfClass("TextLabel"), "TextColor3", "Accent")
-
-    local container = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 26),
-        Parent = frame,
-    })
-    criar("UIListLayout", {
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = container,
-    })
-
-    return container
-end
-
--- Função para criar botão de linha (lista)
-local function criarBotaoLinha(parent, texto, callback, ordem)
-    local btn = criar("TextButton", {
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BackgroundTransparency = 0.4,
-        BorderSizePixel = 0,
-        Text = "  " .. texto,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = ordem or 1,
-        AutoButtonColor = false,
-        Parent = parent,
-    })
-    comTema(btn, "BackgroundColor3", "Surface2")
-    comTema(btn, "TextColor3", "Text")
-    canto(6, btn)
-
-    btn.MouseEnter:Connect(function()
-        animar(btn, 0.15, { BackgroundColor3 = TemaAtivo.Surface3, BackgroundTransparency = 0 })
-    end)
-    btn.MouseLeave:Connect(function()
-        animar(btn, 0.15, { BackgroundColor3 = TemaAtivo.Surface2, BackgroundTransparency = 0.4 })
-    end)
-    btn.MouseButton1Click:Connect(function()
-        tocarClique()
-        if callback then callback() end
-    end)
-    return btn
-end
-
---====================================================================
--- MÓDULO CHARS (Lógica)
---====================================================================
-Estado.Chars = Estado.Chars or { Ativado = true }
-local ModuloChars = {}
-
--- Lista de Chars
-local LISTA_CHARS = {
-    "MiguelCalebeGamer202", "guto785662", "beastsxc", "89felip3",
-    "guto_01games", "feliou23", "LeozzinnTxz", "aerovah",
-    "novaes_wc", "GHOST_INFINITI07", "16alvez", "mikaelfacada10",
-    "keny_tcs", "3qu", "hel", "phzin123271", "portuga_xz3",
-    "j12ufdo", "shadow_samuel1347k", "131felipe6", "mnbzzaicsn",
-    "careca12492", "sunno_mm2", "rangeamandio", "rosa_skillsz",
-    "DAVILUCASPLU2VC", "rayagaj3", "Felliou", "ythek9on1",
-    "Bernardow_w", "Samblox_Xd", "mica1203ely5",
-}
-
--- Função para enviar mensagem no chat
-local function enviarMensagemChat(msg)
-    local sucesso = false
-
-    -- Tentativa 1: Chat antigo
-    pcall(function()
-        local RS = game:GetService("ReplicatedStorage")
-        local eventos = RS:FindFirstChild("DefaultChatSystemChatEvents")
-        if eventos then
-            local say = eventos:FindFirstChild("SayMessageRequest")
-            if say then
-                say:FireServer(msg, "All")
-                sucesso = true
-            end
-        end
-    end)
-
-    -- Tentativa 2: TextChatService (novo)
-    if not sucesso then
+    local function enviarChat(msg)
+        local ok = false
         pcall(function()
-            local TCS = game:GetService("TextChatService")
-            if TCS and TCS.ChatVersion == Enum.ChatVersion.TextChatService then
-                local canais = TCS:FindFirstChild("TextChannels")
-                if canais then
-                    local geral = canais:FindFirstChild("RBXGeneral")
-                    if geral then
-                        geral:SendAsync(msg)
-                        sucesso = true
+            local RS = game:GetService("ReplicatedStorage")
+            local ev = RS:FindFirstChild("DefaultChatSystemChatEvents")
+            if ev then
+                local say = ev:FindFirstChild("SayMessageRequest")
+                if say then say:FireServer(msg, "All"); ok = true end
+            end
+        end)
+        if not ok then
+            pcall(function()
+                local TCS = game:GetService("TextChatService")
+                if TCS.ChatVersion == Enum.ChatVersion.TextChatService then
+                    local canais = TCS:FindFirstChild("TextChannels")
+                    if canais then
+                        local geral = canais:FindFirstChild("RBXGeneral")
+                        if geral then geral:SendAsync(msg); ok = true end
                     end
                 end
-            end
-        end)
-    end
-
-    return sucesso
-end
-
--- API do Módulo
-function ModuloChars.aplicar(nomeChar)
-    if not nomeChar or nomeChar == "" then return end
-    local cmd = ":char " .. nomeChar
-    if enviarMensagemChat(cmd) then
-        notificar("Char aplicado: " .. nomeChar, "good")
-    else
-        notificar("Falha ao enviar comando", "bad")
-    end
-end
-
-function ModuloChars.aplicarPorId(id)
-    if not id or id == "" then return end
-    local cmd = ":char " .. id
-    if enviarMensagemChat(cmd) then
-        notificar("Char ID aplicado: " .. id, "good")
-    else
-        notificar("Falha ao enviar comando", "bad")
-    end
-end
-
---====================================================================
--- CRIAÇÃO DA INTERFACE DA ABA CHARS
---====================================================================
-local paginaChars = criarAba("Chars", "CH", 10)
-
--- Seção de Informação
-local secInfo = criarSecao("Aplicar Char via Chat", paginaChars)
-criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 40),
-    BackgroundTransparency = 1,
-    Text = "Clique em um char para enviar automaticamente o comando :char NOME no chat.",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    Parent = secInfo,
-})
-comTema(secInfo:FindFirstChildOfClass("TextLabel"), "TextColor3", "Sub")
-
--- Seção de ID Customizado
-local secId = criarSecao("Char por ID", paginaChars)
-local inputFrame = criar("Frame", {
-    Size = UDim2.new(1, 0, 0, 36),
-    BackgroundColor3 = TemaAtivo.Surface2,
-    BorderSizePixel = 0,
-    Parent = secId,
-})
-comTema(inputFrame, "BackgroundColor3", "Surface2")
-canto(8, inputFrame)
-
-local caixaTexto = criar("TextBox", {
-    Size = UDim2.new(1, -100, 1, 0),
-    Position = UDim2.new(0, 10, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "",
-    PlaceholderText = "Digite o ID do char...",
-    PlaceholderColor3 = TemaAtivo.Sub,
-    Font = Enum.Font.GothamMedium,
-    TextSize = 12,
-    TextColor3 = TemaAtivo.Text,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    ClearTextOnFocus = false,
-    Parent = inputFrame,
-})
-comTema(caixaTexto, "TextColor3", "Text")
-comTema(caixaTexto, "PlaceholderColor3", "Sub")
-
--- Botão para aplicar ID
-local btnAplicarId = criar("TextButton", {
-    Size = UDim2.fromOffset(80, 26),
-    Position = UDim2.new(1, -90, 0.5, -13),
-    BackgroundColor3 = TemaAtivo.Accent,
-    BorderSizePixel = 0,
-    Text = "Aplicar",
-    Font = Enum.Font.GothamBold,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Text,
-    AutoButtonColor = false,
-    Parent = inputFrame,
-})
-comTema(btnAplicarId, "BackgroundColor3", "Accent")
-canto(6, btnAplicarId)
-
-btnAplicarId.MouseButton1Click:Connect(function()
-    tocarClique()
-    local id = caixaTexto.Text
-    if id and id ~= "" then
-        ModuloChars.aplicarPorId(id)
-    else
-        notificar("Digite um ID primeiro", "bad")
-    end
-end)
-
--- Seção da Lista de Chars
-local secLista = criarSecao("Lista de Chars", paginaChars)
-for i, nome in ipairs(LISTA_CHARS) do
-    criarBotaoLinha(secLista, nome, function()
-        ModuloChars.aplicar(nome)
-    end, i)
-end
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevChars = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevChars then _prevChars() end
-    -- Limpeza específica de Chars se necessário
-end
-
-print("[VoidStrap] Parte 7/8 (Chars) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 8/8: Custom Ball
-]]
-
---====================================================================
--- HELPERS DE UI (Toggle e Dropdown)
---====================================================================
-local function criarToggle(parent, texto, valorInicial, callback, ordem)
-    local ativo = valorInicial
-    local frame = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        LayoutOrder = ordem or 1,
-        Parent = parent,
-    })
-
-    criar("TextLabel", {
-        Size = UDim2.new(1, -50, 1, 0),
-        BackgroundTransparency = 1,
-        Text = texto,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = frame,
-    })
-    comTema(frame:FindFirstChildOfClass("TextLabel"), "TextColor3", "Text")
-
-    local btn = criar("TextButton", {
-        Size = UDim2.fromOffset(40, 22),
-        Position = UDim2.new(1, -40, 0.5, -11),
-        BackgroundColor3 = ativo and TemaAtivo.Good or TemaAtivo.Surface3,
-        BorderSizePixel = 0,
-        Text = "",
-        AutoButtonColor = false,
-        Parent = frame,
-    })
-    canto(11, btn)
-
-    local knob = criar("Frame", {
-        Size = UDim2.fromOffset(16, 16),
-        Position = ativo and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8),
-        BackgroundColor3 = TemaAtivo.Text,
-        BorderSizePixel = 0,
-        Parent = btn,
-    })
-    canto(8, knob)
-
-    btn.MouseButton1Click:Connect(function()
-        tocarClique()
-        ativo = not ativo
-        animar(btn, 0.2, { BackgroundColor3 = ativo and TemaAtivo.Good or TemaAtivo.Surface3 })
-        animar(knob, 0.2, { Position = ativo and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8) })
-        if callback then callback(ativo) end
-    end)
-    return frame
-end
-
-local function criarDropdown(parent, texto, opcoes, valorInicial, callback, ordem)
-    local frame = criar("Frame", {
-        Size = UDim2.new(1, 0, 0, 32),
-        BackgroundTransparency = 1,
-        LayoutOrder = ordem or 1,
-        Parent = parent,
-    })
-
-    criar("TextLabel", {
-        Size = UDim2.new(0.4, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = texto,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = frame,
-    })
-    comTema(frame:FindFirstChildOfClass("TextLabel"), "TextColor3", "Text")
-
-    local btn = criar("TextButton", {
-        Size = UDim2.new(0.6, 0, 1, 0),
-        Position = UDim2.new(0.4, 0, 0, 0),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BorderSizePixel = 0,
-        Text = valorInicial,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 11,
-        TextColor3 = TemaAtivo.Text,
-        Parent = frame,
-    })
-    comTema(btn, "BackgroundColor3", "Surface2")
-    comTema(btn, "TextColor3", "Text")
-    canto(6, btn)
-
-    local aberto = false
-    local lista = criar("Frame", {
-        Size = UDim2.new(0.6, 0, 0, 0),
-        Position = UDim2.new(0.4, 0, 1, 2),
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BorderSizePixel = 0,
-        Visible = false,
-        ZIndex = 100,
-        Parent = frame,
-    })
-    canto(6, lista)
-    criar("UIListLayout", { Padding = UDim.new(0, 2), Parent = lista })
-
-    for _, opt in ipairs(opcoes) do
-        local optBtn = criar("TextButton", {
-            Size = UDim2.new(1, 0, 0, 26),
-            BackgroundTransparency = 1,
-            Text = opt,
-            Font = Enum.Font.Gotham,
-            TextSize = 11,
-            TextColor3 = TemaAtivo.Sub,
-            Parent = lista,
-        })
-        optBtn.MouseButton1Click:Connect(function()
-            tocarClique()
-            btn.Text = opt
-            lista.Visible = false
-            aberto = false
-            if callback then callback(opt) end
-        end)
-    end
-
-    btn.MouseButton1Click:Connect(function()
-        tocarClique()
-        aberto = not aberto
-        lista.Visible = aberto
-        if aberto then
-            lista.Size = UDim2.new(0.6, 0, 0, #opcoes * 28)
-        end
-    end)
-    return frame
-end
-
---====================================================================
--- MÓDULO: CUSTOM BALL
---====================================================================
-Estado.CustomBall = Estado.CustomBall or {
-    Enabled = false,
-    Color = Color3.fromRGB(255, 255, 255),
-    Material = "SmoothPlastic",
-}
-
-local BALL_NAMES = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola(name)
-    for _, n in ipairs(BALL_NAMES) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBola()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
-local CustomBallModule = {}
-local CB_CachedBall = nil
-local CB_Conn = nil
-
-local function aplicarCustomBall()
-    if not Estado.CustomBall.Enabled then return end
-
-    if not CB_CachedBall or not CB_CachedBall.Parent then
-        CB_CachedBall = buscarBola()
-    end
-
-    local bola = CB_CachedBall
-    if not bola then return end
-
-    pcall(function()
-        bola.Color = Estado.CustomBall.Color
-        bola.Material = Enum.Material[Estado.CustomBall.Material]
-    end)
-
-    local mesh = bola:FindFirstChildOfClass("SpecialMesh") or bola:FindFirstChildOfClass("Mesh")
-    if mesh then
-        pcall(function()
-            mesh.VertexColor = Estado.CustomBall.Color
-        end)
-    end
-end
-
-function CustomBallModule.ativar(ligado)
-    Estado.CustomBall.Enabled = ligado
-    if ligado then
-        if CB_Conn then CB_Conn:Disconnect() end
-        CB_Conn = RunService.Heartbeat:Connect(aplicarCustomBall)
-        notificar("Custom Ball ativado", "good")
-    else
-        if CB_Conn then CB_Conn:Disconnect(); CB_Conn = nil end
-        CB_CachedBall = nil
-        notificar("Custom Ball desativado", "bad")
-    end
-end
-
-function CustomBallModule.definirCor(cor)
-    Estado.CustomBall.Color = cor
-    aplicarCustomBall()
-    notificar("Cor da bola alterada", "good")
-end
-
-function CustomBallModule.definirMaterial(mat)
-    Estado.CustomBall.Material = mat
-    aplicarCustomBall()
-    notificar("Material da bola alterado", "good")
-end
-
-function CustomBallModule.restaurarOriginal()
-    Estado.CustomBall.Enabled = false
-    if CB_Conn then CB_Conn:Disconnect(); CB_Conn = nil end
-    if CB_CachedBall and CB_CachedBall.Parent then
-        pcall(function()
-            CB_CachedBall.Color = Color3.fromRGB(255, 255, 255)
-            CB_CachedBall.Material = Enum.Material.SmoothPlastic
-        end)
-    end
-    CB_CachedBall = nil
-    notificar("Bola restaurada", "good")
-end
-
---====================================================================
--- ABA: BOLA CUSTOM
---====================================================================
-local paginaCB = criarAba("Bola Custom", "BC", 20)
-
-local secCor = criarSecao("Aparência da Bola", paginaCB)
-
-criarToggle(secCor, "Ativar Custom Ball", Estado.CustomBall.Enabled, function(on)
-    CustomBallModule.ativar(on)
-end, 1)
-
--- Cores disponíveis
-local coresDisponiveis = {
-    ["Branco"]   = Color3.fromRGB(255, 255, 255),
-    ["Preto"]    = Color3.fromRGB(0, 0, 0),
-    ["Vermelho"] = Color3.fromRGB(255, 50, 50),
-    ["Azul"]     = Color3.fromRGB(50, 150, 255),
-    ["Verde"]    = Color3.fromRGB(50, 255, 100),
-    ["Amarelo"]  = Color3.fromRGB(255, 255, 50),
-    ["Roxo"]     = Color3.fromRGB(180, 50, 255),
-    ["Rosa"]     = Color3.fromRGB(255, 100, 200),
-    ["Ciano"]    = Color3.fromRGB(0, 255, 255),
-    ["Laranja"]  = Color3.fromRGB(255, 150, 0),
-}
-
-local nomesCores = {}
-for nome, _ in pairs(coresDisponiveis) do
-    table.insert(nomesCores, nome)
-end
-table.sort(nomesCores)
-
-criarDropdown(secCor, "Cor da Bola", nomesCores, "Branco", function(opt)
-    if coresDisponiveis[opt] then
-        CustomBallModule.definirCor(coresDisponiveis[opt])
-    end
-end, 2)
-
--- Materiais disponíveis
-local materiaisDisponiveis = {
-    "SmoothPlastic", "Neon", "Metal", "Glass", "ForceField", "Ice"
-}
-
-criarDropdown(secCor, "Material", materiaisDisponiveis, "SmoothPlastic", function(opt)
-    CustomBallModule.definirMaterial(opt)
-end, 3)
-
--- Seção de restauração
-local secResetCB = criarSecao("Restaurar Bola", paginaCB)
-
-criarBotaoLinha(secResetCB, "Restaurar cor original", function()
-    CustomBallModule.restaurarOriginal()
-end, 1)
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevUnload_cb = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevUnload_cb then _prevUnload_cb() end
-    pcall(function()
-        CustomBallModule.ativar(false)
-    end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function()
-            CustomBallModule.ativar(false)
-        end)
-    end
-end)
-
-print("[VoidStrap] Parte 8/8 (Custom Ball) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 9: Boom Box (Música)
-]]
-
---====================================================================
--- MÓDULO: BOOM BOX
---====================================================================
-Estado.BoomBox = Estado.BoomBox or {
-    Enabled = false,
-    Volume = 1.0,
-    Looped = true,
-    Target = "Player",   -- "Player" ou "Ball"
-    CurrentTrack = nil,
-    CurrentTrackName = "Nenhuma",
-}
-
-local BoomBoxModule = {}
-local BB_Sound = nil
-local BB_CurrentTarget = nil
-local BB_Conn = nil
-
--- ---------- LISTA DE MÚSICAS ----------
-local BOOMBOX_TRACKS = {
-    { name = "Nenhuma",            id = nil },
-    { name = "BrooklynBloodPop",   id = "96414211708215" },
-    { name = "Sometimes",          id = "128715303988843" },
-    { name = "Meant to Be",        id = "121397051787416" },
-    { name = "Ilusionary",         id = "87570666848900" },
-    { name = "I'm So Fed Up",      id = "103072508653269" },
-    { name = "Super Funk",         id = "107835682687645" },
-}
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_9 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola9(name)
-    for _, n in ipairs(BALL_NAMES_9) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBola9()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola9(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- CRIAR SOUND ----------
-local function destruirSom()
-    if BB_Sound and BB_Sound.Parent then
-        pcall(function() BB_Sound:Destroy() end)
-    end
-    BB_Sound = nil
-    BB_CurrentTarget = nil
-end
-
-local function criarSomEm(alvo)
-    if not alvo then return end
-    if BB_Sound and BB_Sound.Parent == alvo then return end
-
-    destruirSom()
-
-    BB_Sound = Instance.new("Sound")
-    BB_Sound.Name = "VST_BoomBox"
-    BB_Sound.Volume = Estado.BoomBox.Volume
-    BB_Sound.Looped = Estado.BoomBox.Looped
-    BB_Sound.RollOffMaxDistance = 200
-    BB_Sound.RollOffMinDistance = 5
-    BB_Sound.RollOffMode = Enum.RollOffMode.InverseTapered
-    BB_Sound.Parent = alvo
-    BB_CurrentTarget = alvo
-end
-
--- ---------- APLICAR FAIXA ----------
-local function aplicarFaixa(trackId)
-    if not BB_Sound then return end
-    if trackId then
-        pcall(function()
-            BB_Sound.SoundId = "rbxassetid://" .. tostring(trackId)
-            BB_Sound:Play()
-        end)
-    else
-        pcall(function() BB_Sound:Stop() end)
-    end
-end
-
--- ---------- LOOP ----------
-local function iniciarBB()
-    if BB_Conn then BB_Conn:Disconnect() end
-
-    BB_Conn = RunService.Heartbeat:Connect(function()
-        if not Estado.BoomBox.Enabled then return end
-
-        local alvo = nil
-        if Estado.BoomBox.Target == "Player" then
-            local char = LP.Character
-            alvo = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
-        else
-            alvo = buscarBola9()
-        end
-
-        if not alvo then
-            if BB_Sound and not BB_Sound.Parent then destruirSom() end
-            return
-        end
-
-        if not BB_Sound or BB_Sound.Parent ~= alvo then
-            criarSomEm(alvo)
-            if Estado.BoomBox.CurrentTrack then
-                aplicarFaixa(Estado.BoomBox.CurrentTrack)
-            end
-        end
-
-        if BB_Sound then
-            pcall(function()
-                BB_Sound.Volume = Estado.BoomBox.Volume
-                BB_Sound.Looped = Estado.BoomBox.Looped
             end)
         end
+        return ok
+    end
+
+    local function aplicarChar(nome)
+        if not nome or nome == "" then return end
+        if enviarChat(":char " .. nome) then
+            notificar("Char: " .. nome, "good")
+        else
+            notificar("Falha ao enviar", "bad")
+        end
+    end
+
+    local secLista = section("Lista de Chars")
+    secLista.Parent = pagChars
+    for i, nome in ipairs(LISTA_CHARS) do
+        buttonRow(secLista, nome, function()
+            aplicarChar(nome)
+        end, i)
+    end
+
+    local secId = section("Char por ID")
+    secId.Parent = pagChars
+
+    local inputFrame = criar("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = TemaAtivo.Surface2,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = secId,
+    })
+    comTema(inputFrame, "BackgroundColor3", "Surface2")
+    canto(8, inputFrame)
+
+    local caixaTexto = criar("TextBox", {
+        Size = UDim2.new(1, -100, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Digite o ID do char...",
+        PlaceholderColor3 = TemaAtivo.Sub,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextColor3 = TemaAtivo.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = inputFrame,
+    })
+    comTema(caixaTexto, "TextColor3", "Text")
+    comTema(caixaTexto, "PlaceholderColor3", "Sub")
+
+    local btnId = criar("TextButton", {
+        Size = UDim2.fromOffset(80, 26),
+        Position = UDim2.new(1, -90, 0.5, -13),
+        BackgroundColor3 = TemaAtivo.Accent,
+        BorderSizePixel = 0,
+        Text = "Aplicar",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = TemaAtivo.Text,
+        AutoButtonColor = false,
+        Parent = inputFrame,
+    })
+    comTema(btnId, "BackgroundColor3", "Accent")
+    canto(6, btnId)
+
+    btnId.MouseButton1Click:Connect(function()
+        tocarClique()
+        aplicarChar(caixaTexto.Text)
     end)
 end
 
--- ---------- API ----------
-function BoomBoxModule.definirAtivo(ligado)
-    Estado.BoomBox.Enabled = ligado
-    if ligado then
-        iniciarBB()
-        notificar("Boom Box ativada", "good")
-    else
-        if BB_Conn then BB_Conn:Disconnect(); BB_Conn = nil end
-        destruirSom()
-        notificar("Boom Box desativada", "bad")
+print("[VoidStrap] Parte 7 (Chars) carregada.")--====================================================================
+-- PARTE 8 — CUSTOM BALL
+--====================================================================
+do
+    local EstadoCB = { Enabled = false, Color = Color3.fromRGB(255, 255, 255), Material = "SmoothPlastic" }
+    local CB_Ball = nil
+    local CB_Conn = nil
+
+    local BALL_NAMES_CB = {
+        "TPS", "ESA", "MRS", "PRS", "MPS",
+        "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+    }
+
+    local function ehBolaCB(name)
+        for _, n in ipairs(BALL_NAMES_CB) do
+            if name == n then return true end
+        end
+        return false
     end
+
+    local function buscarBolaCB()
+        local char = LP.Character
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and ehBolaCB(obj.Name) then
+                if not (char and obj:IsDescendantOf(char)) then
+                    return obj
+                end
+            end
+        end
+        return nil
+    end
+
+    local function aplicarCB()
+        if not EstadoCB.Enabled then return end
+        if not CB_Ball or not CB_Ball.Parent then CB_Ball = buscarBolaCB() end
+        local b = CB_Ball
+        if not b then return end
+        pcall(function()
+            b.Color = EstadoCB.Color
+            b.Material = Enum.Material[EstadoCB.Material]
+        end)
+        local mesh = b:FindFirstChildOfClass("SpecialMesh") or b:FindFirstChildOfClass("Mesh")
+        if mesh then pcall(function() mesh.VertexColor = EstadoCB.Color end) end
+    end
+
+    local pagCB = criarAba("Bola Custom", "BC")
+    local secCor = section("Aparência da Bola")
+    secCor.Parent = pagCB
+
+    toggleRow(secCor, "Ativar Custom Ball", false, function(on)
+        EstadoCB.Enabled = on
+        if on then
+            if CB_Conn then CB_Conn:Disconnect() end
+            CB_Conn = RunService.Heartbeat:Connect(aplicarCB)
+            notificar("Custom Ball ativado", "good")
+        else
+            if CB_Conn then CB_Conn:Disconnect(); CB_Conn = nil end
+            CB_Ball = nil
+            notificar("Custom Ball desativado", "bad")
+        end
+    end, 1)
+
+    local cores = {
+        ["Branco"]   = Color3.fromRGB(255, 255, 255),
+        ["Preto"]    = Color3.fromRGB(0, 0, 0),
+        ["Vermelho"] = Color3.fromRGB(255, 50, 50),
+        ["Azul"]     = Color3.fromRGB(50, 150, 255),
+        ["Verde"]    = Color3.fromRGB(50, 255, 100),
+        ["Amarelo"]  = Color3.fromRGB(255, 255, 50),
+        ["Roxo"]     = Color3.fromRGB(180, 50, 255),
+        ["Rosa"]     = Color3.fromRGB(255, 100, 200),
+        ["Ciano"]    = Color3.fromRGB(0, 255, 255),
+        ["Laranja"]  = Color3.fromRGB(255, 150, 0),
+    }
+    local nomesCores = {}
+    for nome, _ in pairs(cores) do table.insert(nomesCores, nome) end
+    table.sort(nomesCores)
+
+    dropdownRow(secCor, "Cor da Bola", nomesCores, "Branco", function(opt)
+        if cores[opt] then
+            EstadoCB.Color = cores[opt]
+            aplicarCB()
+            notificar("Cor: " .. opt, "good")
+        end
+    end, 2)
+
+    local mats = {"SmoothPlastic","Neon","Metal","Glass","ForceField","Ice"}
+    dropdownRow(secCor, "Material", mats, "SmoothPlastic", function(opt)
+        EstadoCB.Material = opt
+        aplicarCB()
+        notificar("Material: " .. opt, "good")
+    end, 3)
+
+    local secResetCB = section("Restaurar")
+    secResetCB.Parent = pagCB
+    buttonRow(secResetCB, "Restaurar cor original", function()
+        EstadoCB.Enabled = false
+        if CB_Conn then CB_Conn:Disconnect(); CB_Conn = nil end
+        if CB_Ball and CB_Ball.Parent then
+            pcall(function()
+                CB_Ball.Color = Color3.fromRGB(255, 255, 255)
+                CB_Ball.Material = Enum.Material.SmoothPlastic
+            end)
+        end
+        CB_Ball = nil
+        notificar("Bola restaurada", "good")
+    end, 1)
 end
 
-function BoomBoxModule.definirFaixa(nome)
-    for _, t in ipairs(BOOMBOX_TRACKS) do
-        if t.name == nome then
-            Estado.BoomBox.CurrentTrack = t.id
-            Estado.BoomBox.CurrentTrackName = nome
+print("[VoidStrap] Parte 8 (Custom Ball) carregada.")--====================================================================
+-- PARTE 9 — BOOM BOX
+--====================================================================
+do
+    local EstadoBB = {
+        Enabled = false, Volume = 1.0, Looped = true,
+        Target = "Player", CurrentTrack = nil,
+    }
+    local BB_Sound = nil
+    local BB_Conn = nil
+
+    local TRACKS_BB = {
+        { name = "Nenhuma",          id = nil },
+        { name = "BrooklynBloodPop", id = "96414211708215" },
+        { name = "Sometimes",        id = "128715303988843" },
+        { name = "Meant to Be",      id = "121397051787416" },
+        { name = "Ilusionary",       id = "87570666848900" },
+        { name = "I'm So Fed Up",    id = "103072508653269" },
+        { name = "Super Funk",       id = "107835682687645" },
+    }
+
+    local BALL_NAMES_BB = {
+        "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
+    }
+
+    local function ehBolaBB(name)
+        for _, n in ipairs(BALL_NAMES_BB) do
+            if name == n then return true end
+        end
+        return false
+    end
+
+    local function buscarBolaBB()
+        local char = LP.Character
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and ehBolaBB(obj.Name) then
+                if not (char and obj:IsDescendantOf(char)) then return obj end
+            end
+        end
+        return nil
+    end
+
+    local function destruirSom()
+        if BB_Sound and BB_Sound.Parent then pcall(function() BB_Sound:Destroy() end) end
+        BB_Sound = nil
+    end
+
+    local function criarSomEm(alvo)
+        if not alvo then return end
+        if BB_Sound and BB_Sound.Parent == alvo then return end
+        destruirSom()
+        BB_Sound = Instance.new("Sound")
+        BB_Sound.Name = "VST_BoomBox"
+        BB_Sound.Volume = EstadoBB.Volume
+        BB_Sound.Looped = EstadoBB.Looped
+        BB_Sound.RollOffMaxDistance = 200
+        BB_Sound.RollOffMinDistance = 5
+        BB_Sound.RollOffMode = Enum.RollOffMode.InverseTapered
+        BB_Sound.Parent = alvo
+    end
+
+    local function aplicarFaixa(id)
+        if not BB_Sound then return end
+        if id then
+            pcall(function()
+                BB_Sound.SoundId = "rbxassetid://" .. tostring(id)
+                BB_Sound:Play()
+            end)
+        else
+            pcall(function() BB_Sound:Stop() end)
+        end
+    end
+
+    local function iniciarBB()
+        if BB_Conn then BB_Conn:Disconnect() end
+        BB_Conn = RunService.Heartbeat:Connect(function()
+            if not EstadoBB.Enabled then return end
+            local alvo
+            if EstadoBB.Target == "Player" then
+                local char = LP.Character
+                alvo = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+            else
+                alvo = buscarBolaBB()
+            end
+            if not alvo then return end
+            if not BB_Sound or BB_Sound.Parent ~= alvo then
+                criarSomEm(alvo)
+                if EstadoBB.CurrentTrack then aplicarFaixa(EstadoBB.CurrentTrack) end
+            end
+            if BB_Sound then
+                pcall(function()
+                    BB_Sound.Volume = EstadoBB.Volume
+                    BB_Sound.Looped = EstadoBB.Looped
+                end)
+            end
+        end)
+    end
+
+    local pagBB = criarAba("Boom Box", "BB")
+    local secMain = section("Boom Box")
+    secMain.Parent = pagBB
+
+    toggleRow(secMain, "Ativar Boom Box", false, function(on)
+        EstadoBB.Enabled = on
+        if on then
+            iniciarBB()
+            notificar("Boom Box ativada", "good")
+        else
+            if BB_Conn then BB_Conn:Disconnect(); BB_Conn = nil end
+            destruirSom()
+            notificar("Boom Box desativada", "bad")
+        end
+    end, 1)
+
+    dropdownRow(secMain, "Tocar em", {"Player", "Ball"}, "Player", function(opt)
+        EstadoBB.Target = opt
+        destruirSom()
+        notificar("Alvo: " .. opt, "good")
+    end, 2)
+
+    sliderRow(secMain, "Volume (x100)", 0, 200, 100, function(v)
+        EstadoBB.Volume = v / 100
+        if BB_Sound then pcall(function() BB_Sound.Volume = EstadoBB.Volume end) end
+    end, 3)
+
+    toggleRow(secMain, "Loop", true, function(on)
+        EstadoBB.Looped = on
+        if BB_Sound then pcall(function() BB_Sound.Looped = on end) end
+    end, 4)
+
+    local secFaixas = section("Músicas")
+    secFaixas.Parent = pagBB
+    for i, t in ipairs(TRACKS_BB) do
+        buttonRow(secFaixas, t.name, function()
+            EstadoBB.CurrentTrack = t.id
             if t.id then
                 aplicarFaixa(t.id)
-                notificar("Tocando: " .. nome, "good")
+                notificar("Tocando: " .. t.name, "good")
             else
                 aplicarFaixa(nil)
                 notificar("Música parada", "bad")
             end
-            return
+        end, i)
+    end
+
+    local secIdBB = section("Tocar por ID")
+    secIdBB.Parent = pagBB
+
+    local inputBB = criar("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = TemaAtivo.Surface2,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = secIdBB,
+    })
+    comTema(inputBB, "BackgroundColor3", "Surface2")
+    canto(8, inputBB)
+
+    local caixaBB = criar("TextBox", {
+        Size = UDim2.new(1, -100, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Digite o ID da música...",
+        PlaceholderColor3 = TemaAtivo.Sub,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12,
+        TextColor3 = TemaAtivo.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = inputBB,
+    })
+    comTema(caixaBB, "TextColor3", "Text")
+    comTema(caixaBB, "PlaceholderColor3", "Sub")
+
+    local btnBB = criar("TextButton", {
+        Size = UDim2.fromOffset(80, 26),
+        Position = UDim2.new(1, -90, 0.5, -13),
+        BackgroundColor3 = TemaAtivo.Accent,
+        BorderSizePixel = 0,
+        Text = "Tocar",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = TemaAtivo.Text,
+        AutoButtonColor = false,
+        Parent = inputBB,
+    })
+    comTema(btnBB, "BackgroundColor3", "Accent")
+    canto(6, btnBB)
+
+    btnBB.MouseButton1Click:Connect(function()
+        tocarClique()
+        local id = tostring(caixaBB.Text or ""):gsub("%s", "")
+        id = id:gsub("rbxassetid://", "")
+        id = id:match("^%d+") or id
+        if id:match("^%d+$") then
+            EstadoBB.CurrentTrack = id
+            aplicarFaixa(id)
+            notificar("Tocando ID: " .. id, "good")
+        else
+            notificar("ID inválido", "bad")
         end
-    end
+    end)
 end
 
--- Tocar por ID customizado
-function BoomBoxModule.definirFaixaPorId(id)
-    id = tostring(id or ""):gsub("%s", "")
-    if id == "" then
-        notificar("Digite um ID válido", "bad")
-        return
-    end
-
-    -- Limpa se o usuário colar "rbxassetid://123"
-    id = id:gsub("rbxassetid://", "")
-    id = id:match("^%d+") or id
-
-    if not id:match("^%d+$") then
-        notificar("ID inválido (use apenas números)", "bad")
-        return
-    end
-
-    Estado.BoomBox.CurrentTrack = id
-    Estado.BoomBox.CurrentTrackName = "ID: " .. id
-    aplicarFaixa(id)
-    notificar("Tocando ID: " .. id, "good")
-end
-
-function BoomBoxModule.definirVolume(v)
-    Estado.BoomBox.Volume = v
-    if BB_Sound then
-        pcall(function() BB_Sound.Volume = v end)
-    end
-end
-
-function BoomBoxModule.definirLoop(ligado)
-    Estado.BoomBox.Looped = ligado
-    if BB_Sound then
-        pcall(function() BB_Sound.Looped = ligado end)
-    end
-end
-
-function BoomBoxModule.definirAlvo(alvo)
-    Estado.BoomBox.Target = alvo
-    destruirSom()
-    notificar("Alvo: " .. alvo, "good")
-end
-
-function BoomBoxModule.reconectar()
-    destruirSom()
-    notificar("Reconectado", "good")
-end
-
-function BoomBoxModule.resetar()
-    Estado.BoomBox.Enabled = false
-    Estado.BoomBox.CurrentTrack = nil
-    if BB_Conn then BB_Conn:Disconnect(); BB_Conn = nil end
-    destruirSom()
-    notificar("Boom Box resetada", "bad")
-end
-
+print("[VoidStrap] Parte 9 (Boom Box) carregada.")--====================================================================
+-- PARTE 10 — AUTO CATCH + REACH
 --====================================================================
--- ABA: BOOM BOX
---====================================================================
-local paginaBB = criarAba("Boom Box", "BB", 30)
+do
+    local EstadoAC = { Enabled = false, Distance = 8, Cooldown = 0.4 }
+    local EstadoRC = { Enabled = false, Distance = 6, Mode = "Toque Simples", Cooldown = 0.05 }
+    local AC_Conn, RC_Conn = nil, nil
+    local AC_Ultimo, RC_Ultimo = 0, 0
 
--- ---------- SEÇÃO PRINCIPAL ----------
-local secMain = criarSecao("Boom Box", paginaBB)
+    local BALL_NAMES_AC = {
+        "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
+    }
 
-criarToggle(secMain, "Ativar Boom Box", Estado.BoomBox.Enabled, function(ligado)
-    BoomBoxModule.definirAtivo(ligado)
-end, 1)
+    local function ehBolaAC(name)
+        for _, n in ipairs(BALL_NAMES_AC) do
+            if name == n then return true end
+        end
+        return false
+    end
 
-criarDropdown(secMain, "Tocar em", { "Player", "Ball" }, Estado.BoomBox.Target, function(opt)
-    BoomBoxModule.definirAlvo(opt)
-end, 2)
-
-criarSlider(secMain, "Volume (x100)", 0, 200, math.floor(Estado.BoomBox.Volume * 100), function(v)
-    BoomBoxModule.definirVolume(v / 100)
-end, 3)
-
-criarToggle(secMain, "Loop", Estado.BoomBox.Looped, function(ligado)
-    BoomBoxModule.definirLoop(ligado)
-end, 4)
-
-criarBotaoLinha(secMain, "Reconectar", function()
-    BoomBoxModule.reconectar()
-end, 5)
-
--- ---------- SEÇÃO DE MÚSICAS ----------
-local secFaixas = criarSecao("Músicas", paginaBB)
-
-for i, t in ipairs(BOOMBOX_TRACKS) do
-    criarBotaoLinha(secFaixas, t.name, function()
-        BoomBoxModule.definirFaixa(t.name)
-    end, i)
-end
-
--- ---------- SEÇÃO POR ID ----------
-local secId = criarSecao("Tocar por ID", paginaBB)
-
-local inputFrame = criar("Frame", {
-    Size = UDim2.new(1, 0, 0, 36),
-    BackgroundColor3 = TemaAtivo.Surface2,
-    BorderSizePixel = 0,
-    Parent = secId,
-})
-comTema(inputFrame, "BackgroundColor3", "Surface2")
-canto(8, inputFrame)
-
-local caixaTexto = criar("TextBox", {
-    Size = UDim2.new(1, -100, 1, 0),
-    Position = UDim2.new(0, 10, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "",
-    PlaceholderText = "Digite o ID da música...",
-    PlaceholderColor3 = TemaAtivo.Sub,
-    Font = Enum.Font.GothamMedium,
-    TextSize = 12,
-    TextColor3 = TemaAtivo.Text,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    ClearTextOnFocus = false,
-    Parent = inputFrame,
-})
-comTema(caixaTexto, "TextColor3", "Text")
-comTema(caixaTexto, "PlaceholderColor3", "Sub")
-
-local btnAplicarId = criar("TextButton", {
-    Size = UDim2.fromOffset(80, 26),
-    Position = UDim2.new(1, -90, 0.5, -13),
-    BackgroundColor3 = TemaAtivo.Accent,
-    BorderSizePixel = 0,
-    Text = "Tocar",
-    Font = Enum.Font.GothamBold,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Text,
-    AutoButtonColor = false,
-    Parent = inputFrame,
-})
-comTema(btnAplicarId, "BackgroundColor3", "Accent")
-canto(6, btnAplicarId)
-
-btnAplicarId.MouseButton1Click:Connect(function()
-    tocarClique()
-    BoomBoxModule.definirFaixaPorId(caixaTexto.Text)
-end)
-
-criarBotaoLinha(secId, "Colar ID do clipboard", function()
-    local ok, texto = pcall(function()
-        if setclipboard and getclipboard then
-            return getclipboard()
+    local function buscarBolaAC()
+        local char = LP.Character
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and ehBolaAC(obj.Name) then
+                if not (char and obj:IsDescendantOf(char)) then return obj end
+            end
         end
         return nil
-    end)
-    if ok and texto and texto ~= "" then
-        caixaTexto.Text = texto
-        notificar("ID colado", "good")
-    else
-        notificar("Não foi possível colar", "bad")
-    end
-end, 2)
-
--- ---------- AVISO ----------
-local aviso = criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 70),
-    BackgroundTransparency = 1,
-    Text = "Toca música no seu personagem ou na bola. Som local (só você ouve). Para outros ouvirem, o jogo precisa aceitar.",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    LayoutOrder = 99,
-    Parent = secFaixas,
-})
-comTema(aviso, "TextColor3", "Sub")
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevBB = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevBB then _prevBB() end
-    pcall(function() BoomBoxModule.resetar() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() BoomBoxModule.resetar() end)
-    end
-end)
-
-print("[VoidStrap] Parte 9 (Boom Box) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 10: Auto Catch
-]]
-
---====================================================================
--- MÓDULO: AUTO CATCH
---====================================================================
-Estado.AutoCatch = Estado.AutoCatch or {
-    Enabled = false,
-    Distance = 8,        -- distância máxima em studs para pegar a bola
-    Cooldown = 0.4,      -- tempo mínimo entre tentativas
-}
-
-local AutoCatchModule = {}
-local AC_Conn = nil
-local AC_UltimoCatch = 0
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_10 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola10(name)
-    for _, n in ipairs(BALL_NAMES_10) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBola10()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola10(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- PEGAR A BOLA (simula toque na mão) ----------
--- A maioria dos jogos de futebol do Roblox usa "TouchInterest" para pegar a bola
--- quando uma parte do corpo (geralmente as mãos) toca nela.
--- Vamos empurrar a bola suavemente em direção às mãos do jogador para ativar esse touch.
-
-local function obterMaoJogador()
-    local char = LP.Character
-    if not char then return nil end
-
-    -- Tenta pegar a mão direita ou esquerda
-    return char:FindFirstChild("RightHand")
-        or char:FindFirstChild("LeftHand")
-        or char:FindFirstChild("Right Arm")
-        or char:FindFirstChild("Left Arm")
-        or char:FindFirstChild("HumanoidRootPart")
-end
-
-local function tentarPegar(bola, mao)
-    if not bola or not mao then return end
-
-    -- Método 1: firetouchinterest (mais compatível)
-    if firetouchinterest then
-        pcall(function()
-            firetouchinterest(bola, mao, 0)
-            firetouchinterest(bola, mao, 1)
-        end)
     end
 
-    -- Método 2: firetouchinterest invertido (às vezes funciona melhor)
-    pcall(function()
-        if firetouchinterest then
-            firetouchinterest(mao, bola, 0)
-            firetouchinterest(mao, bola, 1)
-        end
-    end)
-
-    -- Método 3: empurrar a bola suavemente em direção à mão
-    pcall(function()
-        local direcao = (mao.Position - bola.Position)
-        if direcao.Magnitude > 0 then
-            bola.AssemblyLinearVelocity = direcao.Unit * math.min(direcao.Magnitude * 4, 30)
-        end
-    end)
-end
-
--- ---------- LOOP PRINCIPAL ----------
-local function iniciarAC()
-    if AC_Conn then AC_Conn:Disconnect() end
-
-    AC_Conn = RunService.Heartbeat:Connect(function()
-        if not Estado.AutoCatch.Enabled then return end
-
-        local agora = tick()
-        if (agora - AC_UltimoCatch) < Estado.AutoCatch.Cooldown then return end
-
+    local function obterMao()
         local char = LP.Character
-        if not char then return end
-
-        local humanoide = char:FindFirstChildOfClass("Humanoid")
-        if not humanoide or humanoide.Health <= 0 then return end
-
-        local mao = obterMaoJogador()
-        if not mao then return end
-
-        local bola = buscarBola10()
-        if not bola then return end
-
-        local distancia = (bola.Position - mao.Position).Magnitude
-        if distancia <= Estado.AutoCatch.Distance then
-            tentarPegar(bola, mao)
-            AC_UltimoCatch = agora
-        end
-    end)
-end
-
--- ---------- API ----------
-function AutoCatchModule.definirAtivo(ligado)
-    Estado.AutoCatch.Enabled = ligado
-    if ligado then
-        iniciarAC()
-        notificar("Auto Catch ativado", "good")
-    else
-        if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
-        notificar("Auto Catch desativado", "bad")
-    end
-end
-
-function AutoCatchModule.definirDistancia(v)
-    Estado.AutoCatch.Distance = v
-end
-
-function AutoCatchModule.resetar()
-    Estado.AutoCatch.Enabled = false
-    if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
-    notificar("Auto Catch resetado", "bad")
-end
-
---====================================================================
--- ABA: AUTO CATCH
---====================================================================
-local paginaAC = criarAba("Auto Catch", "AC", 40)
-
-local secAC = criarSecao("Auto Catch", paginaAC)
-
-criarToggle(secAC, "Ativar Auto Catch", Estado.AutoCatch.Enabled, function(ligado)
-    AutoCatchModule.definirAtivo(ligado)
-end, 1)
-
--- Slider para distância de pega
-criarSlider(secAC, "Auto Catch", 2, 25, Estado.AutoCatch.Distance, function(v)
-    AutoCatchModule.definirDistancia(v)
-end, 2)
-
--- Aviso informativo
-local avisoAC = criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 70),
-    BackgroundTransparency = 1,
-    Text = "Pega a bola automaticamente quando ela estiver dentro da distância configurada no slider. Funciona simulando o toque das mãos na bola.",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    LayoutOrder = 3,
-    Parent = secAC,
-})
-comTema(avisoAC, "TextColor3", "Sub")
-
--- Botão de reset
-local secReset = criarSecao("Restaurar", paginaAC)
-
-criarBotaoLinha(secReset, "Desativar Auto Catch", function()
-    AutoCatchModule.resetar()
-end, 1)
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevAC = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevAC then _prevAC() end
-    pcall(function() AutoCatchModule.resetar() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() AutoCatchModule.resetar() end)
-    end
-end)
-
-print("[VoidStrap] Parte 10 (Auto Catch) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 10: Auto Catch + Reach
-]]
-
---====================================================================
--- MÓDULO: AUTO CATCH
---====================================================================
-Estado.AutoCatch = Estado.AutoCatch or {
-    Enabled = false,
-    Distance = 8,
-    Cooldown = 0.4,
-}
-
-local AutoCatchModule = {}
-local AC_Conn = nil
-local AC_UltimoCatch = 0
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_10 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola10(name)
-    for _, n in ipairs(BALL_NAMES_10) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBola10()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola10(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- ---------- OBTER MÃO DO JOGADOR ----------
-local function obterMaoJogador()
-    local char = LP.Character
-    if not char then return nil end
-
-    return char:FindFirstChild("RightHand")
-        or char:FindFirstChild("LeftHand")
-        or char:FindFirstChild("Right Arm")
-        or char:FindFirstChild("Left Arm")
-        or char:FindFirstChild("HumanoidRootPart")
-end
-
--- ---------- TENTAR PEGAR ----------
-local function tentarPegar(bola, mao)
-    if not bola or not mao then return end
-
-    if firetouchinterest then
-        pcall(function()
-            firetouchinterest(bola, mao, 0)
-            firetouchinterest(bola, mao, 1)
-        end)
+        if not char then return nil end
+        return char:FindFirstChild("RightHand")
+            or char:FindFirstChild("LeftHand")
+            or char:FindFirstChild("Right Arm")
+            or char:FindFirstChild("Left Arm")
+            or char:FindFirstChild("HumanoidRootPart")
     end
 
-    pcall(function()
-        if firetouchinterest then
-            firetouchinterest(mao, bola, 0)
-            firetouchinterest(mao, bola, 1)
-        end
-    end)
-
-    pcall(function()
-        local direcao = (mao.Position - bola.Position)
-        if direcao.Magnitude > 0 then
-            bola.AssemblyLinearVelocity = direcao.Unit * math.min(direcao.Magnitude * 4, 30)
-        end
-    end)
-end
-
--- ---------- LOOP AUTO CATCH ----------
-local function iniciarAC()
-    if AC_Conn then AC_Conn:Disconnect() end
-
-    AC_Conn = RunService.Heartbeat:Connect(function()
-        if not Estado.AutoCatch.Enabled then return end
-
-        local agora = tick()
-        if (agora - AC_UltimoCatch) < Estado.AutoCatch.Cooldown then return end
-
+    local function obterPerna()
         local char = LP.Character
-        if not char then return end
-
-        local humanoide = char:FindFirstChildOfClass("Humanoid")
-        if not humanoide or humanoide.Health <= 0 then return end
-
-        local mao = obterMaoJogador()
-        if not mao then return end
-
-        local bola = buscarBola10()
-        if not bola then return end
-
-        local distancia = (bola.Position - mao.Position).Magnitude
-        if distancia <= Estado.AutoCatch.Distance then
-            tentarPegar(bola, mao)
-            AC_UltimoCatch = agora
-        end
-    end)
-end
-
--- ---------- API AUTO CATCH ----------
-function AutoCatchModule.definirAtivo(ligado)
-    Estado.AutoCatch.Enabled = ligado
-    if ligado then
-        iniciarAC()
-        notificar("Auto Catch ativado", "good")
-    else
-        if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
-        notificar("Auto Catch desativado", "bad")
+        if not char then return nil end
+        return char:FindFirstChild("Right Leg")
+            or char:FindFirstChild("Left Leg")
+            or char:FindFirstChild("RightFoot")
+            or char:FindFirstChild("LeftFoot")
+            or char:FindFirstChild("HumanoidRootPart")
     end
-end
 
-function AutoCatchModule.definirDistancia(v)
-    Estado.AutoCatch.Distance = v
-end
+    local pagAC = criarAba("Auto Catch", "AC")
 
-function AutoCatchModule.resetar()
-    Estado.AutoCatch.Enabled = false
-    if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
-    notificar("Auto Catch resetado", "bad")
-end
+    local secAC = section("Auto Catch")
+    secAC.Parent = pagAC
 
---====================================================================
--- MÓDULO: REACH
---====================================================================
-Estado.Reach = Estado.Reach or {
-    Enabled = false,
-    Distance = 6,
-    Mode = "Toque Simples",   -- "Toque Simples" ou "Empurrão Contínuo"
-    Cooldown = 0.05,
-}
-
-local ReachModule = {}
-local RC_Conn = nil
-local RC_UltimoToque = 0
-
-local function obterPernaJogador()
-    local char = LP.Character
-    if not char then return nil end
-
-    return char:FindFirstChild("Right Leg")
-        or char:FindFirstChild("Left Leg")
-        or char:FindFirstChild("RightFoot")
-        or char:FindFirstChild("LeftFoot")
-        or char:FindFirstChild("HumanoidRootPart")
-end
-
-local function tocarBola(bola, parte)
-    if not bola or not parte then return end
-
-    if firetouchinterest then
-        pcall(function()
-            firetouchinterest(bola, parte, 0)
-            firetouchinterest(bola, parte, 1)
-        end)
-    end
-end
-
-local function iniciarReach()
-    if RC_Conn then RC_Conn:Disconnect() end
-
-    RC_Conn = RunService.Heartbeat:Connect(function()
-        if not Estado.Reach.Enabled then return end
-
-        local agora = tick()
-        if (agora - RC_UltimoToque) < Estado.Reach.Cooldown then return end
-
-        local char = LP.Character
-        if not char then return end
-
-        local parte = obterPernaJogador()
-        if not parte then return end
-
-        local bola = buscarBola10()
-        if not bola then return end
-
-        local distancia = (bola.Position - parte.Position).Magnitude
-
-        if distancia <= Estado.Reach.Distance then
-            tocarBola(bola, parte)
-
-            -- Modo empurrão: aplica velocidade extra na bola
-            if Estado.Reach.Mode == "Empurrão Contínuo" then
-                pcall(function()
-                    local direcao = (parte.Position - bola.Position)
-                    if direcao.Magnitude > 0 then
-                        bola.AssemblyLinearVelocity = direcao.Unit * 25
+    toggleRow(secAC, "Ativar Auto Catch", false, function(on)
+        EstadoAC.Enabled = on
+        if on then
+            if AC_Conn then AC_Conn:Disconnect() end
+            AC_Conn = RunService.Heartbeat:Connect(function()
+                if not EstadoAC.Enabled then return end
+                local agora = tick()
+                if (agora - AC_Ultimo) < EstadoAC.Cooldown then return end
+                local char = LP.Character
+                if not char then return end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hum or hum.Health <= 0 then return end
+                local mao = obterMao()
+                if not mao then return end
+                local bola = buscarBolaAC()
+                if not bola then return end
+                if (bola.Position - mao.Position).Magnitude <= EstadoAC.Distance then
+                    if firetouchinterest then
+                        pcall(function()
+                            firetouchinterest(bola, mao, 0)
+                            firetouchinterest(bola, mao, 1)
+                        end)
                     end
-                end)
-            end
-
-            RC_UltimoToque = agora
+                    pcall(function()
+                        local d = mao.Position - bola.Position
+                        if d.Magnitude > 0 then
+                            bola.AssemblyLinearVelocity = d.Unit * math.min(d.Magnitude * 4, 30)
+                        end
+                    end)
+                    AC_Ultimo = agora
+                end
+            end)
+            notificar("Auto Catch ativado", "good")
+        else
+            if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
+            notificar("Auto Catch desativado", "bad")
         end
-    end)
-end
+    end, 1)
 
--- ---------- API REACH ----------
-function ReachModule.definirAtivo(ligado)
-    Estado.Reach.Enabled = ligado
-    if ligado then
-        iniciarReach()
-        notificar("Reach ativado", "good")
-    else
+    sliderRow(secAC, "Auto Catch", 2, 25, 8, function(v)
+        EstadoAC.Distance = v
+    end, 2)
+
+    local secRC = section("Reach")
+    secRC.Parent = pagAC
+
+    toggleRow(secRC, "Ativar Reach", false, function(on)
+        EstadoRC.Enabled = on
+        if on then
+            if RC_Conn then RC_Conn:Disconnect() end
+            RC_Conn = RunService.Heartbeat:Connect(function()
+                if not EstadoRC.Enabled then return end
+                local agora = tick()
+                if (agora - RC_Ultimo) < EstadoRC.Cooldown then return end
+                local char = LP.Character
+                if not char then return end
+                local perna = obterPerna()
+                if not perna then return end
+                local bola = buscarBolaAC()
+                if not bola then return end
+                if (bola.Position - perna.Position).Magnitude <= EstadoRC.Distance then
+                    if firetouchinterest then
+                        pcall(function()
+                            firetouchinterest(bola, perna, 0)
+                            firetouchinterest(bola, perna, 1)
+                        end)
+                    end
+                    if EstadoRC.Mode == "Empurrão Contínuo" then
+                        pcall(function()
+                            local d = perna.Position - bola.Position
+                            if d.Magnitude > 0 then
+                                bola.AssemblyLinearVelocity = d.Unit * 25
+                            end
+                        end)
+                    end
+                    RC_Ultimo = agora
+                end
+            end)
+            notificar("Reach ativado", "good")
+        else
+            if RC_Conn then RC_Conn:Disconnect(); RC_Conn = nil end
+            notificar("Reach desativado", "bad")
+        end
+    end, 1)
+
+    sliderRow(secRC, "Reach (studs)", 1, 20, 6, function(v)
+        EstadoRC.Distance = v
+    end, 2)
+
+    dropdownRow(secRC, "Modo", {"Toque Simples", "Empurrão Contínuo"}, "Toque Simples", function(opt)
+        EstadoRC.Mode = opt
+        notificar("Modo: " .. opt, "good")
+    end, 3)
+
+    local secResetAC = section("Restaurar")
+    secResetAC.Parent = pagAC
+    buttonRow(secResetAC, "Desativar tudo", function()
+        EstadoAC.Enabled = false
+        EstadoRC.Enabled = false
+        if AC_Conn then AC_Conn:Disconnect(); AC_Conn = nil end
         if RC_Conn then RC_Conn:Disconnect(); RC_Conn = nil end
-        notificar("Reach desativado", "bad")
-    end
+        notificar("Desativado", "bad")
+    end, 1)
 end
 
-function ReachModule.definirDistancia(v)
-    Estado.Reach.Distance = v
-end
-
-function ReachModule.definirModo(modo)
-    Estado.Reach.Mode = modo
-    notificar("Modo: " .. modo, "good")
-end
-
-function ReachModule.resetar()
-    Estado.Reach.Enabled = false
-    if RC_Conn then RC_Conn:Disconnect(); RC_Conn = nil end
-    notificar("Reach resetado", "bad")
-end
-
+print("[VoidStrap] Parte 10 (Auto Catch) carregada.")--====================================================================
+-- PARTE 11 — TRAIL NO PERSONAGEM
 --====================================================================
--- ABA: AUTO CATCH
---====================================================================
-local paginaAC = criarAba("Auto Catch", "AC", 40)
+do
+    local EstadoTR = { Enabled = false, Cor = "Roxo", Textura = "Padrão",
+                       Lifetime = 1, Espessura = 1, Parte = "Corpo Inteiro" }
 
--- ---------- SEÇÃO AUTO CATCH ----------
-local secAC = criarSecao("Auto Catch", paginaAC)
+    local CORES_TR = {
+        ["Branco"]   = ColorSequence.new(Color3.fromRGB(255,255,255)),
+        ["Preto"]    = ColorSequence.new(Color3.fromRGB(20,20,20)),
+        ["Vermelho"] = ColorSequence.new(Color3.fromRGB(255,40,40)),
+        ["Azul"]     = ColorSequence.new(Color3.fromRGB(40,130,255)),
+        ["Verde"]    = ColorSequence.new(Color3.fromRGB(50,255,100)),
+        ["Amarelo"]  = ColorSequence.new(Color3.fromRGB(255,230,40)),
+        ["Roxo"]     = ColorSequence.new(Color3.fromRGB(160,60,255)),
+        ["Rosa"]     = ColorSequence.new(Color3.fromRGB(255,100,200)),
+        ["Ciano"]    = ColorSequence.new(Color3.fromRGB(0,240,255)),
+        ["Laranja"]  = ColorSequence.new(Color3.fromRGB(255,140,30)),
+    }
 
-criarToggle(secAC, "Ativar Auto Catch", Estado.AutoCatch.Enabled, function(ligado)
-    AutoCatchModule.definirAtivo(ligado)
-end, 1)
+    local TEXTURAS_TR = {
+        ["Padrão"] = nil,
+        ["Fogo"]   = "rbxassetid://258128463",
+        ["Neon"]   = "rbxassetid://386066482",
+        ["Glow"]   = "rbxassetid://257742662",
+        ["Sparkle"] = "rbxassetid://303963708",
+    }
 
-criarSlider(secAC, "Auto Catch", 2, 25, Estado.AutoCatch.Distance, function(v)
-    AutoCatchModule.definirDistancia(v)
-end, 2)
+    local TrailAtual, TrailConn = nil, nil
+    local Atts = {}
 
--- ---------- SEÇÃO REACH ----------
-local secReach = criarSecao("Reach", paginaAC)
-
-criarToggle(secReach, "Ativar Reach", Estado.Reach.Enabled, function(ligado)
-    ReachModule.definirAtivo(ligado)
-end, 1)
-
-criarSlider(secReach, "Reach (studs)", 1, 20, Estado.Reach.Distance, function(v)
-    ReachModule.definirDistancia(v)
-end, 2)
-
-criarDropdown(secReach, "Modo", { "Toque Simples", "Empurrão Contínuo" }, Estado.Reach.Mode, function(opt)
-    ReachModule.definirModo(opt)
-end, 3)
-
--- ---------- SEÇÃO INFORMAÇÕES ----------
-local secInfo = criarSecao("Informações", paginaAC)
-
-local avisoAC = criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 70),
-    BackgroundTransparency = 1,
-    Text = "Auto Catch: pega a bola nas mãos quando ela estiver perto.\nReach: toca a bola à distância (simula toque do pé na bola).",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    LayoutOrder = 1,
-    Parent = secInfo,
-})
-comTema(avisoAC, "TextColor3", "Sub")
-
--- ---------- SEÇÃO RESTAURAR ----------
-local secReset = criarSecao("Restaurar", paginaAC)
-
-criarBotaoLinha(secReset, "Desativar tudo", function()
-    AutoCatchModule.resetar()
-    ReachModule.resetar()
-end, 1)
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevAC = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevAC then _prevAC() end
-    pcall(function()
-        AutoCatchModule.resetar()
-        ReachModule.resetar()
-    end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function()
-            AutoCatchModule.resetar()
-            ReachModule.resetar()
-        end)
-    end
-end)
-
-print("[VoidStrap] Parte 10 (Auto Catch + Reach) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 11: Trail no Personagem
-]]
-
---====================================================================
--- MÓDULO: TRAIL
---====================================================================
-Estado.Trail = Estado.Trail or {
-    Enabled = false,
-    Cor = "Roxo",
-    Textura = "Padrão",
-    Lifetime = 1,
-    Espessura = 1,
-    Parte = "Corpo Inteiro",
-}
-
-local TrailModule = {}
-local TrailAtual = nil
-local AttachmentsAtuais = {}
-
--- ---------- CORES DISPONÍVEIS ----------
-local CORES = {
-    ["Branco"]   = ColorSequence.new(Color3.fromRGB(255, 255, 255)),
-    ["Preto"]    = ColorSequence.new(Color3.fromRGB(20, 20, 20)),
-    ["Vermelho"] = ColorSequence.new(Color3.fromRGB(255, 40, 40)),
-    ["Azul"]     = ColorSequence.new(Color3.fromRGB(40, 130, 255)),
-    ["Verde"]    = ColorSequence.new(Color3.fromRGB(50, 255, 100)),
-    ["Amarelo"]  = ColorSequence.new(Color3.fromRGB(255, 230, 40)),
-    ["Roxo"]     = ColorSequence.new(Color3.fromRGB(160, 60, 255)),
-    ["Rosa"]     = ColorSequence.new(Color3.fromRGB(255, 100, 200)),
-    ["Ciano"]    = ColorSequence.new(Color3.fromRGB(0, 240, 255)),
-    ["Laranja"]  = ColorSequence.new(Color3.fromRGB(255, 140, 30)),
-    ["Arco-Íris"] = ColorSequence.new({
-        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 165, 0)),
-        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 0)),
-        ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 180, 255)),
-        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 255)),
-        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
-    }),
-    ["Neon"] = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 200)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 255)),
-    }),
-}
-
--- ---------- TEXTURAS DISPONÍVEIS ----------
-local TEXTURAS = {
-    ["Padrão"]      = nil,
-    ["Fogo"]        = "rbxassetid://258128463",
-    ["Neon"]        = "rbxassetid://386066482",
-    ["Glow"]        = "rbxassetid://257742662",
-    ["Sparkle"]     = "rbxassetid://303963708",
-    ["Smoke"]       = "rbxassetid://244221440",
-    ["Linhas"]      = "rbxassetid://179306718",
-    ["Brilho"]      = "rbxassetid://10656070848",
-}
-
--- ---------- PARTES DO CORPO ----------
-local PARTES_CORPO = {
-    ["Corpo Inteiro"] = { "HumanoidRootPart" },
-    ["Mãos"] = { "RightHand", "LeftHand", "Right Arm", "Left Arm" },
-    ["Pés"]  = { "RightFoot", "LeftFoot", "Right Leg", "Left Leg" },
-    ["Cabeça"] = { "Head" },
-    ["Torso"]  = { "Torso", "UpperTorso", "LowerTorso" },
-}
-
--- ---------- LIMPAR TRAIL ATUAL ----------
-local function limparTrail()
-    if TrailAtual and TrailAtual.Parent then
-        pcall(function() TrailAtual:Destroy() end)
-    end
-    TrailAtual = nil
-
-    for _, att in ipairs(AttachmentsAtuais) do
-        if att and att.Parent then
-            pcall(function() att:Destroy() end)
+    local function limparTrail()
+        if TrailAtual and TrailAtual.Parent then pcall(function() TrailAtual:Destroy() end) end
+        TrailAtual = nil
+        for _, a in ipairs(Atts) do
+            if a and a.Parent then pcall(function() a:Destroy() end) end
         end
-    end
-    AttachmentsAtuais = {}
-end
-
--- ---------- CRIAR TRAIL ----------
-local function criarTrail()
-    limparTrail()
-
-    local char = LP.Character
-    if not char then return end
-
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    -- Escolhe as partes onde o trail vai ancorar
-    local listaNomes = PARTES_CORPO[Estado.Trail.Parte] or { "HumanoidRootPart" }
-    local partesValidas = {}
-    for _, nome in ipairs(listaNomes) do
-        local p = char:FindFirstChild(nome)
-        if p and p:IsA("BasePart") then
-            table.insert(partesValidas, p)
-        end
+        Atts = {}
     end
 
-    if #partesValidas == 0 then
-        table.insert(partesValidas, root)
-    end
-
-    -- Cria attachment em cada parte (para o trail acompanhar o movimento)
-    local att0, att1
-    for i, parte in ipairs(partesValidas) do
-        local att = Instance.new("Attachment")
-        att.Name = "VST_TrailAtt_" .. i
-        -- Coloca na ponta direita e esquerda da parte para dar largura
-        att.Position = (i % 2 == 0) and Vector3.new(-0.5, 0, 0) or Vector3.new(0.5, 0, 0)
-        att.Parent = parte
-        table.insert(AttachmentsAtuais, att)
-        if i == 1 then att0 = att end
-        if i == 2 then att1 = att end
-    end
-
-    -- Se só tiver 1 attachment, cria o segundo na mesma parte (offset contrário)
-    if not att1 and att0 then
-        local att = Instance.new("Attachment")
-        att.Name = "VST_TrailAtt_extra"
-        att.Position = Vector3.new(-att0.Position.X, 0, 0)
-        att.Parent = att0.Parent
-        table.insert(AttachmentsAtuais, att)
-        att1 = att
-    end
-
-    -- Cria o Trail
-    TrailAtual = Instance.new("Trail")
-    TrailAtual.Name = "VST_Trail"
-    TrailAtual.Attachment0 = att0
-    TrailAtual.Attachment1 = att1
-    TrailAtual.Lifetime = Estado.Trail.Lifetime
-    TrailAtual.MinLength = 0.1
-    TrailAtual.FaceCamera = true
-    TrailAtual.LightEmission = 0.5
-    TrailAtual.LightInfluence = 1
-    TrailAtual.WidthScale = NumberSequence.new(Estado.Trail.Espessura)
-
-    -- Cor
-    local cor = CORES[Estado.Trail.Cor] or CORES["Roxo"]
-    TrailAtual.Color = cor
-
-    -- Textura
-    local textura = TEXTURAS[Estado.Trail.Textura]
-    if textura then
-        TrailAtual.Texture = textura
-        TrailAtual.TextureMode = Enum.TextureMode.Stretch
-    end
-
-    TrailAtual.Parent = att0.Parent
-end
-
--- ---------- LOOP (mantém o trail vivo mesmo após respawn) ----------
-local TrailConn = nil
-local function iniciarLoopTrail()
-    if TrailConn then TrailConn:Disconnect() end
-
-    TrailConn = RunService.Heartbeat:Connect(function()
-        if not Estado.Trail.Enabled then return end
-
+    local function criarTrail()
+        limparTrail()
         local char = LP.Character
         if not char then return end
-
-        -- Se o personagem não tem o trail, recria
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return end
 
-        local existente = root:FindFirstChild("VST_Trail")
-            or (char:FindFirstChild("Head") and char.Head:FindFirstChild("VST_Trail"))
+        local a0 = Instance.new("Attachment")
+        a0.Position = Vector3.new(0.5, 0, 0)
+        a0.Parent = root
+        table.insert(Atts, a0)
 
-        if not existente then
-            criarTrail()
+        local a1 = Instance.new("Attachment")
+        a1.Position = Vector3.new(-0.5, 0, 0)
+        a1.Parent = root
+        table.insert(Atts, a1)
+
+        TrailAtual = Instance.new("Trail")
+        TrailAtual.Name = "VST_Trail"
+        TrailAtual.Attachment0 = a0
+        TrailAtual.Attachment1 = a1
+        TrailAtual.Lifetime = EstadoTR.Lifetime
+        TrailAtual.MinLength = 0.1
+        TrailAtual.FaceCamera = true
+        TrailAtual.LightEmission = 0.5
+        TrailAtual.WidthScale = NumberSequence.new(EstadoTR.Espessura)
+        TrailAtual.Color = CORES_TR[EstadoTR.Cor] or CORES_TR["Roxo"]
+        local tex = TEXTURAS_TR[EstadoTR.Textura]
+        if tex then
+            TrailAtual.Texture = tex
+            TrailAtual.TextureMode = Enum.TextureMode.Stretch
         end
-    end)
-end
+        TrailAtual.Parent = root
+    end
 
--- ---------- API ----------
-function TrailModule.definirAtivo(ligado)
-    Estado.Trail.Enabled = ligado
-    if ligado then
-        criarTrail()
-        iniciarLoopTrail()
-        notificar("Trail ativado", "good")
-    else
+    local pagTR = criarAba("Trail", "TR")
+
+    local secTR = section("Trail no Personagem")
+    secTR.Parent = pagTR
+
+    toggleRow(secTR, "Ativar Trail", false, function(on)
+        EstadoTR.Enabled = on
+        if on then
+            criarTrail()
+            if TrailConn then TrailConn:Disconnect() end
+            TrailConn = RunService.Heartbeat:Connect(function()
+                if not EstadoTR.Enabled then return end
+                local char = LP.Character
+                if not char then return end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root and not root:FindFirstChild("VST_Trail") then criarTrail() end
+            end)
+            notificar("Trail ativado", "good")
+        else
+            limparTrail()
+            if TrailConn then TrailConn:Disconnect(); TrailConn = nil end
+            notificar("Trail desativado", "bad")
+        end
+    end, 1)
+
+    local nomesC = {}
+    for n, _ in pairs(CORES_TR) do table.insert(nomesC, n) end
+    table.sort(nomesC)
+
+    dropdownRow(secTR, "Cor", nomesC, "Roxo", function(opt)
+        EstadoTR.Cor = opt
+        if EstadoTR.Enabled then criarTrail() end
+    end, 2)
+
+    local nomesT = {}
+    for n, _ in pairs(TEXTURAS_TR) do table.insert(nomesT, n) end
+    table.sort(nomesT)
+
+    dropdownRow(secTR, "Textura", nomesT, "Padrão", function(opt)
+        EstadoTR.Textura = opt
+        if EstadoTR.Enabled then criarTrail() end
+    end, 3)
+
+    sliderRow(secTR, "Duração (x10)", 1, 50, 10, function(v)
+        EstadoTR.Lifetime = v / 10
+        if TrailAtual then TrailAtual.Lifetime = EstadoTR.Lifetime end
+    end, 4)
+
+    sliderRow(secTR, "Espessura (x10)", 1, 30, 10, function(v)
+        EstadoTR.Espessura = v / 10
+        if TrailAtual then TrailAtual.WidthScale = NumberSequence.new(EstadoTR.Espessura) end
+    end, 5)
+
+    local secResetTR = section("Restaurar")
+    secResetTR.Parent = pagTR
+    buttonRow(secResetTR, "Remover Trail", function()
+        EstadoTR.Enabled = false
         limparTrail()
         if TrailConn then TrailConn:Disconnect(); TrailConn = nil end
-        notificar("Trail desativado", "bad")
+        notificar("Trail removido", "bad")
+    end, 1)
+end
+
+print("[VoidStrap] Parte 11 (Trail) carregada.")--====================================================================
+-- PARTE 12 — TOTE MOBILE (Curva)
+--====================================================================
+do
+    local EstadoTO = {
+        Enabled = false, Forca = 1.0, Sentido = "Direita",
+        BtnVisivel = true, BtnTravado = false,
+        BtnPosicao = UDim2.new(0.85, 0, 0.6, 0), Ativando = false,
+    }
+    local TO_Btn, TO_Conn = nil, nil
+    local arrastando, dragIni, posIni = false, nil, nil
+    local tempoP, posP = 0, nil
+
+    local BALL_NAMES_TO = {
+        "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
+    }
+
+    local function ehBolaTO(name)
+        for _, n in ipairs(BALL_NAMES_TO) do
+            if name == n then return true end
+        end
+        return false
     end
-end
 
-function TrailModule.definirCor(nome)
-    Estado.Trail.Cor = nome
-    if Estado.Trail.Enabled then criarTrail() end
-end
-
-function TrailModule.definirTextura(nome)
-    Estado.Trail.Textura = nome
-    if Estado.Trail.Enabled then criarTrail() end
-end
-
-function TrailModule.definirLifetime(v)
-    Estado.Trail.Lifetime = v
-    if TrailAtual then TrailAtual.Lifetime = v end
-end
-
-function TrailModule.definirEspessura(v)
-    Estado.Trail.Espessura = v
-    if TrailAtual then TrailAtual.WidthScale = NumberSequence.new(v) end
-end
-
-function TrailModule.definirParte(nome)
-    Estado.Trail.Parte = nome
-    if Estado.Trail.Enabled then criarTrail() end
-    notificar("Parte: " .. nome, "good")
-end
-
-function TrailModule.resetar()
-    Estado.Trail.Enabled = false
-    limparTrail()
-    if TrailConn then TrailConn:Disconnect(); TrailConn = nil end
-    notificar("Trail resetado", "bad")
-end
-
---====================================================================
--- ABA: TRAIL
---====================================================================
-local paginaTrail = criarAba("Trail", "TR", 50)
-
--- ---------- SEÇÃO PRINCIPAL ----------
-local secTrail = criarSecao("Trail no Personagem", paginaTrail)
-
-criarToggle(secTrail, "Ativar Trail", Estado.Trail.Enabled, function(ligado)
-    TrailModule.definirAtivo(ligado)
-end, 1)
-
--- Dropdown de partes
-criarDropdown(secTrail, "Parte do Corpo",
-    { "Corpo Inteiro", "Mãos", "Pés", "Cabeça", "Torso" },
-    Estado.Trail.Parte,
-    function(opt) TrailModule.definirParte(opt) end, 2)
-
--- Dropdown de cores
-local nomesCores = {}
-for nome, _ in pairs(CORES) do table.insert(nomesCores, nome) end
-table.sort(nomesCores)
-
-criarDropdown(secTrail, "Cor", nomesCores, Estado.Trail.Cor, function(opt)
-    TrailModule.definirCor(opt)
-end, 3)
-
--- Dropdown de texturas
-local nomesTexturas = {}
-for nome, _ in pairs(TEXTURAS) do table.insert(nomesTexturas, nome) end
-table.sort(nomesTexturas)
-
-criarDropdown(secTrail, "Textura", nomesTexturas, Estado.Trail.Textura, function(opt)
-    TrailModule.definirTextura(opt)
-end, 4)
-
--- Slider de Lifetime
-criarSlider(secTrail, "Duração (x10)", 1, 50, math.floor(Estado.Trail.Lifetime * 10), function(v)
-    TrailModule.definirLifetime(v / 10)
-end, 5)
-
--- Slider de espessura
-criarSlider(secTrail, "Espessura (x10)", 1, 30, math.floor(Estado.Trail.Espessura * 10), function(v)
-    TrailModule.definirEspessura(v / 10)
-end, 6)
-
--- ---------- SEÇÃO INFORMAÇÕES ----------
-local secInfo = criarSecao("Informações", paginaTrail)
-local avisoTrail = criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 60),
-    BackgroundTransparency = 1,
-    Text = "O trail deixa um rastro visual atrás do seu personagem enquanto você se move. Escolha a parte do corpo, cor, textura e espessura.",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    LayoutOrder = 1,
-    Parent = secInfo,
-})
-comTema(avisoTrail, "TextColor3", "Sub")
-
--- ---------- SEÇÃO RESTAURAR ----------
-local secResetTrail = criarSecao("Restaurar", paginaTrail)
-criarBotaoLinha(secResetTrail, "Remover Trail", function()
-    TrailModule.resetar()
-end, 1)
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevTrail = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevTrail then _prevTrail() end
-    pcall(function() TrailModule.resetar() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() TrailModule.resetar() end)
-    end
-end)
-
-print("[VoidStrap] Parte 11 (Trail no Personagem) carregada com sucesso.")--[[
-    ██╗   ██╗ ██████╗ ██╗██████╗ ███████╗████████╗██████╗  █████╗ ██████╗
-    ██║   ██║██╔═══██╗██║██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗
-    ██║   ██║██║   ██║██║██║  ██║███████╗   ██║   ██████╔╝███████║██████╔╝
-    ╚██╗ ██╔╝██║   ██║██║██║  ██║╚════██║   ██║   ██╔══██╗██╔══██║██╔═══╝
-     ╚████╔╝ ╚██████╔╝██║██████╔╝███████║   ██║   ██║  ██║██║  ██║██║
-      ╚═══╝   ╚═════╝ ╚═╝╚═════╝ ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝
-
-    VoidStrap v1.3.0 — Parte 12: Tote (Curva) Mobile
-]]
-
---====================================================================
--- MÓDULO: TOTE (Curva no Chute)
---====================================================================
-Estado.Tote = Estado.Tote or {
-    Enabled = false,
-    Forca = 1.0,            -- multiplicador da curva
-    Sentido = "Direita",    -- "Direita" ou "Esquerda"
-    BtnVisivel = true,
-    BtnTravado = false,
-    BtnPosicao = UDim2.new(0.85, 0, 0.6, 0),
-    Ativando = false,
-}
-
-local ToteModule = {}
-local ToteBtn = nil
-local ToteCoracao = nil
-local arrastando = false
-local dragInicio = nil
-local posInicial = nil
-local tempoPress = 0
-local posPress = nil
-
--- ---------- DETECÇÃO DA BOLA ----------
-local BALL_NAMES_12 = {
-    "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
-}
-
-local function ehNomeBola12(name)
-    for _, n in ipairs(BALL_NAMES_12) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBola12()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehNomeBola12(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then
-                return obj
+    local function buscarBolaTO()
+        local char = LP.Character
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and ehBolaTO(obj.Name) then
+                if not (char and obj:IsDescendantOf(char)) then return obj end
             end
         end
-    end
-    return nil
-end
-
--- ---------- APLICAR CURVA NA BOLA ----------
-local function aplicarCurva()
-    if not Estado.Tote.Enabled then return end
-
-    local bola = buscarBola12()
-    if not bola then return end
-
-    local char = LP.Character
-    if not char then return end
-
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    -- Distância da bola até o jogador (só aplica se estiver perto)
-    local dist = (bola.Position - root.Position).Magnitude
-    if dist > 15 then return end
-
-    -- Pega a direção do movimento atual da bola
-    local velAtual = bola.AssemblyLinearVelocity
-    if velAtual.Magnitude < 1 then return end
-
-    -- Vetor perpendicular (curva lateral)
-    local dir = velAtual.Unit
-    local perp = Vector3.new(-dir.Z, 0, dir.X)
-
-    -- Multiplica pela força e sentido
-    local sentido = (Estado.Tote.Sentido == "Direita") and 1 or -1
-    local forca = Estado.Tote.Forca
-
-    pcall(function()
-        bola.AssemblyLinearVelocity = velAtual + (perp * sentido * forca * 15)
-    end)
-end
-
--- ---------- LOOP ----------
-local ToteConn = nil
-local function iniciarLoop()
-    if ToteConn then ToteConn:Disconnect() end
-
-    ToteConn = RunService.Heartbeat:Connect(function()
-        if not Estado.Tote.Enabled then return end
-        if not Estado.Tote.Ativando then return end
-
-        -- Aplica curva enquanto o botão estiver pressionado
-        aplicarCurva()
-    end)
-end
-
--- ---------- API ----------
-function ToteModule.definirAtivo(ligado)
-    Estado.Tote.Enabled = ligado
-    if ligado then
-        iniciarLoop()
-        if ToteBtn then ToteBtn.Visible = true end
-        notificar("Tote ativado", "good")
-    else
-        if ToteConn then ToteConn:Disconnect(); ToteConn = nil end
-        Estado.Tote.Ativando = false
-        notificar("Tote desativado", "bad")
-    end
-end
-
-function ToteModule.definirForca(v)
-    Estado.Tote.Forca = v
-end
-
-function ToteModule.definirSentido(s)
-    Estado.Tote.Sentido = s
-    notificar("Curva: " .. s, "good")
-end
-
-function ToteModule.resetar()
-    Estado.Tote.Enabled = false
-    Estado.Tote.Ativando = false
-    if ToteConn then ToteConn:Disconnect(); ToteConn = nil end
-    notificar("Tote resetado", "bad")
-end
-
---====================================================================
--- BOTÃO FLUTUANTE (Arrastável e Travável)
---====================================================================
-local function atualizarVisualBtn()
-    if not ToteBtn or not ToteBtn.Parent then return end
-
-    local ativo = Estado.Tote.Enabled
-    local pressionando = Estado.Tote.Ativando
-
-    -- Cor muda conforme estado
-    if not ativo then
-        ToteBtn.BackgroundColor3 = TemaAtivo.Surface2
-        ToteBtn.TextColor3 = TemaAtivo.Sub
-    elseif pressionando then
-        ToteBtn.BackgroundColor3 = TemaAtivo.Good
-        ToteBtn.TextColor3 = TemaAtivo.Text
-    else
-        ToteBtn.BackgroundColor3 = TemaAtivo.Accent
-        ToteBtn.TextColor3 = TemaAtivo.Text
+        return nil
     end
 
-    -- Ícone de trava
-    local iconeLock = ToteBtn:FindFirstChild("VST_ToteLock")
-    if Estado.Tote.BtnTravado then
-        if not iconeLock then
-            criar("TextLabel", {
-                Name = "VST_ToteLock",
-                Size = UDim2.fromOffset(18, 18),
-                Position = UDim2.new(1, -20, 0, 2),
-                BackgroundTransparency = 1,
-                Text = "L",
-                Font = Enum.Font.GothamBold,
-                TextSize = 12,
-                TextColor3 = Color3.fromRGB(255, 220, 60),
-                ZIndex = 100001,
-                Parent = ToteBtn,
-            })
-        end
-    else
-        if iconeLock then iconeLock:Destroy() end
-    end
-end
-
-local function criarBotaoTote()
-    if ToteBtn and ToteBtn.Parent then
-        ToteBtn.Visible = Estado.Tote.BtnVisivel
-        atualizarVisualBtn()
-        return
-    end
-
-    ToteBtn = criar("TextButton", {
-        Name = "VST_ToteBtn",
-        Size = UDim2.fromOffset(70, 70),
-        Position = Estado.Tote.BtnPosicao,
-        BackgroundColor3 = TemaAtivo.Accent,
-        BorderSizePixel = 0,
-        Text = "TOTE",
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextColor3 = TemaAtivo.Text,
-        AutoButtonColor = false,
-        ZIndex = 99998,
-        Parent = ScreenOverlay,
-    })
-    canto(35, ToteBtn)
-    contorno(TemaAtivo.AccentDim, 2, 0.2, ToteBtn, 99998)
-    atualizarVisualBtn()
-
-    -- ---------- INPUT (arrastar + pressionar) ----------
-    ToteBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            arrastando = true
-            dragInicio = input.Position
-            posInicial = ToteBtn.Position
-            tempoPress = tick()
-            posPress = input.Position
-
-            -- Ativa o tote (pressionar)
-            if Estado.Tote.Enabled then
-                Estado.Tote.Ativando = true
-                atualizarVisualBtn()
-            end
-        end
-    end)
-
-    UIS.InputChanged:Connect(function(input)
-        if not arrastando then return end
-        if Estado.Tote.BtnTravado then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            local delta = input.Position - dragInicio
-            if math.abs(delta.X) > 8 or math.abs(delta.Y) > 8 then
-                ToteBtn.Position = UDim2.new(
-                    posInicial.X.Scale, posInicial.X.Offset + delta.X,
-                    posInicial.Y.Scale, posInicial.Y.Offset + delta.Y
-                )
-                Estado.Tote.BtnPosicao = ToteBtn.Position
-            end
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            arrastando = false
-
-            -- Solta → desativa o tote
-            Estado.Tote.Ativando = false
-            atualizarVisualBtn()
-
-            -- Se foi só um clique rápido, alterna ativação
-            if posPress then
-                local deltaFinal = input.Position - posPress
-                local moveu = math.abs(deltaFinal.X) + math.abs(deltaFinal.Y)
-                local tempo = tick() - tempoPress
-                if moveu < 12 and tempo < 0.5 then
-                    -- Clique rápido alterna o módulo
-                    ToteModule.definirAtivo(not Estado.Tote.Enabled)
-                end
-            end
-            posPress = nil
-        end
-    end)
-
-    -- Hover animado
-    ToteBtn.MouseEnter:Connect(function()
-        animar(ToteBtn, 0.15, { Size = UDim2.fromOffset(76, 76) })
-    end)
-    ToteBtn.MouseLeave:Connect(function()
-        animar(ToteBtn, 0.15, { Size = UDim2.fromOffset(70, 70) })
-    end)
-end
-
--- ---------- API DO BOTÃO ----------
-local ToteBtnModule = {}
-
-function ToteBtnModule.mostrar()
-    criarBotaoTote()
-    Estado.Tote.BtnVisivel = true
-    if ToteBtn then ToteBtn.Visible = true end
-    notificar("Botão Tote criado", "good")
-end
-
-function ToteBtnModule.esconder()
-    if ToteBtn and ToteBtn.Parent then
-        ToteBtn:Destroy()
-        ToteBtn = nil
-    end
-    Estado.Tote.BtnVisivel = false
-    notificar("Botão Tote removido", "bad")
-end
-
-function ToteBtnModule.alternar()
-    if Estado.Tote.BtnVisivel then
-        ToteBtnModule.esconder()
-    else
-        ToteBtnModule.mostrar()
-    end
-end
-
-function ToteBtnModule.travar(locked)
-    Estado.Tote.BtnTravado = locked
-    if ToteBtn and ToteBtn.Parent then
-        Estado.Tote.BtnPosicao = ToteBtn.Position
-    end
-    atualizarVisualBtn()
-    notificar(locked and "Botão travado" or "Botão liberado",
-              locked and "good" or "bad")
-end
-
---====================================================================
--- ABA: TOTE (CURVA)
---====================================================================
-local paginaTote = criarAba("Tote", "TO", 60)
-
--- ---------- SEÇÃO PRINCIPAL ----------
-local secTote = criarSecao("Tote (Curva)", paginaTote)
-
-criarToggle(secTote, "Ativar Tote", Estado.Tote.Enabled, function(ligado)
-    ToteModule.definirAtivo(ligado)
-end, 1)
-
-criarDropdown(secTote, "Sentido da Curva", { "Direita", "Esquerda" }, Estado.Tote.Sentido, function(opt)
-    ToteModule.definirSentido(opt)
-end, 2)
-
-criarSlider(secTote, "Força da Curva (x10)", 1, 30, math.floor(Estado.Tote.Forca * 10), function(v)
-    ToteModule.definirForca(v / 10)
-end, 3)
-
--- ---------- SEÇÃO BOTÃO FLUTUANTE ----------
-local secBtn = criarSecao("Botão Flutuante (Mobile)", paginaTote)
-
-criarToggle(secBtn, "Mostrar Botão", Estado.Tote.BtnVisivel, function(ligado)
-    if ligado then ToteBtnModule.mostrar() else ToteBtnModule.esconder() end
-end, 1)
-
-criarToggle(secBtn, "Travar Botão no Lugar", Estado.Tote.BtnTravado, function(ligado)
-    ToteBtnModule.travar(ligado)
-end, 2)
-
-criarBotaoLinha(secBtn, "Criar / Remover Botão", function()
-    ToteBtnModule.alternar()
-end, 3)
-
--- ---------- INFORMAÇÕES ----------
-local secInfoTote = criarSecao("Como usar", paginaTote)
-local avisoTote = criar("TextLabel", {
-    Size = UDim2.new(1, 0, 0, 80),
-    BackgroundTransparency = 1,
-    Text = "1. Ative o Tote acima.\n2. Um botão flutuante aparece na tela.\n3. Segure o botão para curvar a bola (Direita ou Esquerda).\n4. Arraste o botão pra reposicionar. Trave pra fixar.",
-    Font = Enum.Font.Gotham,
-    TextSize = 11,
-    TextColor3 = TemaAtivo.Sub,
-    TextWrapped = true,
-    TextXAlignment = Enum.TextXAlignment.Left,
-    LayoutOrder = 1,
-    Parent = secInfoTote,
-})
-comTema(avisoTote, "TextColor3", "Sub")
-
--- ---------- RESTAURAR ----------
-local secResetTote = criarSecao("Restaurar", paginaTote)
-criarBotaoLinha(secResetTote, "Desativar Tote e remover botão", function()
-    ToteModule.resetar()
-    ToteBtnModule.esconder()
-end, 1)
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevTote = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevTote then _prevTote() end
-    pcall(function()
-        ToteModule.resetar()
-        ToteBtnModule.esconder()
-    end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
+    local function aplicarCurva()
+        if not EstadoTO.Enabled or not EstadoTO.Ativando then return end
+        local bola = buscarBolaTO()
+        if not bola then return end
+        local char = LP.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        if (bola.Position - root.Position).Magnitude > 15 then return end
+        local vel = bola.AssemblyLinearVelocity
+        if vel.Magnitude < 1 then return end
+        local dir = vel.Unit
+        local perp = Vector3.new(-dir.Z, 0, dir.X)
+        local sentido = (EstadoTO.Sentido == "Direita") and 1 or -1
         pcall(function()
-            ToteModule.resetar()
-            ToteBtnModule.esconder()
+            bola.AssemblyLinearVelocity = vel + (perp * sentido * EstadoTO.Forca * 15)
         end)
     end
-end)
 
-print("[VoidStrap] Parte 12 (Tote Mobile) carregada com sucesso.")
+    local function atualizarBtn()
+        if not TO_Btn or not TO_Btn.Parent then return end
+        if not EstadoTO.Enabled then
+            TO_Btn.BackgroundColor3 = TemaAtivo.Surface2
+            TO_Btn.TextColor3 = TemaAtivo.Sub
+        elseif EstadoTO.Ativando then
+            TO_Btn.BackgroundColor3 = TemaAtivo.Good
+            TO_Btn.TextColor3 = TemaAtivo.Text
+        else
+            TO_Btn.BackgroundColor3 = TemaAtivo.Accent
+            TO_Btn.TextColor3 = TemaAtivo.Text
+        end
+    end
+
+    local function criarBtn()
+        if TO_Btn and TO_Btn.Parent then TO_Btn.Visible = true; atualizarBtn(); return end
+
+        TO_Btn = criar("TextButton", {
+            Name = "VST_ToteBtn",
+            Size = UDim2.fromOffset(70, 70),
+            Position = EstadoTO.BtnPosicao,
+            BackgroundColor3 = TemaAtivo.Accent,
+            BorderSizePixel = 0,
+            Text = "TOTE",
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
+            TextColor3 = TemaAtivo.Text,
+            AutoButtonColor = false,
+            ZIndex = 99998,
+            Parent = ScreenOverlay,
+        })
+        canto(35, TO_Btn)
+        contorno(TemaAtivo.AccentDim, 2, 0.2, TO_Btn, 99998)
+        atualizarBtn()
+
+        TO_Btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+                arrastando = true
+                dragIni = input.Position
+                posIni = TO_Btn.Position
+                tempoP = tick()
+                posP = input.Position
+                if EstadoTO.Enabled then
+                    EstadoTO.Ativando = true
+                    atualizarBtn()
+                end
+            end
+        end)
+
+        UIS.InputChanged:Connect(function(input)
+            if not arrastando or EstadoTO.BtnTravado then return end
+            if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+                local d = input.Position - dragIni
+                if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
+                    TO_Btn.Position = UDim2.new(
+                        posIni.X.Scale, posIni.X.Offset + d.X,
+                        posIni.Y.Scale, posIni.Y.Offset + d.Y)
+                    EstadoTO.BtnPosicao = TO_Btn.Position
+                end
+            end
+        end)
+
+        UIS.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+                arrastando = false
+                EstadoTO.Ativando = false
+                atualizarBtn()
+                if posP then
+                    local df = input.Position - posP
+                    local mov = math.abs(df.X) + math.abs(df.Y)
+                    local tmp = tick() - tempoP
+                    if mov < 12 and tmp < 0.5 then
+                        EstadoTO.Enabled = not EstadoTO.Enabled
+                        if EstadoTO.Enabled then
+                            if TO_Conn then TO_Conn:Disconnect() end
+                            TO_Conn = RunService.Heartbeat:Connect(aplicarCurva)
+                            notificar("Tote ativado", "good")
+                        else
+                            if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
+                            notificar("Tote desativado", "bad")
+                        end
+                        atualizarBtn()
+                    end
+                end
+                posP = nil
+            end
+        end)
+    end
+
+    local pagTO = criarAba("Tote", "TO")
+
+    local secTO = section("Tote (Curva)")
+    secTO.Parent = pagTO
+
+    toggleRow(secTO, "Ativar Tote", false, function(on)
+        EstadoTO.Enabled = on
+        if on then
+            if TO_Conn then TO_Conn:Disconnect() end
+            TO_Conn = RunService.Heartbeat:Connect(aplicarCurva)
+            criarBtn()
+            notificar("Tote ativado", "good")
+        else
+            if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
+            EstadoTO.Ativando = false
+            notificar("Tote desativado", "bad")
+        end
+        atualizarBtn()
+    end, 1)
+
+    dropdownRow(secTO, "Sentido da Curva", {"Direita", "Esquerda"}, "Direita", function(opt)
+        EstadoTO.Sentido = opt
+        notificar("Curva: " .. opt, "good")
+    end, 2)
+
+    sliderRow(secTO, "Força da Curva (x10)", 1, 30, 10, function(v)
+        EstadoTO.Forca = v / 10
+    end, 3)
+
+    local secBtnTO = section("Botão Flutuante (Mobile)")
+    secBtnTO.Parent = pagTO
+
+    toggleRow(secBtnTO, "Mostrar Botão", true, function(on)
+        EstadoTO.BtnVisivel = on
+        if on then criarBtn() else
+            if TO_Btn and TO_Btn.Parent then TO_Btn:Destroy(); TO_Btn = nil end
+        end
+    end, 1)
+
+    toggleRow(secBtnTO, "Travar Botão no Lugar", false, function(on)
+        EstadoTO.BtnTravado = on
+        notificar(on and "Botão travado" or "Botão liberado",
+                  on and "good" or "bad")
+    end, 2)
+
+    local secResetTO = section("Restaurar")
+    secResetTO.Parent = pagTO
+    buttonRow(secResetTO, "Desativar Tote e remover botão", function()
+        EstadoTO.Enabled = false
+        EstadoTO.Ativando = false
+        if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
+        if TO_Btn and TO_Btn.Parent then TO_Btn:Destroy(); TO_Btn = nil end
+        notificar("Tote resetado", "bad")
+    end, 1)
+
+    task.spawn(function()
+        task.wait(0.5)
+        criarBtn()
+    end)
+end
+
+print("[VoidStrap] Parte 12 (Tote) carregada.")
