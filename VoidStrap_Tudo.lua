@@ -1975,7 +1975,7 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6.1 — AUTO FOLLOW (NÚCLEO) com BodyVelocity
+-- PARTE 6.1 — AUTO FOLLOW (NÚCLEO) melhorado
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
@@ -1987,7 +1987,6 @@ State.AutoFollow = State.AutoFollow or {
     PauseOnLock = true,
     TouchToEnable = true,
     TargetMode = "Todas",
-    TrackY = false,
     AntiStuck = true,
 }
 
@@ -2006,7 +2005,6 @@ local AF_LastSearch = 0
 local AF_LockedByMe = false
 local AF_TouchConn = nil
 local AF_TouchDebounce = 0
-local AF_OriginalWalkSpeed = nil
 
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
@@ -2121,18 +2119,13 @@ local function updateFloatingBtnVisual()
     end
 end
 
--- ---------- LOOP PRINCIPAL (BodyVelocity) ----------
+-- ---------- LOOP PRINCIPAL ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
-    local char = LP.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        AF_OriginalWalkSpeed = hum.WalkSpeed
-    end
-
     local lastPos = nil
     local stuckFrames = 0
+    local unlockTimer = 0
 
     AF_Conn = RunService.RenderStepped:Connect(function(dt)
         if not State.AutoFollow.Enabled then
@@ -2150,14 +2143,19 @@ local function afStart()
             return
         end
 
+        -- Cache da bola (2s pra reduzir custo)
         local now = tick()
-        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 0.5 then
+        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 2 then
             AF_LastSearch = now
             AF_CachedBall = afFindBallByMode()
         end
         local ball = AF_CachedBall
-        if not ball then afCleanupBodyVel() return end
+        if not ball then
+            afCleanupBodyVel()
+            return
+        end
 
+        -- Lock detection
         if State.AutoFollow.PauseOnLock and State.AutoFollow.TargetMode ~= "Minha" then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
@@ -2172,48 +2170,48 @@ local function afStart()
             AF_LockedByMe = false
         end
 
-        local targetPos
-        if State.AutoFollow.TrackY then
-            targetPos = ball.Position
-        else
-            targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
-        end
-
+        -- Alvo (sempre no eixo do player, sem trackY)
+        local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
         local distance = (root.Position - targetPos).Magnitude
 
+        -- Já está perto
         if distance < State.AutoFollow.StopDistance then
             afCleanupBodyVel()
             stuckFrames = 0
             return
         end
 
-        -- Anti-Stuck
+        -- ---------- ANTI-STUCK ----------
         if State.AutoFollow.AntiStuck then
             if lastPos then
                 local moved = (root.Position - lastPos).Magnitude
-                if moved < 0.05 then
+                -- Só considera "preso" se estiver tentando se mover há mais de 1s
+                if moved < 0.1 then
                     stuckFrames = stuckFrames + 1
                 else
                     stuckFrames = 0
                 end
 
+                -- ~1 segundo parado = destrava
                 if stuckFrames > 60 then
                     stuckFrames = 0
-                    local sideDir = Vector3.new(
-                        (math.random() - 0.5) * 2,
-                        0,
-                        (math.random() - 0.5) * 2
-                    ).Unit
-                    local escapeTarget = root.Position + sideDir * 6
+
+                    -- Destrava suave: aplica um pequeno empurrão em direção à bola
+                    -- em vez de teletransportar
+                    local dir = (targetPos - root.Position).Unit
+                    local perp = Vector3.new(-dir.Z, 0, dir.X)  -- perpendicular
+                    local side = (math.random() > 0.5) and 1 or -1
+                    local push = perp * side * 3 + dir * 2
+
                     pcall(function()
-                        root.CFrame = CFrame.new(escapeTarget)
+                        root.CFrame = root.CFrame + push
                     end)
                 end
             end
             lastPos = root.Position
         end
 
-        -- BodyVelocity
+        -- ---------- BODY VELOCITY ----------
         if not AF_BodyVel or AF_BodyVel.Parent ~= root then
             afCleanupBodyVel()
             AF_BodyVel = Instance.new("BodyVelocity")
@@ -2226,9 +2224,11 @@ local function afStart()
         local dir = (targetPos - root.Position).Unit
         local speed = State.AutoFollow.Speed
 
+        -- Olhar pra bola (opcional, ajuda na naturalidade)
         pcall(function()
             root.CFrame = CFrame.lookAt(root.Position, targetPos)
         end)
+
         pcall(function()
             AF_BodyVel.Velocity = dir * speed
         end)
@@ -2305,7 +2305,6 @@ function AutoFollowModule.setPauseOnLock(v) State.AutoFollow.PauseOnLock = v end
 function AutoFollowModule.setTouchToEnable(v) State.AutoFollow.TouchToEnable = v end
 function AutoFollowModule.setReachEnabled(v) State.AutoFollow.ReachEnabled = v end
 function AutoFollowModule.setReachDistance(v) State.AutoFollow.ReachDistance = v end
-function AutoFollowModule.setTrackY(v) State.AutoFollow.TrackY = v end
 function AutoFollowModule.setAntiStuck(v) State.AutoFollow.AntiStuck = v end
 
 function AutoFollowModule.setTargetMode(mode)
@@ -2464,7 +2463,7 @@ function AutoFollowBtnModule.setLocked(locked)
 end
 
 print("[VoidStrap] 6.1 OK")--====================================================================
--- PARTE 6.2 — ABA AF AVANCADO (tudo numa aba só)
+-- PARTE 6.2 — ABA AF AVANCADO
 --====================================================================
 
 createTab("AF Avancado", "AF+")
@@ -2501,17 +2500,9 @@ do
         AutoFollowModule.setPauseOnLock(on)
     end, 6)
 
-    toggleRow(sec, "Seguir Altura (Y)", State.AutoFollow.TrackY, function(on)
-        AutoFollowModule.setTrackY(on)
-    end, 7)
-
     toggleRow(sec, "Anti-Stuck", State.AutoFollow.AntiStuck, function(on)
         AutoFollowModule.setAntiStuck(on)
-    end, 8)
-
-    toggleRow(sec, "Velocidade Suave", State.AutoFollow.SmoothSpeed, function(on)
-        AutoFollowModule.setSmoothSpeed(on)
-    end, 9)
+    end, 7)
 
     -- ============ REACH ============
     local reachSec = section("Reach (Alcance)")
@@ -2547,7 +2538,7 @@ do
     end, 1)
 end
 
--- ---------- CLEANUP ----------
+-- CLEANUP
 local _prevAF = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAF then _prevAF() end
@@ -3383,7 +3374,7 @@ State.BoomBox = State.BoomBox or {
     Enabled = false,
     Volume = 1.0,
     Looped = true,
-    Target = "Player",
+    Target = "Player",   -- "Player" ou "Ball"
     CurrentTrack = nil,
 }
 
@@ -3395,12 +3386,12 @@ local BB_Conn = nil
 -- ---------- LISTA DE MUSICAS ----------
 local BOOMBOX_TRACKS = {
     { name = "Nenhuma",           id = nil },
-    { name = "Sometimes",         id = "121397051787416" },
-    { name = "Meant to Be",       id = "126576350082922" },
-    { name = "Ilusionary",        id = "87570666848900" },
-    { name = "BrooklynBloodPop",  id = "96414211708215" },
-    { name = "I'm So Fed Up",     id = "103072508653269" },
-    { name = "PHONK",             id = "119234504459800" },
+    { name = "Meant to Be",       id = "2147141158" },
+    { name = "Sunflower",         id = "2698664996" },
+    { name = "Sometimes",         id = "415384530" },
+    { name = "BrooklynBloodPop",  id = "136111288303730" },
+    { name = "Nuts",              id = "5678130547" },
+    { name = "Super Funk",        id = "107835682687645" },
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
@@ -3428,7 +3419,7 @@ local function findBall15()
     return nil
 end
 
--- ---------- SOUND ----------
+-- ---------- CRIAR SOUND ----------
 local function destroySound()
     if BB_Sound and BB_Sound.Parent then
         pcall(function() BB_Sound:Destroy() end)
@@ -3440,6 +3431,7 @@ end
 local function createSoundOn(target)
     if not target then return end
     if BB_Sound and BB_Sound.Parent == target then return end
+
     destroySound()
 
     BB_Sound = Instance.new("Sound")
@@ -3453,6 +3445,7 @@ local function createSoundOn(target)
     BB_CurrentTarget = target
 end
 
+-- ---------- APLICAR TRACK ----------
 local function applyTrack(trackId)
     if not BB_Sound then return end
     if trackId then
@@ -3465,9 +3458,10 @@ local function applyTrack(trackId)
     end
 end
 
--- ---------- LOOP ----------
+-- ---------- LOOP (fixa o som no alvo) ----------
 local function bbStart()
     if BB_Conn then BB_Conn:Disconnect() end
+
     BB_Conn = RunService.Heartbeat:Connect(function()
         if not State.BoomBox.Enabled then return end
 
@@ -3484,6 +3478,7 @@ local function bbStart()
             return
         end
 
+        -- Se o alvo mudou, cria de novo
         if not BB_Sound or BB_Sound.Parent ~= target then
             createSoundOn(target)
             if State.BoomBox.CurrentTrack then
@@ -3491,6 +3486,7 @@ local function bbStart()
             end
         end
 
+        -- Atualiza volume e loop
         if BB_Sound then
             pcall(function()
                 BB_Sound.Volume = State.BoomBox.Volume
@@ -3527,17 +3523,6 @@ function BoomBoxModule.setTrack(name)
             return
         end
     end
-end
-
-function BoomBoxModule.setTrackById(id)
-    id = tostring(id or ""):gsub("%D", "")
-    if id == "" then
-        notify("ID invalido", "bad")
-        return
-    end
-    State.BoomBox.CurrentTrack = id
-    applyTrack(id)
-    notify("ID: " .. id, "good")
 end
 
 function BoomBoxModule.setVolume(v)
@@ -3605,41 +3590,6 @@ do
         BoomBoxModule.refresh()
     end, 5)
 
-    -- CAMPO DE ID MANUAL
-    local idSec = section("Tocar por ID")
-    idSec.Parent = page
-
-    local idFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 44),
-        BackgroundColor3 = ActiveTheme.Surface2,
-        BorderSizePixel = 0,
-        LayoutOrder = 1,
-        Parent = idSec,
-    })
-    themed(idFrame, "BackgroundColor3", "Surface2")
-    corner(8, idFrame)
-
-    local idBox = create("TextBox", {
-        Size = UDim2.new(1, -20, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Cole o ID da musica (só números)...",
-        PlaceholderColor3 = ActiveTheme.Sub,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 13,
-        TextColor3 = ActiveTheme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false,
-        Parent = idFrame,
-    })
-    themed(idBox, "TextColor3", "Text")
-    themed(idBox, "PlaceholderColor3", "Sub")
-
-    buttonRow(idSec, "Tocar ID", function()
-        BoomBoxModule.setTrackById(idBox.Text)
-    end, 2)
-
     -- MÚSICAS
     local trackSec = section("Musicas")
     trackSec.Parent = page
@@ -3653,7 +3603,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Voce tambem pode colar qualquer ID na secao 'Tocar por ID'.",
+        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Pra outros ouvirem, o jogo precisa aceitar.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
