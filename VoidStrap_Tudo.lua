@@ -1975,7 +1975,7 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6.1 — AUTO FOLLOW (NÚCLEO) — Melhorado
+-- PARTE 6.1 — AUTO FOLLOW (NÚCLEO) com BodyVelocity
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
@@ -1989,7 +1989,6 @@ State.AutoFollow = State.AutoFollow or {
     TargetMode = "Todas",
     TrackY = false,
     AntiStuck = true,
-    SmoothSpeed = true,
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -2122,7 +2121,7 @@ local function updateFloatingBtnVisual()
     end
 end
 
--- ---------- LOOP PRINCIPAL (melhorado) ----------
+-- ---------- LOOP PRINCIPAL (BodyVelocity) ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
 
@@ -2134,26 +2133,22 @@ local function afStart()
 
     local lastPos = nil
     local stuckFrames = 0
-    local currentSpeedMult = 0
-    local lastMoveToTime = 0
 
     AF_Conn = RunService.RenderStepped:Connect(function(dt)
         if not State.AutoFollow.Enabled then
-            local c = LP.Character
-            local h = c and c:FindFirstChildOfClass("Humanoid")
-            if h and AF_OriginalWalkSpeed then
-                pcall(function() h.WalkSpeed = AF_OriginalWalkSpeed end)
-            end
-            AF_LockedByMe = false
+            afCleanupBodyVel()
             return
         end
 
         local c = LP.Character
-        if not c then return end
+        if not c then afCleanupBodyVel() return end
 
         local root = c:FindFirstChild("HumanoidRootPart")
         local humanoid = c:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid or humanoid.Health <= 0 then return end
+        if not root or not humanoid or humanoid.Health <= 0 then
+            afCleanupBodyVel()
+            return
+        end
 
         local now = tick()
         if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 0.5 then
@@ -2161,14 +2156,14 @@ local function afStart()
             AF_CachedBall = afFindBallByMode()
         end
         local ball = AF_CachedBall
-        if not ball then return end
+        if not ball then afCleanupBodyVel() return end
 
         if State.AutoFollow.PauseOnLock and State.AutoFollow.TargetMode ~= "Minha" then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
             AF_LockedByMe = locked and (who == LP)
             if locked then
-                humanoid:MoveTo(root.Position)
+                afCleanupBodyVel()
                 if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
                 return
             end
@@ -2187,14 +2182,12 @@ local function afStart()
         local distance = (root.Position - targetPos).Magnitude
 
         if distance < State.AutoFollow.StopDistance then
-            humanoid:MoveTo(root.Position)
-            humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
-            currentSpeedMult = 0
+            afCleanupBodyVel()
             stuckFrames = 0
             return
         end
 
-        -- Anti-stuck
+        -- Anti-Stuck
         if State.AutoFollow.AntiStuck then
             if lastPos then
                 local moved = (root.Position - lastPos).Magnitude
@@ -2206,36 +2199,39 @@ local function afStart()
 
                 if stuckFrames > 60 then
                     stuckFrames = 0
-                    local rnd = Vector3.new(
-                        (math.random() - 0.5) * 8,
+                    local sideDir = Vector3.new(
+                        (math.random() - 0.5) * 2,
                         0,
-                        (math.random() - 0.5) * 8
-                    )
+                        (math.random() - 0.5) * 2
+                    ).Unit
+                    local escapeTarget = root.Position + sideDir * 6
                     pcall(function()
-                        humanoid:MoveTo(root.Position + rnd)
+                        root.CFrame = CFrame.new(escapeTarget)
                     end)
                 end
             end
             lastPos = root.Position
         end
 
-        -- Suavização de velocidade
-        local targetSpeed = State.AutoFollow.Speed
-        if State.AutoFollow.SmoothSpeed then
-            currentSpeedMult = math.min(currentSpeedMult + dt * 4, 1)
-            local base = AF_OriginalWalkSpeed or 16
-            humanoid.WalkSpeed = base + (targetSpeed - base) * currentSpeedMult
-        else
-            humanoid.WalkSpeed = targetSpeed
+        -- BodyVelocity
+        if not AF_BodyVel or AF_BodyVel.Parent ~= root then
+            afCleanupBodyVel()
+            AF_BodyVel = Instance.new("BodyVelocity")
+            AF_BodyVel.Name = "VST_AutoFollow"
+            AF_BodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+            AF_BodyVel.Velocity = Vector3.zero
+            AF_BodyVel.Parent = root
         end
 
-        -- MoveTo com throttle
-        if now - lastMoveToTime > 0.1 then
-            lastMoveToTime = now
-            pcall(function()
-                humanoid:MoveTo(targetPos)
-            end)
-        end
+        local dir = (targetPos - root.Position).Unit
+        local speed = State.AutoFollow.Speed
+
+        pcall(function()
+            root.CFrame = CFrame.lookAt(root.Position, targetPos)
+        end)
+        pcall(function()
+            AF_BodyVel.Velocity = dir * speed
+        end)
     end)
 end
 
@@ -2311,7 +2307,6 @@ function AutoFollowModule.setReachEnabled(v) State.AutoFollow.ReachEnabled = v e
 function AutoFollowModule.setReachDistance(v) State.AutoFollow.ReachDistance = v end
 function AutoFollowModule.setTrackY(v) State.AutoFollow.TrackY = v end
 function AutoFollowModule.setAntiStuck(v) State.AutoFollow.AntiStuck = v end
-function AutoFollowModule.setSmoothSpeed(v) State.AutoFollow.SmoothSpeed = v end
 
 function AutoFollowModule.setTargetMode(mode)
     State.AutoFollow.TargetMode = mode
@@ -2572,192 +2567,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] 6.2 OK")--====================================================================
--- PARTE 6B — CHARS (Aplica skin via comando de chat)
---====================================================================
-
-State.Chars = State.Chars or { Enabled = true }
-
-local CharsModule = {}
-
--- ---------- LISTA DE CHARS ----------
-local CHAR_LIST = {
-    "MiguelCalebeGamer202",
-    "guto785662",
-    "beastsxc",
-    "89felip3",
-    "guto_01games",
-    "feliou23",
-    "LeozzinnTxz",
-    "aerovah",
-    "novaes_wc",
-    "GHOST_INFINITI07",
-    "16alvez",
-    "mikaelfacada10",
-    "keny_tcs",
-    "3qu",
-    "hel",
-    "phzin123271",
-    "portuga_xz3",
-    "j12ufdo",
-    "shadow_samuel1347k",
-    "131felipe6",
-    "mnbzzaicsn",
-    "careca12492",
-    "sunno_mm2",
-    "rangeamandio",
-    "rosa_skillsz",
-    "DAVILUCASPLU2VC",
-    "rayagaj3",
-    "Felliou",
-    "ythek9on1",
-    "Bernardow_w",
-    "Samblox_Xd",
-    "mica1203ely5",
-}
-
--- ---------- ENVIAR MENSAGEM NO CHAT ----------
-local function sendChat(msg)
-    local ok = false
-
-    pcall(function()
-        local RS = game:GetService("ReplicatedStorage")
-        local events = RS:FindFirstChild("DefaultChatSystemChatEvents")
-        if events then
-            local say = events:FindFirstChild("SayMessageRequest")
-            if say then
-                say:FireServer(msg, "All")
-                ok = true
-            end
-        end
-    end)
-
-    if not ok then
-        pcall(function()
-            local TCS = game:GetService("TextChatService")
-            if TCS and TCS.ChatVersion == Enum.ChatVersion.TextChatService then
-                local channels = TCS:FindFirstChild("TextChannels")
-                if channels then
-                    local general = channels:FindFirstChild("RBXGeneral")
-                    if general then
-                        general:SendAsync(msg)
-                        ok = true
-                    end
-                end
-            end
-        end)
-    end
-
-    return ok
-end
-
--- ---------- API ----------
-function CharsModule.apply(charName)
-    if not charName or charName == "" then return end
-    local cmd = ":char " .. charName
-    if sendChat(cmd) then
-        notify("Char: " .. charName, "good")
-    else
-        notify("Falha ao enviar chat", "bad")
-    end
-end
-
-function CharsModule.applyById(id)
-    if not id or id == "" then return end
-    local cmd = ":char " .. id
-    if sendChat(cmd) then
-        notify("Char ID: " .. id, "good")
-    else
-        notify("Falha ao enviar chat", "bad")
-    end
-end
-
---====================================================================
--- ABA CHARS
---====================================================================
-createTab("Chars", "CH")
-
-do
-    local page = Tabs["Chars"].page
-
-    -- Secao de info
-    local secInfo = section("Aplicar Char via Chat")
-    secInfo.Parent = page
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 55),
-        BackgroundTransparency = 1,
-        Text = "Clique num char pra enviar :char NOME no chat automaticamente.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 1,
-        Parent = secInfo,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    -- Secao de ID custom
-    local secId = section("Char por ID")
-    secId.Parent = page
-
-    -- Input de texto simples
-    local inputFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = ActiveTheme.Surface2,
-        BorderSizePixel = 0,
-        LayoutOrder = 1,
-        Parent = secId,
-    })
-    themed(inputFrame, "BackgroundColor3", "Surface2")
-    corner(8, inputFrame)
-
-    local textBox = create("TextBox", {
-        Size = UDim2.new(1, -100, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Digite o ID do char...",
-        PlaceholderColor3 = ActiveTheme.Sub,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 13,
-        TextColor3 = ActiveTheme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false,
-        Parent = inputFrame,
-    })
-    themed(textBox, "TextColor3", "Text")
-    themed(textBox, "PlaceholderColor3", "Sub")
-
-    buttonRow(secId, "Aplicar ID do Char", function()
-        local id = textBox.Text
-        if id and id ~= "" then
-            CharsModule.applyById(id)
-        else
-            notify("Digite um ID primeiro", "bad")
-        end
-    end, 2)
-
-    -- Secao da lista
-    local charSec = section("Lista de Chars")
-    charSec.Parent = page
-
-    for i, name in ipairs(CHAR_LIST) do
-        buttonRow(charSec, name, function()
-            CharsModule.apply(name)
-        end, i)
-    end
-end
-
---====================================================================
--- CLEANUP
---====================================================================
-local _prevChars = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevChars then _prevChars() end
-end
-
-print("[VoidStrap] Chars carregado.")--====================================================================
 -- PARTE 13 — CUSTOM BALL (Cor visual em TODAS as bolas)
 -- Tinge ball.Color + Texture.Color3 + SpecialMesh.VertexColor
 --====================================================================
