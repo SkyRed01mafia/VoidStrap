@@ -2398,7 +2398,7 @@ function AutoFollowBtnModule.setLocked(locked)
 end
 
 print("[VoidStrap] 6.1 OK")--====================================================================
--- [PARTE 1/2] - ENGINE CORE: FÍSICA, BOUNDARY LOCK E RENDERIZAÇÃO
+-- [PARTE 1: ENGINE CORRIGIDA - FÍSICA E BOUNDARY LOCK]
 --====================================================================
 
 State.BallCage = State.BallCage or {
@@ -2406,10 +2406,10 @@ State.BallCage = State.BallCage or {
     Size = 12,
     Visible = true,
     Height = 6,
-    PullStrength = 0.20,
+    PullStrength = 0.25,
     ChuteVelocidade = 60,
     Repulsao = false,
-    RepulsaoStrength = 8,
+    RepulsaoStrength = 12,
 }
 
 local BallCageModule = {}
@@ -2420,7 +2420,7 @@ local Cage_Lines = {}
 
 local BALL_NAMES_CAGE = {"TPS", "ESA", "MRS", "PRS", "MPS", "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"}
 
--- [FUNÇÕES DE BUSCA]
+-- [FUNÇÕES DE SUPORTE]
 local function isBallNameCage(name)
     for _, n in ipairs(BALL_NAMES_CAGE) do if name == n then return true end end
     return false
@@ -2445,31 +2445,47 @@ local function isBallLockedCage(ball)
     return false, nil
 end
 
--- [SISTEMA VISUAL]
+-- [SISTEMA VISUAL CORRIGIDO]
 local function createCageVisual()
     destroyCageVisual()
-    local holder = Instance.new("Folder", Workspace)
+
+    local holder = Instance.new("Folder")
     holder.Name = "VST_CageHolder"
+    holder.Parent = Workspace
     table.insert(Cage_Lines, holder)
 
     local color = Color3.fromRGB(80, 180, 255)
     local thickness = 0.15
-    local fakePart = Instance.new("Part", holder)
-    fakePart.Size, fakePart.Anchored, fakePart.CanCollide = Vector3.new(1,1,1), true, false
-    fakePart.Transparency, fakePart.Name = 1, "VST_CageAnchor"
-    table.insert(Cage_Lines, fakePart)
+    
+    -- Âncora Principal
+    local anchor = Instance.new("Part", holder)
+    anchor.Name = "VST_CageAnchor"
+    anchor.Size = Vector3.new(1, 1, 1)
+    anchor.Anchored = true
+    anchor.CanCollide = false
+    anchor.CanQuery = false
+    anchor.Transparency = 1
+    table.insert(Cage_Lines, anchor)
 
     local topAtts, botAtts = {}, {}
     for i = 1, 4 do
-        local b = Instance.new("Attachment", fakePart) b.Name = "VST_Cage_B"..i table.insert(botAtts, b)
-        local t = Instance.new("Attachment", fakePart) t.Name = "VST_Cage_T"..i table.insert(topAtts, t)
+        local b = Instance.new("Attachment", anchor) b.Name = "VST_Cage_B"..i table.insert(botAtts, b)
+        local t = Instance.new("Attachment", anchor) t.Name = "VST_Cage_T"..i table.insert(topAtts, t)
     end
 
-    local edges = {{1,2,"b"},{2,3,"b"},{3,4,"b"},{4,1,"b"},{1,2,"t"},{2,3,"t"},{3,4,"t"},{4,1,"t"},{1,1,"v"},{2,2,"v"},{3,3,"v"},{4,4,"v"}}
+    local edges = {
+        {1, 2, "b"}, {2, 3, "b"}, {3, 4, "b"}, {4, 1, "b"},
+        {1, 2, "t"}, {2, 3, "t"}, {3, 4, "t"}, {4, 1, "t"},
+        {1, 1, "v"}, {2, 2, "v"}, {3, 3, "v"}, {4, 4, "v"}
+    }
+
     for i, e in ipairs(edges) do
-        local beam = Instance.new("Beam", fakePart)
-        beam.Width0, beam.Width1, beam.Color, beam.Segments = thickness, thickness, ColorSequence.new(color), 2
-        beam.FaceCamera, beam.LightEmission = true, 1
+        local beam = Instance.new("Beam", anchor)
+        beam.Width0, beam.Width1 = thickness, thickness
+        beam.Color = ColorSequence.new(color)
+        beam.LightEmission, beam.FaceCamera = 1, true
+        beam.Segments = 2
+
         if e[3] == "b" then beam.Attachment0, beam.Attachment1 = botAtts[e[1]], botAtts[e[2]]
         elseif e[3] == "t" then beam.Attachment0, beam.Attachment1 = topAtts[e[1]], topAtts[e[2]]
         else beam.Attachment0, beam.Attachment1 = botAtts[e[1]], topAtts[e[2]] end
@@ -2486,11 +2502,17 @@ local function updateCageVisual(center)
     local anchor = nil
     for _, obj in ipairs(Cage_Lines) do if obj.Name == "VST_CageAnchor" then anchor = obj break end end
     if not anchor then return end
+
     local size, height = State.BallCage.Size, State.BallCage.Height
     local half = size / 2
     anchor.CFrame = CFrame.new(center.X, center.Y - 3, center.Z)
-    local corners = {Vector3.new(-half,0,-half), Vector3.new(half,0,-half), Vector3.new(half,0,half), Vector3.new(-half,0,half)}
-    for i=1,4 do
+
+    local corners = {
+        Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half),
+        Vector3.new(half, 0, half), Vector3.new(-half, 0, half),
+    }
+
+    for i = 1, 4 do
         local b = anchor:FindFirstChild("VST_Cage_B"..i)
         local t = anchor:FindFirstChild("VST_Cage_T"..i)
         if b then b.Position = corners[i] end
@@ -2498,11 +2520,13 @@ local function updateCageVisual(center)
     end
 end
 
--- [LOOP DE FÍSICA CORE]
+-- [LOOP DE FÍSICA - CORREÇÃO DE ESCAPE]
 local function cageStart()
     if Cage_Conn then Cage_Conn:Disconnect() end
+
     Cage_Conn = RunService.Heartbeat:Connect(function()
         if not State.BallCage.Enabled then return end
+
         local char = LP.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
@@ -2517,32 +2541,41 @@ local function cageStart()
         local ball = Cage_Ball
         if not ball or isBallLockedCage(ball) then return end
 
-        -- Boundary Lock & Physics Logic
         local half = State.BallCage.Size / 2
-        local relX, relZ = ball.Position.X - root.Position.X, ball.Position.Z - root.Position.Z
-        local outOfBounds, corr = false, Vector3.zero
+        local ballPos, rootPos = ball.Position, root.Position
+        local relX, relZ = ballPos.X - rootPos.X, ballPos.Z - rootPos.Z
+        
+        -- [BOUNDARY LOCK - MODO AGRESSIVO]
+        local outOfBounds = false
+        local corr = Vector3.zero
 
         if math.abs(relX) > half then
             local d = relX > 0 and -1 or 1
-            corr = Vector3.new(d * 0.5, 0, 0)
+            corr = Vector3.new(d * 0.8, 0, 0)
             outOfBounds = true
         end
         if math.abs(relZ) > half then
             local d = relZ > 0 and -1 or 1
-            corr = corr + Vector3.new(0, 0, d * 0.5)
+            corr = corr + Vector3.new(0, 0, d * 0.8)
             outOfBounds = true
         end
 
         if outOfBounds then
             pcall(function()
+                -- Força a bola a não ganhar velocidade para fora
                 local v = ball.AssemblyLinearVelocity
-                ball.AssemblyLinearVelocity = Vector3.new(v.X * 0.8, v.Y, v.Z * 0.8)
-                local f = State.BallCage.Repulsao and (corr * State.BallCage.RepulsaoStrength) or corr
-                ball.AssemblyLinearVelocity = ball.AssemblyLinearVelocity + f
+                ball.AssemblyLinearVelocity = Vector3.new(v.X * 0.5, v.Y, v.Z * 0.5)
+                
+                -- Aplica a força de contenção (Repulsão ou Puxão)
+                local force = State.BallCage.Repulsao and (corr * State.BallCage.RepulsaoStrength) or corr
+                ball.AssemblyLinearVelocity = ball.AssemblyLinearVelocity + force
+                
+                -- Pequeno teleporte para evitar que a bola atravesse a barreira
+                ball.CFrame = ball.CFrame * CFrame.new(corr.X * 0.1, 0, corr.Z * 0.1)
             end)
         end
 
-        -- Attraction/Repulsion
+        -- [CONTROLE DE DISTÂNCIA (PULL/REPEL)]
         local vel = ball.AssemblyLinearVelocity
         if not State.BallCage.Repulsao and vel.Magnitude > State.BallCage.ChuteVelocidade then return end
 
@@ -2552,13 +2585,17 @@ local function cageStart()
 
         if pDir.Magnitude > 0 then
             if State.BallCage.Repulsao then
-                pcall(function() ball.AssemblyLinearVelocity = Vector3.new(pDir.Unit.X * State.BallCage.RepulsaoStrength * 8, 0, pDir.Unit.Z * State.BallCage.RepulsaoStrength * 8) end)
+                pcall(function()
+                    ball.AssemblyLinearVelocity = Vector3.new(pDir.Unit.X * State.BallCage.RepulsaoStrength * 10, 0, pDir.Unit.Z * State.BallCage.RepulsaoStrength * 10)
+                end)
             else
-                pcall(function() ball.AssemblyLinearVelocity = Vector3.new(vel.X + (pDir.Unit.X * (State.BallCage.PullStrength * vel.Magnitude + 5)), vel.Y, vel.Z + (pDir.Unit.Z * (State.BallCage.PullStrength * vel.Magnitude + 5))) end)
+                pcall(function()
+                    ball.AssemblyLinearVelocity = Vector3.new(vel.X + (pDir.Unit.X * (State.BallCage.PullStrength * 10)), vel.Y, vel.Z + (pDir.Unit.Z * (State.BallCage.PullStrength * 10))) end)
+                end
             end
         end
 
-        -- FireTouchInterest
+        -- [FIRETOUCHINTEREST]
         firetouchinterest(ball, root, 0)
         firetouchinterest(ball, root, 1)
     end)
@@ -2576,10 +2613,47 @@ function BallCageModule.setPullStrength(v) State.BallCage.PullStrength = v end
 function BallCageModule.setChuteVelocidade(v) State.BallCage.ChuteVelocidade = v end
 function BallCageModule.setRepulsao(on) State.BallCage.Repulsao = on end
 function BallCageModule.setRepulsaoStrength(v) State.BallCage.RepulsaoStrength = v end
-function BallCageModule.recreate() destroyCageVisual() local char = LP.Character if char and State.BallCage.Visible then updateCageVisual(char:FindFirstChild("HumanoidRootPart").Position) end notify("Quadrado recriado", "good") end
+function BallCageModule.recreate() destroyCageVisual(); local char = LP.Character if char and State.BallCage.Visible then updateCageVisual(char:FindFirstChild("HumanoidRootPart").Position) end notify("Quadrado recriado", "good") end
 function BallCageModule.reset() State.BallCage.Enabled = false; State.BallCage.Visible = false; if Cage_Conn then Cage_Conn:Disconnect(); Cage_Conn = nil end destroyCageVisual(); Cage_Ball = nil notify("Quadrado resetado", "bad") end
 
-print("[VoidStrap] Engine 6.2 Core Ready.")--====================================================================
+print("[VoidStrap] Engine 6.2 Core Ready.")
+
+--====================================================================
+-- [PARTE 2: INTERFACE E CONTROLE]
+--====================================================================
+
+createTab("AF Avancado", "AF+")
+
+do
+    local page = Tabs["AF Avancado"].page
+
+    local sec = section("Seguir Bola (Configurações)")
+    sec.Parent = page
+    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on) AutoFollowModule.setEnabled(on) end, 1)
+    dropdownRow(sec, "Alvo", { "Todas", "Minha", "MaisProxima" }, State.AutoFollow.TargetMode, function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
+    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v) AutoFollowModule.setSpeed(v) end, 3)
+    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v) AutoFollowModule.setStopDistance(v) end, 4)
+
+    local cageSec = section("Quadrado de Contencao (Física)")
+    cageSec.Parent = page
+    toggleRow(cageSec, "Ativar Quadrado", State.BallCage.Enabled, function(on) BallCageModule.setEnabled(on) end, 1)
+    sliderRow(cageSec, "Tamanho (studs)", 3, 30, State.BallCage.Size, function(v) BallCageModule.setSize(v) end, 2)
+    sliderRow(cageSec, "Altura (studs)", 2, 15, State.BallCage.Height, function(v) BallCageModule.setHeight(v) end, 3)
+    sliderRow(cageSec, "Forca de Puxar (x100)", 1, 100, math.floor(State.BallCage.PullStrength * 100), function(v) BallCageModule.setPullStrength(v / 100) end, 4)
+    sliderRow(cageSec, "Velocidade Minima de Chute", 10, 150, State.BallCage.ChuteVelocidade, function(v) BallCageModule.setChuteVelocidade(v) end, 5)
+    toggleRow(cageSec, "Ativar Repulsao", State.BallCage.Repulsao, function(on) BallCageModule.setRepulsao(on) end, 6)
+    sliderRow(cageSec, "Forca da Repulsao", 1, 20, State.BallCage.RepulsaoStrength, function(v) BallCageModule.setRepulsaoStrength(v) end, 7)
+    toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on) BallCageModule.setVisible(on) end, 8)
+    buttonRow(cageSec, "Recriar Quadrado", function() BallCageModule.recreate() end, 9)
+
+    local resetSec = section("Sistema e Restaurar")
+    resetSec.Parent = page
+    buttonRow(resetSec, "Desativar Tudo", function()
+        AutoFollowModule.reset()
+        BallCageModule.reset()
+        notify("Sistema Resetado", "bad")
+    end, 1)
+end--====================================================================
 -- [PARTE 2/2] - UI CONTROL: MENUS, SLIDERS E INTERFACE
 --====================================================================
 
