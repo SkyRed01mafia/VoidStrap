@@ -1975,18 +1975,21 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Fire Trail carregado.")--====================================================================
--- PARTE 6.1 — AUTO FOLLOW (NÚCLEO)
+-- PARTE 6.1 — AUTO FOLLOW (NÚCLEO) — Melhorado
 --====================================================================
 
 State.AutoFollow = State.AutoFollow or {
     Enabled = false,
-    Speed = 16,
-    StopDistance = 2.2,
+    Speed = 22,
+    StopDistance = 2.5,
     ReachEnabled = false,
     ReachDistance = 1,
     PauseOnLock = true,
     TouchToEnable = true,
     TargetMode = "Todas",
+    TrackY = false,
+    AntiStuck = true,
+    SmoothSpeed = true,
 }
 
 State.AutoFollowBtn = State.AutoFollowBtn or {
@@ -2004,6 +2007,7 @@ local AF_LastSearch = 0
 local AF_LockedByMe = false
 local AF_TouchConn = nil
 local AF_TouchDebounce = 0
+local AF_OriginalWalkSpeed = nil
 
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
@@ -2026,9 +2030,9 @@ end
 
 local function afFindAllBalls()
     local balls = {}
+    local char = LP.Character
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and isBallName(obj.Name) then
-            local char = LP.Character
             if not (char and obj:IsDescendantOf(char)) then
                 table.insert(balls, obj)
             end
@@ -2048,7 +2052,7 @@ local function afFindMyBall()
         local owner = getBallOwner(b)
         if owner == nil or owner == LP then
             local d = (b.Position - root.Position).Magnitude
-            if d < 6 and d < bestDist then
+            if d < 8 and d < bestDist then
                 bestDist = d
                 best = b
             end
@@ -2118,30 +2122,53 @@ local function updateFloatingBtnVisual()
     end
 end
 
+-- ---------- LOOP PRINCIPAL (melhorado) ----------
 local function afStart()
     if AF_Conn then AF_Conn:Disconnect() end
-    AF_Conn = RunService.RenderStepped:Connect(function()
-        if not State.AutoFollow.Enabled then afCleanupBodyVel() return end
-        local char = LP.Character
-        if not char then afCleanupBodyVel() return end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not root or not hum or hum.Health <= 0 then afCleanupBodyVel() return end
+
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        AF_OriginalWalkSpeed = hum.WalkSpeed
+    end
+
+    local lastPos = nil
+    local stuckFrames = 0
+    local currentSpeedMult = 0
+    local lastMoveToTime = 0
+
+    AF_Conn = RunService.RenderStepped:Connect(function(dt)
+        if not State.AutoFollow.Enabled then
+            local c = LP.Character
+            local h = c and c:FindFirstChildOfClass("Humanoid")
+            if h and AF_OriginalWalkSpeed then
+                pcall(function() h.WalkSpeed = AF_OriginalWalkSpeed end)
+            end
+            AF_LockedByMe = false
+            return
+        end
+
+        local c = LP.Character
+        if not c then return end
+
+        local root = c:FindFirstChild("HumanoidRootPart")
+        local humanoid = c:FindFirstChildOfClass("Humanoid")
+        if not root or not humanoid or humanoid.Health <= 0 then return end
 
         local now = tick()
-        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 1 then
+        if not AF_CachedBall or not AF_CachedBall.Parent or (now - AF_LastSearch) > 0.5 then
             AF_LastSearch = now
             AF_CachedBall = afFindBallByMode()
         end
         local ball = AF_CachedBall
-        if not ball then afCleanupBodyVel() return end
+        if not ball then return end
 
         if State.AutoFollow.PauseOnLock and State.AutoFollow.TargetMode ~= "Minha" then
             local locked, who = isBallLocked(ball)
             local wasLocked = AF_LockedByMe
             AF_LockedByMe = locked and (who == LP)
             if locked then
-                afCleanupBodyVel()
+                humanoid:MoveTo(root.Position)
                 if wasLocked ~= AF_LockedByMe then updateFloatingBtnVisual() end
                 return
             end
@@ -2150,23 +2177,64 @@ local function afStart()
             AF_LockedByMe = false
         end
 
-        local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
-        local dist = (root.Position - targetPos).Magnitude
-        if dist > State.AutoFollow.StopDistance then
-            if not AF_BodyVel or AF_BodyVel.Parent ~= root then
-                afCleanupBodyVel()
-                AF_BodyVel = Instance.new("BodyVelocity")
-                AF_BodyVel.Name = "VST_AutoFollow"
-                AF_BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
-                AF_BodyVel.Velocity = Vector3.zero
-                AF_BodyVel.Parent = root
-            end
-            local dir = (targetPos - root.Position).Unit
-            pcall(function() root.CFrame = CFrame.lookAt(root.Position, targetPos) end)
-            local speed = math.max(hum.WalkSpeed, State.AutoFollow.Speed)
-            pcall(function() AF_BodyVel.Velocity = dir * speed end)
+        local targetPos
+        if State.AutoFollow.TrackY then
+            targetPos = ball.Position
         else
-            afCleanupBodyVel()
+            targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
+        end
+
+        local distance = (root.Position - targetPos).Magnitude
+
+        if distance < State.AutoFollow.StopDistance then
+            humanoid:MoveTo(root.Position)
+            humanoid.WalkSpeed = AF_OriginalWalkSpeed or 16
+            currentSpeedMult = 0
+            stuckFrames = 0
+            return
+        end
+
+        -- Anti-stuck
+        if State.AutoFollow.AntiStuck then
+            if lastPos then
+                local moved = (root.Position - lastPos).Magnitude
+                if moved < 0.05 then
+                    stuckFrames = stuckFrames + 1
+                else
+                    stuckFrames = 0
+                end
+
+                if stuckFrames > 60 then
+                    stuckFrames = 0
+                    local rnd = Vector3.new(
+                        (math.random() - 0.5) * 8,
+                        0,
+                        (math.random() - 0.5) * 8
+                    )
+                    pcall(function()
+                        humanoid:MoveTo(root.Position + rnd)
+                    end)
+                end
+            end
+            lastPos = root.Position
+        end
+
+        -- Suavização de velocidade
+        local targetSpeed = State.AutoFollow.Speed
+        if State.AutoFollow.SmoothSpeed then
+            currentSpeedMult = math.min(currentSpeedMult + dt * 4, 1)
+            local base = AF_OriginalWalkSpeed or 16
+            humanoid.WalkSpeed = base + (targetSpeed - base) * currentSpeedMult
+        else
+            humanoid.WalkSpeed = targetSpeed
+        end
+
+        -- MoveTo com throttle
+        if now - lastMoveToTime > 0.1 then
+            lastMoveToTime = now
+            pcall(function()
+                humanoid:MoveTo(targetPos)
+            end)
         end
     end)
 end
@@ -2177,9 +2245,9 @@ local function afStartReach()
         if not State.AutoFollow.Enabled then return end
         if not State.AutoFollow.ReachEnabled then return end
         if State.AutoFollow.ReachDistance <= 1 then return end
-        local char = LP.Character
-        if not char then return end
-        local leg = char:FindFirstChild("Right Leg") or char:FindFirstChild("Right Lower Leg") or char:FindFirstChild("HumanoidRootPart")
+        local c = LP.Character
+        if not c then return end
+        local leg = c:FindFirstChild("Right Leg") or c:FindFirstChild("Right Lower Leg") or c:FindFirstChild("HumanoidRootPart")
         if not leg then return end
         local ball = AF_CachedBall or afFindBallByMode()
         if not ball then return end
@@ -2189,7 +2257,6 @@ local function afStartReach()
             if firetouchinterest then
                 pcall(function() firetouchinterest(ball, leg, 0); firetouchinterest(ball, leg, 1) end)
             end
-            pcall(function() ball.CFrame = leg.CFrame * CFrame.new(0, -1, -1) end)
         end
     end)
 end
@@ -2201,12 +2268,12 @@ local function afStartTouchDetection()
         if not State.AutoFollow.Enabled then return end
         local now = tick()
         if now - AF_TouchDebounce < 0.5 then return end
-        local char = LP.Character
-        if not char then return end
+        local c = LP.Character
+        if not c then return end
         local ball = AF_CachedBall or afFindBallByMode()
         if not ball or not ball.Parent then return end
         local minDist = math.huge
-        for _, p in ipairs(char:GetDescendants()) do
+        for _, p in ipairs(c:GetDescendants()) do
             if p:IsA("BasePart") then
                 local d = (p.Position - ball.Position).Magnitude
                 if d < minDist then minDist = d end
@@ -2242,6 +2309,9 @@ function AutoFollowModule.setPauseOnLock(v) State.AutoFollow.PauseOnLock = v end
 function AutoFollowModule.setTouchToEnable(v) State.AutoFollow.TouchToEnable = v end
 function AutoFollowModule.setReachEnabled(v) State.AutoFollow.ReachEnabled = v end
 function AutoFollowModule.setReachDistance(v) State.AutoFollow.ReachDistance = v end
+function AutoFollowModule.setTrackY(v) State.AutoFollow.TrackY = v end
+function AutoFollowModule.setAntiStuck(v) State.AutoFollow.AntiStuck = v end
+function AutoFollowModule.setSmoothSpeed(v) State.AutoFollow.SmoothSpeed = v end
 
 function AutoFollowModule.setTargetMode(mode)
     State.AutoFollow.TargetMode = mode
@@ -2262,6 +2332,7 @@ function AutoFollowModule.reset()
     notify("Auto Follow resetado", "bad")
 end
 
+-- Botão flutuante
 local AutoFollowBtnModule = {}
 local IsDragging = false
 local DragStart = nil
@@ -2398,221 +2469,7 @@ function AutoFollowBtnModule.setLocked(locked)
 end
 
 print("[VoidStrap] 6.1 OK")--====================================================================
--- [PARTE 1: ENGINE CORRIGIDA - FÍSICA E BOUNDARY LOCK]
---====================================================================
-
-State.BallCage = State.BallCage or {
-    Enabled = false,
-    Size = 12,
-    Visible = true,
-    Height = 6,
-    PullStrength = 0.25,
-    ChuteVelocidade = 60,
-    Repulsao = false,
-    RepulsaoStrength = 12,
-}
-
-local BallCageModule = {}
-local Cage_Conn = nil
-local Cage_Ball = nil
-local Cage_BallLastSearch = 0
-local Cage_Lines = {}
-
-local BALL_NAMES_CAGE = {"TPS", "ESA", "MRS", "PRS", "MPS", "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"}
-
--- [FUNÇÕES DE SUPORTE]
-local function isBallNameCage(name)
-    for _, n in ipairs(BALL_NAMES_CAGE) do if name == n then return true end end
-    return false
-end
-
-local function findBallCage()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and isBallNameCage(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then return obj end
-        end
-    end
-    return nil
-end
-
-local function isBallLockedCage(ball)
-    if not ball then return false, nil end
-    local ownerVal = ball:FindFirstChild("Owner")
-    if ownerVal and ownerVal:IsA("ObjectValue") and ownerVal.Value then
-        return true, Players:GetPlayerFromCharacter(ownerVal.Value)
-    end
-    return false, nil
-end
-
--- [SISTEMA VISUAL CORRIGIDO]
-local function createCageVisual()
-    destroyCageVisual()
-
-    local holder = Instance.new("Folder")
-    holder.Name = "VST_CageHolder"
-    holder.Parent = Workspace
-    table.insert(Cage_Lines, holder)
-
-    local color = Color3.fromRGB(80, 180, 255)
-    local thickness = 0.15
-    
-    -- Âncora Principal
-    local anchor = Instance.new("Part", holder)
-    anchor.Name = "VST_CageAnchor"
-    anchor.Size = Vector3.new(1, 1, 1)
-    anchor.Anchored = true
-    anchor.CanCollide = false
-    anchor.CanQuery = false
-    anchor.Transparency = 1
-    table.insert(Cage_Lines, anchor)
-
-    local topAtts, botAtts = {}, {}
-    for i = 1, 4 do
-        local b = Instance.new("Attachment", anchor) b.Name = "VST_Cage_B"..i table.insert(botAtts, b)
-        local t = Instance.new("Attachment", anchor) t.Name = "VST_Cage_T"..i table.insert(topAtts, t)
-    end
-
-    local edges = {
-        {1, 2, "b"}, {2, 3, "b"}, {3, 4, "b"}, {4, 1, "b"},
-        {1, 2, "t"}, {2, 3, "t"}, {3, 4, "t"}, {4, 1, "t"},
-        {1, 1, "v"}, {2, 2, "v"}, {3, 3, "v"}, {4, 4, "v"}
-    }
-
-    for i, e in ipairs(edges) do
-        local beam = Instance.new("Beam", anchor)
-        beam.Width0, beam.Width1 = thickness, thickness
-        beam.Color = ColorSequence.new(color)
-        beam.LightEmission, beam.FaceCamera = 1, true
-        beam.Segments = 2
-
-        if e[3] == "b" then beam.Attachment0, beam.Attachment1 = botAtts[e[1]], botAtts[e[2]]
-        elseif e[3] == "t" then beam.Attachment0, beam.Attachment1 = topAtts[e[1]], topAtts[e[2]]
-        else beam.Attachment0, beam.Attachment1 = botAtts[e[1]], topAtts[e[2]] end
-        table.insert(Cage_Lines, beam)
-    end
-end
-
-function destroyCageVisual()
-    for _, obj in ipairs(Cage_Lines) do if obj and obj.Parent then obj:Destroy() end end
-    Cage_Lines = {}
-end
-
-local function updateCageVisual(center)
-    local anchor = nil
-    for _, obj in ipairs(Cage_Lines) do if obj.Name == "VST_CageAnchor" then anchor = obj break end end
-    if not anchor then return end
-
-    local size, height = State.BallCage.Size, State.BallCage.Height
-    local half = size / 2
-    anchor.CFrame = CFrame.new(center.X, center.Y - 3, center.Z)
-
-    local corners = {
-        Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half),
-        Vector3.new(half, 0, half), Vector3.new(-half, 0, half),
-    }
-
-    for i = 1, 4 do
-        local b = anchor:FindFirstChild("VST_Cage_B"..i)
-        local t = anchor:FindFirstChild("VST_Cage_T"..i)
-        if b then b.Position = corners[i] end
-        if t then t.Position = corners[i] + Vector3.new(0, height, 0) end
-    end
-end
-
--- [LOOP DE FÍSICA - CORREÇÃO DE ESCAPE]
-local function cageStart()
-    if Cage_Conn then Cage_Conn:Disconnect() end
-
-    Cage_Conn = RunService.Heartbeat:Connect(function()
-        if not State.BallCage.Enabled then return end
-
-        local char = LP.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-
-        if State.BallCage.Visible then updateCageVisual(root.Position) else if #Cage_Lines > 0 then destroyCageVisual() end end
-
-        local now = tick()
-        if not Cage_Ball or not Cage_Ball.Parent or (now - Cage_BallLastSearch) > 1 then
-            Cage_BallLastSearch = now
-            Cage_Ball = findBallCage()
-        end
-        local ball = Cage_Ball
-        if not ball or isBallLockedCage(ball) then return end
-
-        local half = State.BallCage.Size / 2
-        local ballPos, rootPos = ball.Position, root.Position
-        local relX, relZ = ballPos.X - rootPos.X, ballPos.Z - rootPos.Z
-        
-        -- [BOUNDARY LOCK - MODO AGRESSIVO]
-        local outOfBounds = false
-        local corr = Vector3.zero
-
-        if math.abs(relX) > half then
-            local d = relX > 0 and -1 or 1
-            corr = Vector3.new(d * 0.8, 0, 0)
-            outOfBounds = true
-        end
-        if math.abs(relZ) > half then
-            local d = relZ > 0 and -1 or 1
-            corr = corr + Vector3.new(0, 0, d * 0.8)
-            outOfBounds = true
-        end
-
-        if outOfBounds then
-            pcall(function()
-                -- Força a bola a não ganhar velocidade para fora
-                local v = ball.AssemblyLinearVelocity
-                ball.AssemblyLinearVelocity = Vector3.new(v.X * 0.5, v.Y, v.Z * 0.5)
-                
-                -- Aplica a força de contenção (Repulsão ou Puxão)
-                local force = State.BallCage.Repulsao and (corr * State.BallCage.RepulsaoStrength) or corr
-                ball.AssemblyLinearVelocity = ball.AssemblyLinearVelocity + force
-                
-                -- Pequeno teleporte para evitar que a bola atravesse a barreira
-                ball.CFrame = ball.CFrame * CFrame.new(corr.X * 0.1, 0, corr.Z * 0.1)
-            end)
-        end
-
-        -- [CONTROLE DE DISTÂNCIA (PULL/REPEL)]
-        local vel = ball.AssemblyLinearVelocity
-        if not State.BallCage.Repulsao and vel.Magnitude > State.BallCage.ChuteVelocidade then return end
-
-        local pDir = Vector3.zero
-        if relX > half then pDir += Vector3.new(-1, 0, 0) elseif relX < -half then pDir += Vector3.new(1, 0, 0) end
-        if relZ > half then pDir += Vector3.new(0, 0, -1) elseif relZ < -half then pDir += Vector3.new(0, 0, 1) end
-
-        if pDir.Magnitude > 0 then
-            if State.BallCage.Repulsao then
-                pcall(function()
-                    ball.AssemblyLinearVelocity = Vector3.new(pDir.Unit.X * State.BallCage.RepulsaoStrength * 10, 0, pDir.Unit.Z * State.BallCage.RepulsaoStrength * 10)
-                end)
-            else
-                pcall(function()
-                    ball.AssemblyLinearVelocity = Vector3.new(vel.X + (pDir.Unit.X * (State.BallCage.PullStrength * 10)), vel.Y, vel.Z + (pDir.Unit.Z * (State.BallCage.PullStrength * 10))) end)
-                end
-            end
-        end
--- [API]
-function BallCageModule.setEnabled(on)
-    State.BallCage.Enabled = on
-    if on then cageStart() notify("Quadrado ativado", "good") else if Cage_Conn then Cage_Conn:Disconnect(); Cage_Conn = nil end destroyCageVisual(); Cage_Ball = nil notify("Quadrado desativado", "bad") end
-end
-function BallCageModule.setSize(v) State.BallCage.Size = v end
-function BallCageModule.setHeight(v) State.BallCage.Height = v end
-function BallCageModule.setVisible(on) State.BallCage.Visible = on if not on then destroyCageVisual() end end
-function BallCageModule.setPullStrength(v) State.BallCage.PullStrength = v end
-function BallCageModule.setChuteVelocidade(v) State.BallCage.ChuteVelocidade = v end
-function BallCageModule.setRepulsao(on) State.BallCage.Repulsao = on end
-function BallCageModule.setRepulsaoStrength(v) State.BallCage.RepulsaoStrength = v end
-function BallCageModule.recreate() destroyCageVisual(); local char = LP.Character if char and State.BallCage.Visible then updateCageVisual(char:FindFirstChild("HumanoidRootPart").Position) end notify("Quadrado recriado", "good") end
-function BallCageModule.reset() State.BallCage.Enabled = false; State.BallCage.Visible = false; if Cage_Conn then Cage_Conn:Disconnect(); Cage_Conn = nil end destroyCageVisual(); Cage_Ball = nil notify("Quadrado resetado", "bad") end
-
-print("[VoidStrap] Engine 6.2 Core Ready.")
-
---====================================================================
--- [PARTE 2: INTERFACE E CONTROLE]
+-- PARTE 6.2 — ABA AF AVANCADO (tudo numa aba só)
 --====================================================================
 
 createTab("AF Avancado", "AF+")
@@ -2620,99 +2477,101 @@ createTab("AF Avancado", "AF+")
 do
     local page = Tabs["AF Avancado"].page
 
-    local sec = section("Seguir Bola (Configurações)")
-    sec.Parent = page
-    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on) AutoFollowModule.setEnabled(on) end, 1)
-    dropdownRow(sec, "Alvo", { "Todas", "Minha", "MaisProxima" }, State.AutoFollow.TargetMode, function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v) AutoFollowModule.setSpeed(v) end, 3)
-    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v) AutoFollowModule.setStopDistance(v) end, 4)
-
-    local cageSec = section("Quadrado de Contencao (Física)")
-    cageSec.Parent = page
-    toggleRow(cageSec, "Ativar Quadrado", State.BallCage.Enabled, function(on) BallCageModule.setEnabled(on) end, 1)
-    sliderRow(cageSec, "Tamanho (studs)", 3, 30, State.BallCage.Size, function(v) BallCageModule.setSize(v) end, 2)
-    sliderRow(cageSec, "Altura (studs)", 2, 15, State.BallCage.Height, function(v) BallCageModule.setHeight(v) end, 3)
-    sliderRow(cageSec, "Forca de Puxar (x100)", 1, 100, math.floor(State.BallCage.PullStrength * 100), function(v) BallCageModule.setPullStrength(v / 100) end, 4)
-    sliderRow(cageSec, "Velocidade Minima de Chute", 10, 150, State.BallCage.ChuteVelocidade, function(v) BallCageModule.setChuteVelocidade(v) end, 5)
-    toggleRow(cageSec, "Ativar Repulsao", State.BallCage.Repulsao, function(on) BallCageModule.setRepulsao(on) end, 6)
-    sliderRow(cageSec, "Forca da Repulsao", 1, 20, State.BallCage.RepulsaoStrength, function(v) BallCageModule.setRepulsaoStrength(v) end, 7)
-    toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on) BallCageModule.setVisible(on) end, 8)
-    buttonRow(cageSec, "Recriar Quadrado", function() BallCageModule.recreate() end, 9)
-
-    local resetSec = section("Sistema e Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Desativar Tudo", function()
-        AutoFollowModule.reset()
-        BallCageModule.reset()
-        notify("Sistema Resetado", "bad")
-    end, 1)
-end--====================================================================
--- [PARTE 2/2] - UI CONTROL: MENUS, SLIDERS E INTERFACE
---====================================================================
-
--- [CONFIGURAÇÃO DA ABA PRINCIPAL]
-createTab("AF Avancado", "AF+")
-
-do
-    local page = Tabs["AF Avancado"].page
-
-    -- SEÇÃO 1: SEGUIR BOLA (CONFIGURAÇÕES)
-    local sec = section("Seguir Bola (Configurações)")
+    -- ============ SEGUIR BOLA ============
+    local sec = section("Seguir Bola")
     sec.Parent = page
 
-    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on) AutoFollowModule.setEnabled(on) end, 1)
-    dropdownRow(sec, "Alvo", { "Todas", "Minha", "MaisProxima" }, State.AutoFollow.TargetMode, function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
-    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v) AutoFollowModule.setSpeed(v) end, 3)
-    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v) AutoFollowModule.setStopDistance(v) end, 4)
-
-    -- SEÇÃO 2: QUADRADO DE CONTENÇÃO (FÍSICA)
-    local cageSec = section("Quadrado de Contencao (Física)")
-    cageSec.Parent = page
-
-    toggleRow(cageSec, "Ativar Quadrado", State.BallCage.Enabled, function(on) BallCageModule.setEnabled(on) end, 1)
-    sliderRow(cageSec, "Tamanho (studs)", 3, 30, State.BallCage.Size, function(v) BallCageModule.setSize(v) end, 2)
-    sliderRow(cageSec, "Altura (studs)", 2, 15, State.BallCage.Height, function(v) BallCageModule.setHeight(v) end, 3)
-    sliderRow(cageSec, "Forca de Puxar (x100)", 1, 100, math.floor(State.BallCage.PullStrength * 100), function(v) BallCageModule.setPullStrength(v / 100) end, 4)
-    sliderRow(cageSec, "Velocidade Minima de Chute", 10, 150, State.BallCage.ChuteVelocidade, function(v) BallCageModule.setChuteVelocidade(v) end, 5)
-    toggleRow(cageSec, "Ativar Repulsao", State.BallCage.Repulsao, function(on) BallCageModule.setRepulsao(on) end, 6)
-    sliderRow(cageSec, "Forca da Repulsao", 1, 20, State.BallCage.RepulsaoStrength, function(v) BallCageModule.setRepulsaoStrength(v) end, 7)
-    toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on) BallCageModule.setVisible(on) end, 8)
-    buttonRow(cageSec, "Recriar Quadrado", function() BallCageModule.recreate() end, 9)
-
-    -- SEÇÃO 3: STATUS E RESET
-    local resetSec = section("Sistema e Restaurar")
-    resetSec.Parent = page
-
-    buttonRow(resetSec, "Desativar Tudo", function()
-        AutoFollowModule.reset()
-        BallCageModule.reset()
-        notify("Sistema Resetado", "bad")
+    toggleRow(sec, "Ativar Auto Follow", State.AutoFollow.Enabled, function(on)
+        AutoFollowModule.setEnabled(on)
     end, 1)
 
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 60),
-        BackgroundTransparency = 1,
-        Text = "Nota: O sistema usa Boundary Lock para impedir que a bola escape do raio de ação.",
-        Font = Enum.Font.Gotham,
-        TextSize = 10,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        Parent = resetSec,
-    })
-    themed(info, "TextColor3", "Sub")
+    dropdownRow(sec, "Alvo",
+        { "Todas", "Minha", "MaisProxima" },
+        State.AutoFollow.TargetMode,
+        function(opt) AutoFollowModule.setTargetMode(opt) end, 2)
+
+    sliderRow(sec, "Velocidade", 8, 60, State.AutoFollow.Speed, function(v)
+        AutoFollowModule.setSpeed(v)
+    end, 3)
+
+    sliderRow(sec, "Distancia Parada", 1, 10, State.AutoFollow.StopDistance, function(v)
+        AutoFollowModule.setStopDistance(v)
+    end, 4)
+
+    toggleRow(sec, "Triscar Ativa", State.AutoFollow.TouchToEnable, function(on)
+        AutoFollowModule.setTouchToEnable(on)
+    end, 5)
+
+    toggleRow(sec, "Pausar quando Lockado", State.AutoFollow.PauseOnLock, function(on)
+        AutoFollowModule.setPauseOnLock(on)
+    end, 6)
+
+    toggleRow(sec, "Seguir Altura (Y)", State.AutoFollow.TrackY, function(on)
+        AutoFollowModule.setTrackY(on)
+    end, 7)
+
+    toggleRow(sec, "Anti-Stuck", State.AutoFollow.AntiStuck, function(on)
+        AutoFollowModule.setAntiStuck(on)
+    end, 8)
+
+    toggleRow(sec, "Velocidade Suave", State.AutoFollow.SmoothSpeed, function(on)
+        AutoFollowModule.setSmoothSpeed(on)
+    end, 9)
+
+    -- ============ REACH ============
+    local reachSec = section("Reach (Alcance)")
+    reachSec.Parent = page
+
+    toggleRow(reachSec, "Ativar Reach", State.AutoFollow.ReachEnabled, function(on)
+        AutoFollowModule.setReachEnabled(on)
+    end, 1)
+
+    sliderRow(reachSec, "Distancia (Studs)", 1, 12, State.AutoFollow.ReachDistance, function(v)
+        AutoFollowModule.setReachDistance(v)
+    end, 2)
+
+    -- ============ BOTÃO FLUTUANTE ============
+    local floatSec = section("Botao Flutuante")
+    floatSec.Parent = page
+
+    buttonRow(floatSec, "Criar / Remover Botao Flutuante", function()
+        AutoFollowBtnModule.toggle()
+    end, 1)
+
+    toggleRow(floatSec, "Travar Botao no Lugar", State.AutoFollowBtn.Locked, function(on)
+        AutoFollowBtnModule.setLocked(on)
+    end, 2)
+
+    -- ============ RESET ============
+    local resetSec = section("Restaurar")
+    resetSec.Parent = page
+
+    buttonRow(resetSec, "Desativar tudo", function()
+        AutoFollowModule.reset()
+        AutoFollowBtnModule.hide()
+    end, 1)
 end
 
--- [CLEANUP FINAL]
+-- ---------- CLEANUP ----------
 local _prevAF = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAF then _prevAF() end
     pcall(function()
         AutoFollowModule.reset()
-        BallCageModule.reset()
+        AutoFollowBtnModule.hide()
     end)
 end
 
-print("[VoidStrap] Interface 6.2 Carregada.")
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function()
+            AutoFollowModule.reset()
+            AutoFollowBtnModule.hide()
+        end)
+    end
+end)
+
+print("[VoidStrap] 6.2 OK")--====================================================================
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
