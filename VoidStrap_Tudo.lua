@@ -2007,7 +2007,7 @@ local AF_TouchDebounce = 0
 
 local BALL_NAMES = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
-    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall", "VEF", "AIFA"
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
 }
 
 local function isBallName(name)
@@ -2398,10 +2398,226 @@ function AutoFollowBtnModule.setLocked(locked)
 end
 
 print("[VoidStrap] 6.1 OK")--====================================================================
--- PARTE 6.2 — AUTO FOLLOW (ABAS UI)
+-- PARTE 6.2 — AUTO FOLLOW (ABAS UI) + BALL CAGE
 --====================================================================
 
--- ABA BÁSICO
+--====================================================================
+-- MÓDULO: BALL CAGE (Quadrado de contencao)
+--====================================================================
+
+State.BallCage = State.BallCage or {
+    Enabled = false,
+    Size = 10,
+    Visible = false,
+}
+
+local BallCageModule = {}
+local Cage_Conn = nil
+local Cage_Ball = nil
+local Cage_BallLastSearch = 0
+local Cage_Part = nil
+local Cage_Center = nil
+
+local BALL_NAMES_CAGE = {
+    "TPS", "ESA", "MRS", "PRS", "MPS",
+    "Ball", "Football", "Soccer Ball", "Bola", "SoccerBall"
+}
+
+local function isBallNameCage(name)
+    for _, n in ipairs(BALL_NAMES_CAGE) do
+        if name == n then return true end
+    end
+    return false
+end
+
+local function findBallCage()
+    local char = LP.Character
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and isBallNameCage(obj.Name) then
+            if not (char and obj:IsDescendantOf(char)) then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+local function isBallLockedCage(ball)
+    if not ball then return false, nil end
+    local ownerVal = ball:FindFirstChild("Owner")
+    if ownerVal and ownerVal:IsA("ObjectValue") and ownerVal.Value then
+        local owner = Players:GetPlayerFromCharacter(ownerVal.Value)
+        return true, owner
+    end
+    return false, nil
+end
+
+local function createCageVisual(center)
+    if Cage_Part and Cage_Part.Parent then
+        Cage_Part:Destroy()
+    end
+    local size = State.BallCage.Size
+    Cage_Part = Instance.new("Part")
+    Cage_Part.Name = "VST_BallCage"
+    Cage_Part.Size = Vector3.new(size, 1, size)
+    Cage_Part.Position = Vector3.new(center.X, center.Y - 2, center.Z)
+    Cage_Part.Anchored = true
+    Cage_Part.CanCollide = false
+    Cage_Part.CanQuery = false
+    Cage_Part.CanTouch = false
+    Cage_Part.CastShadow = false
+    Cage_Part.Material = Enum.Material.Neon
+    Cage_Part.Color = Color3.fromRGB(80, 220, 130)
+    Cage_Part.Transparency = 0.7
+    Cage_Part.Parent = Workspace
+end
+
+local function destroyCageVisual()
+    if Cage_Part and Cage_Part.Parent then
+        Cage_Part:Destroy()
+    end
+    Cage_Part = nil
+end
+
+local function cageStart()
+    if Cage_Conn then Cage_Conn:Disconnect() end
+
+    Cage_Conn = RunService.Heartbeat:Connect(function()
+        if not State.BallCage.Enabled then return end
+
+        local char = LP.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        Cage_Center = root.Position
+
+        local now = tick()
+        if not Cage_Ball or not Cage_Ball.Parent or (now - Cage_BallLastSearch) > 1 then
+            Cage_BallLastSearch = now
+            Cage_Ball = findBallCage()
+        end
+        local ball = Cage_Ball
+        if not ball then return end
+
+        local locked = isBallLockedCage(ball)
+        if locked then return end
+
+        local half = State.BallCage.Size / 2
+        local relX = ball.Position.X - root.Position.X
+        local relZ = ball.Position.Z - root.Position.Z
+
+        local needClamp = false
+        local newX = ball.Position.X
+        local newZ = ball.Position.Z
+
+        if relX > half then
+            newX = root.Position.X + half
+            needClamp = true
+        elseif relX < -half then
+            newX = root.Position.X - half
+            needClamp = true
+        end
+
+        if relZ > half then
+            newZ = root.Position.Z + half
+            needClamp = true
+        elseif relZ < -half then
+            newZ = root.Position.Z - half
+            needClamp = true
+        end
+
+        if needClamp then
+            pcall(function()
+                ball.CFrame = CFrame.new(Vector3.new(newX, ball.Position.Y, newZ))
+                ball.AssemblyLinearVelocity = Vector3.zero
+            end)
+        end
+
+        if State.BallCage.Visible then
+            if not Cage_Part or not Cage_Part.Parent then
+                createCageVisual(root.Position)
+            else
+                pcall(function()
+                    Cage_Part.Size = Vector3.new(State.BallCage.Size, 1, State.BallCage.Size)
+                    Cage_Part.Position = Vector3.new(root.Position.X, root.Position.Y - 2, root.Position.Z)
+                end)
+            end
+        else
+            if Cage_Part and Cage_Part.Parent then
+                destroyCageVisual()
+            end
+        end
+    end)
+end
+
+function BallCageModule.setEnabled(on)
+    State.BallCage.Enabled = on
+    if on then
+        cageStart()
+        notify("Quadrado ativado", "good")
+    else
+        if Cage_Conn then Cage_Conn:Disconnect(); Cage_Conn = nil end
+        destroyCageVisual()
+        Cage_Ball = nil
+        notify("Quadrado desativado", "bad")
+    end
+end
+
+function BallCageModule.setSize(v)
+    State.BallCage.Size = v
+    if Cage_Part and Cage_Part.Parent then
+        pcall(function()
+            Cage_Part.Size = Vector3.new(v, 1, v)
+        end)
+    end
+end
+
+function BallCageModule.setVisible(on)
+    State.BallCage.Visible = on
+    if not on then
+        destroyCageVisual()
+    end
+end
+
+function BallCageModule.recreate()
+    local char = LP.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    destroyCageVisual()
+    if State.BallCage.Visible then
+        createCageVisual(root.Position)
+    end
+    notify("Quadrado recriado", "good")
+end
+
+function BallCageModule.reset()
+    State.BallCage.Enabled = false
+    State.BallCage.Visible = false
+    if Cage_Conn then Cage_Conn:Disconnect(); Cage_Conn = nil end
+    destroyCageVisual()
+    Cage_Ball = nil
+    notify("Quadrado resetado", "bad")
+end
+
+local _prevCage = _G.VoidStrapUnload
+_G.VoidStrapUnload = function()
+    if _prevCage then _prevCage() end
+    pcall(function() BallCageModule.reset() end)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+    if plr == LP then
+        pcall(function() BallCageModule.reset() end)
+    end
+end)
+
+print("[VoidStrap] Ball Cage carregado.")
+
+--====================================================================
+-- ABA AF BÁSICO
+--====================================================================
 createTab("AF Basico", "AF")
 
 do
@@ -2463,12 +2679,15 @@ do
     themed(floatInfo, "TextColor3", "Sub")
 end
 
--- ABA AVANÇADO
+--====================================================================
+-- ABA AF AVANÇADO
+--====================================================================
 createTab("AF Avancado", "AF+")
 
 do
     local page = Tabs["AF Avancado"].page
 
+    -- SEGUIR BOLA
     local sec = section("Seguir Bola (Avancado)")
     sec.Parent = page
 
@@ -2494,6 +2713,41 @@ do
     })
     themed(info, "TextColor3", "Sub")
 
+    -- QUADRADO DE CONTENÇÃO
+    local cageSec = section("Quadrado de Contencao")
+    cageSec.Parent = page
+
+    toggleRow(cageSec, "Ativar Quadrado", State.BallCage.Enabled, function(on)
+        BallCageModule.setEnabled(on)
+    end, 1)
+
+    sliderRow(cageSec, "Tamanho (studs)", 1, 30, State.BallCage.Size, function(v)
+        BallCageModule.setSize(v)
+    end, 2)
+
+    toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on)
+        BallCageModule.setVisible(on)
+    end, 3)
+
+    buttonRow(cageSec, "Recriar Quadrado", function()
+        BallCageModule.recreate()
+    end, 4)
+
+    local cageInfo = create("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 70),
+        BackgroundTransparency = 1,
+        Text = "Prende a bola dentro de um quadrado centrado em voce. Se alguem LOCKAR a bola, ela escapa. Quando soltar, volta a ser presa.",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = ActiveTheme.Sub,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 5,
+        Parent = cageSec,
+    })
+    themed(cageInfo, "TextColor3", "Sub")
+
+    -- REACH
     local reachSec = section("Reach (Alcance)")
     reachSec.Parent = page
 
@@ -2519,6 +2773,7 @@ do
     })
     themed(reachWarn, "TextColor3", "Bad")
 
+    -- BOTÃO FLUTUANTE
     local floatSec = section("Botao Flutuante (Avancado)")
     floatSec.Parent = page
 
@@ -2540,12 +2795,14 @@ do
     })
     themed(lockInfo, "TextColor3", "Sub")
 
+    -- RESET
     local resetSec = section("Restaurar")
     resetSec.Parent = page
 
     buttonRow(resetSec, "Desativar tudo", function()
         AutoFollowModule.reset()
         AutoFollowBtnModule.hide()
+        BallCageModule.reset()
     end, 1)
 end
 
@@ -2556,6 +2813,7 @@ _G.VoidStrapUnload = function()
     pcall(function()
         AutoFollowModule.reset()
         AutoFollowBtnModule.hide()
+        BallCageModule.reset()
     end)
 end
 
@@ -2564,6 +2822,7 @@ Players.PlayerRemoving:Connect(function(plr)
         pcall(function()
             AutoFollowModule.reset()
             AutoFollowBtnModule.hide()
+            BallCageModule.reset()
         end)
     end
 end)
@@ -3048,158 +3307,6 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Ball Color (all balls + Mesh) carregado.")--====================================================================
--- PARTE 10 — STRETCH SCREEN (FOV)
---====================================================================
-
-State.Stretch = State.Stretch or {
-    Enabled = false,
-    Preset = "Baixa",
-    Intensity = 1.0,
-}
-
-local StretchModule = {}
-local ST_OriginalFOV = nil
-local ST_BaseFOV = 70
-local ST_Conn = nil
-
-local STRETCH_PRESETS = {
-    { name = "Baixa",  fov = 85,  desc = "85 FOV" },
-    { name = "Media",  fov = 100, desc = "100 FOV" },
-    { name = "Alta",   fov = 115, desc = "115 FOV" },
-    { name = "Ultra",  fov = 130, desc = "130 FOV" },
-}
-
-local function stGetPreset(name)
-    for _, p in ipairs(STRETCH_PRESETS) do
-        if p.name == name then return p end
-    end
-    return STRETCH_PRESETS[1]
-end
-
-local function stApply()
-    if not Camera then return end
-    if not ST_OriginalFOV then
-        ST_OriginalFOV = Camera.FieldOfView
-        ST_BaseFOV = Camera.FieldOfView
-    end
-    if not State.Stretch.Enabled then
-        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
-        return
-    end
-    local p = stGetPreset(State.Stretch.Preset)
-    local targetFOV = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
-    pcall(function() Camera.FieldOfView = targetFOV end)
-end
-
-local function stStart()
-    if ST_Conn then ST_Conn:Disconnect() end
-    ST_Conn = RunService.RenderStepped:Connect(function()
-        if not State.Stretch.Enabled then return end
-        if not Camera then return end
-        local p = stGetPreset(State.Stretch.Preset)
-        local target = ST_BaseFOV + (p.fov - ST_BaseFOV) * State.Stretch.Intensity
-        if math.abs(Camera.FieldOfView - target) > 0.5 then
-            pcall(function() Camera.FieldOfView = target end)
-        end
-    end)
-end
-
-function StretchModule.setEnabled(on)
-    State.Stretch.Enabled = on
-    if on then
-        if not ST_OriginalFOV and Camera then
-            ST_OriginalFOV = Camera.FieldOfView
-            ST_BaseFOV = Camera.FieldOfView
-        end
-        stStart()
-        stApply()
-        notify("Stretch: " .. State.Stretch.Preset, "good")
-    else
-        if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
-        stApply()
-        notify("Stretch desativado", "bad")
-    end
-end
-
-function StretchModule.setPreset(name)
-    State.Stretch.Preset = name
-    if State.Stretch.Enabled then
-        stApply()
-        notify("Stretch: " .. name, "good")
-    end
-end
-
-function StretchModule.setIntensity(v)
-    State.Stretch.Intensity = v
-    if State.Stretch.Enabled then stApply() end
-end
-
-function StretchModule.reset()
-    State.Stretch.Enabled = false
-    State.Stretch.Preset = "Baixa"
-    State.Stretch.Intensity = 1.0
-    if ST_Conn then ST_Conn:Disconnect(); ST_Conn = nil end
-    if Camera and ST_OriginalFOV then
-        pcall(function() Camera.FieldOfView = ST_OriginalFOV end)
-    end
-    notify("Stretch resetado", "bad")
-end
-
-createTab("Stretch", "STR")
-
-do
-    local page = Tabs["Stretch"].page
-
-    local sec = section("Esticar Tela (FOV)")
-    sec.Parent = page
-
-    toggleRow(sec, "Ativar Stretch", State.Stretch.Enabled, function(on)
-        StretchModule.setEnabled(on)
-    end, 1)
-
-    dropdownRow(sec, "Proporcao",
-        { "Baixa", "Media", "Alta", "Ultra" },
-        State.Stretch.Preset,
-        function(opt) StretchModule.setPreset(opt) end, 2)
-
-    sliderRow(sec, "Intensidade (x100)", 50, 200, math.floor(State.Stretch.Intensity * 100), function(v)
-        StretchModule.setIntensity(v / 100)
-    end, 3)
-
-    local info = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 80),
-        BackgroundTransparency = 1,
-        Text = "Baixa=85 | Media=100 | Alta=115 | Ultra=130 FOV.\n\nIntensidade: 0.5x a 2x do efeito.",
-        Font = Enum.Font.Gotham,
-        TextSize = 11,
-        TextColor3 = ActiveTheme.Sub,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 4,
-        Parent = sec,
-    })
-    themed(info, "TextColor3", "Sub")
-
-    local resetSec = section("Restaurar")
-    resetSec.Parent = page
-    buttonRow(resetSec, "Resetar Stretch", function()
-        StretchModule.reset()
-    end, 1)
-end
-
-local _prevStr = _G.VoidStrapUnload
-_G.VoidStrapUnload = function()
-    if _prevStr then _prevStr() end
-    pcall(function() StretchModule.reset() end)
-end
-
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == LP then
-        pcall(function() StretchModule.reset() end)
-    end
-end)
-
-print("[VoidStrap] Stretch (FOV) carregado.")--====================================================================
 -- PARTE 12 — AUTO CATCH (aumenta alcance da mao)
 -- Quando a bola entra no range, dispara touch das maos.
 --====================================================================
@@ -3716,14 +3823,14 @@ Players.PlayerRemoving:Connect(function(plr)
 end)
 
 print("[VoidStrap] Reach (Hitbox) carregado.")--====================================================================
--- PARTE 15 — BOOM BOX (com IDs novos + campo pra ID manual)
+-- PARTE 15 — BOOM BOX (Musica)
 --====================================================================
 
 State.BoomBox = State.BoomBox or {
     Enabled = false,
     Volume = 1.0,
     Looped = true,
-    Target = "Player",
+    Target = "Player",   -- "Player" ou "Ball"
     CurrentTrack = nil,
 }
 
@@ -3735,12 +3842,12 @@ local BB_Conn = nil
 -- ---------- LISTA DE MUSICAS ----------
 local BOOMBOX_TRACKS = {
     { name = "Nenhuma",           id = nil },
-    { name = "Sometimes",         id = "121397051787416" },
-    { name = "Meant to Be",       id = "126576350082922" },
-    { name = "Ilusionary",        id = "87570666848900" },
-    { name = "BrooklynBloodPop",  id = "96414211708215" },
-    { name = "I'm So Fed Up",     id = "103072508653269" },
-    { name = "PHONK",             id = "119234504459800" },
+    { name = "Meant to Be",       id = "2147141158" },
+    { name = "Sunflower",         id = "2698664996" },
+    { name = "Sometimes",         id = "415384530" },
+    { name = "BrooklynBloodPop",  id = "136111288303730" },
+    { name = "Nuts",              id = "5678130547" },
+    { name = "Super Funk",        id = "107835682687645" },
 }
 
 -- ---------- DETECÇÃO DA BOLA ----------
@@ -3768,7 +3875,7 @@ local function findBall15()
     return nil
 end
 
--- ---------- SOUND ----------
+-- ---------- CRIAR SOUND ----------
 local function destroySound()
     if BB_Sound and BB_Sound.Parent then
         pcall(function() BB_Sound:Destroy() end)
@@ -3780,6 +3887,7 @@ end
 local function createSoundOn(target)
     if not target then return end
     if BB_Sound and BB_Sound.Parent == target then return end
+
     destroySound()
 
     BB_Sound = Instance.new("Sound")
@@ -3793,6 +3901,7 @@ local function createSoundOn(target)
     BB_CurrentTarget = target
 end
 
+-- ---------- APLICAR TRACK ----------
 local function applyTrack(trackId)
     if not BB_Sound then return end
     if trackId then
@@ -3805,9 +3914,10 @@ local function applyTrack(trackId)
     end
 end
 
--- ---------- LOOP ----------
+-- ---------- LOOP (fixa o som no alvo) ----------
 local function bbStart()
     if BB_Conn then BB_Conn:Disconnect() end
+
     BB_Conn = RunService.Heartbeat:Connect(function()
         if not State.BoomBox.Enabled then return end
 
@@ -3824,6 +3934,7 @@ local function bbStart()
             return
         end
 
+        -- Se o alvo mudou, cria de novo
         if not BB_Sound or BB_Sound.Parent ~= target then
             createSoundOn(target)
             if State.BoomBox.CurrentTrack then
@@ -3831,6 +3942,7 @@ local function bbStart()
             end
         end
 
+        -- Atualiza volume e loop
         if BB_Sound then
             pcall(function()
                 BB_Sound.Volume = State.BoomBox.Volume
@@ -3867,17 +3979,6 @@ function BoomBoxModule.setTrack(name)
             return
         end
     end
-end
-
-function BoomBoxModule.setTrackById(id)
-    id = tostring(id or ""):gsub("%D", "")  -- só números
-    if id == "" then
-        notify("ID invalido", "bad")
-        return
-    end
-    State.BoomBox.CurrentTrack = id
-    applyTrack(id)
-    notify("ID: " .. id, "good")
 end
 
 function BoomBoxModule.setVolume(v)
@@ -3945,41 +4046,6 @@ do
         BoomBoxModule.refresh()
     end, 5)
 
-    -- CAMPO DE ID MANUAL
-    local idSec = section("Tocar por ID")
-    idSec.Parent = page
-
-    local idFrame = create("Frame", {
-        Size = UDim2.new(1, 0, 0, 44),
-        BackgroundColor3 = ActiveTheme.Surface2,
-        BorderSizePixel = 0,
-        LayoutOrder = 1,
-        Parent = idSec,
-    })
-    themed(idFrame, "BackgroundColor3", "Surface2")
-    corner(8, idFrame)
-
-    local idBox = create("TextBox", {
-        Size = UDim2.new(1, -20, 1, 0),
-        Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        PlaceholderText = "Cole o ID da musica (só números)...",
-        PlaceholderColor3 = ActiveTheme.Sub,
-        Font = Enum.Font.GothamMedium,
-        TextSize = 13,
-        TextColor3 = ActiveTheme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ClearTextOnFocus = false,
-        Parent = idFrame,
-    })
-    themed(idBox, "TextColor3", "Text")
-    themed(idBox, "PlaceholderColor3", "Sub")
-
-    buttonRow(idSec, "Tocar ID", function()
-        BoomBoxModule.setTrackById(idBox.Text)
-    end, 2)
-
     -- MÚSICAS
     local trackSec = section("Musicas")
     trackSec.Parent = page
@@ -3993,7 +4059,7 @@ do
     local info = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 70),
         BackgroundTransparency = 1,
-        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Voce tambem pode colar qualquer ID na secao 'Tocar por ID'.",
+        Text = "Toca musica no seu personagem ou na bola. Som local (so voce ouve). Pra outros ouvirem, o jogo precisa aceitar.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
