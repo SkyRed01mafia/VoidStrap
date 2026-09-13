@@ -2594,13 +2594,6 @@ local function cageStart()
                 end
             end
         end
-
-        -- [FIRETOUCHINTEREST]
-        firetouchinterest(ball, root, 0)
-        firetouchinterest(ball, root, 1)
-    end)
-end
-
 -- [API]
 function BallCageModule.setEnabled(on)
     State.BallCage.Enabled = on
