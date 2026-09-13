@@ -2402,16 +2402,18 @@ print("[VoidStrap] 6.1 OK")--===================================================
 --====================================================================
 
 --====================================================================
--- MÓDULO: BALL CAGE (Quadrado de linhas, pés à cabeça)
+-- MÓDULO: BALL CAGE (Quadrado pés à cabeça + Repulsão)
 --====================================================================
 
 State.BallCage = State.BallCage or {
     Enabled = false,
     Size = 12,
     Visible = true,
-    Height = 5,
+    Height = 6,
     PullStrength = 0.20,
     ChuteVelocidade = 60,
+    Repulsao = false,
+    RepulsaoStrength = 8,
 }
 
 local BallCageModule = {}
@@ -2454,7 +2456,7 @@ local function isBallLockedCage(ball)
     return false, nil
 end
 
--- ---------- VISUAL (linhas) ----------
+-- ---------- VISUAL ----------
 local function createCageVisual()
     destroyCageVisual()
 
@@ -2544,7 +2546,9 @@ local function updateCageVisual(center)
     local height = State.BallCage.Height
     local half = size / 2
 
-    anchor.CFrame = CFrame.new(center.X, center.Y, center.Z)
+    local baseY = center.Y - 3
+
+    anchor.CFrame = CFrame.new(center.X, baseY, center.Z)
 
     local cornersLocal = {
         Vector3.new(-half, 0, -half),
@@ -2602,7 +2606,10 @@ local function cageStart()
 
         local vel = ball.AssemblyLinearVelocity
         local speed = vel.Magnitude
-        if speed > State.BallCage.ChuteVelocidade then return end
+
+        if not State.BallCage.Repulsao then
+            if speed > State.BallCage.ChuteVelocidade then return end
+        end
 
         local half = State.BallCage.Size / 2
         local relX = ball.Position.X - root.Position.X
@@ -2621,14 +2628,21 @@ local function cageStart()
         end
 
         if pullDir.Magnitude > 0 then
-            local force = pullDir.Unit * (State.BallCage.PullStrength * speed + 5)
-            pcall(function()
-                ball.AssemblyLinearVelocity = Vector3.new(
-                    vel.X + force.X,
-                    vel.Y,
-                    vel.Z + force.Z
-                )
-            end)
+            if State.BallCage.Repulsao then
+                local force = pullDir.Unit * State.BallCage.RepulsaoStrength * 8
+                pcall(function()
+                    ball.AssemblyLinearVelocity = Vector3.new(force.X, 0, force.Z)
+                end)
+            else
+                local force = pullDir.Unit * (State.BallCage.PullStrength * speed + 5)
+                pcall(function()
+                    ball.AssemblyLinearVelocity = Vector3.new(
+                        vel.X + force.X,
+                        vel.Y,
+                        vel.Z + force.Z
+                    )
+                end)
+            end
         end
     end)
 end
@@ -2655,6 +2669,8 @@ function BallCageModule.setVisible(on)
 end
 function BallCageModule.setPullStrength(v) State.BallCage.PullStrength = v end
 function BallCageModule.setChuteVelocidade(v) State.BallCage.ChuteVelocidade = v end
+function BallCageModule.setRepulsao(on) State.BallCage.Repulsao = on end
+function BallCageModule.setRepulsaoStrength(v) State.BallCage.RepulsaoStrength = v end
 
 function BallCageModule.recreate()
     destroyCageVisual()
@@ -2813,24 +2829,32 @@ do
         BallCageModule.setChuteVelocidade(v)
     end, 5)
 
+    toggleRow(cageSec, "Ativar Repulsao (nem chute tira)", State.BallCage.Repulsao, function(on)
+        BallCageModule.setRepulsao(on)
+    end, 6)
+
+    sliderRow(cageSec, "Forca da Repulsao", 1, 20, State.BallCage.RepulsaoStrength, function(v)
+        BallCageModule.setRepulsaoStrength(v)
+    end, 7)
+
     toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on)
         BallCageModule.setVisible(on)
-    end, 6)
+    end, 8)
 
     buttonRow(cageSec, "Recriar Quadrado", function()
         BallCageModule.recreate()
-    end, 7)
+    end, 9)
 
     local cageInfo = create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 80),
         BackgroundTransparency = 1,
-        Text = "Quadrado de linhas do pe a cabeca. Segue voce. Prende a bola suavemente. Se chutar, a bola sai. Outras pessoas entram livremente.",
+        Text = "Quadrado de linhas do pe a cabeca. Segue voce. Com Repulsao ligada, nem chute tira a bola. Outras pessoas entram livremente.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 8,
+        LayoutOrder = 10,
         Parent = cageSec,
     })
     themed(cageInfo, "TextColor3", "Sub")
