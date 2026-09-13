@@ -2402,21 +2402,22 @@ print("[VoidStrap] 6.1 OK")--===================================================
 --====================================================================
 
 --====================================================================
--- MÓDULO: BALL CAGE (Quadrado de contencao)
+-- MÓDULO: BALL CAGE (Quadrado de contencao suave)
 --====================================================================
 
 State.BallCage = State.BallCage or {
     Enabled = false,
     Size = 10,
     Visible = false,
+    PullStrength = 0.15,
+    ChuteVelocidade = 60,
 }
 
 local BallCageModule = {}
 local Cage_Conn = nil
 local Cage_Ball = nil
 local Cage_BallLastSearch = 0
-local Cage_Part = nil
-local Cage_Center = nil
+local Cage_Walls = {}
 
 local BALL_NAMES_CAGE = {
     "TPS", "ESA", "MRS", "PRS", "MPS",
@@ -2452,37 +2453,97 @@ local function isBallLockedCage(ball)
     return false, nil
 end
 
+-- ---------- VISUAL (4 paredes + chão) ----------
 local function createCageVisual(center)
-    if Cage_Part and Cage_Part.Parent then
-        Cage_Part:Destroy()
+    for _, p in ipairs(Cage_Walls) do
+        if p and p.Parent then p:Destroy() end
     end
+    Cage_Walls = {}
+
     local size = State.BallCage.Size
-    Cage_Part = Instance.new("Part")
-    Cage_Part.Name = "VST_BallCage"
-    Cage_Part.Size = Vector3.new(size, 1, size)
-    Cage_Part.Position = Vector3.new(center.X, center.Y - 2, center.Z)
-    Cage_Part.Anchored = true
-    Cage_Part.CanCollide = false
-    Cage_Part.CanQuery = false
-    Cage_Part.CanTouch = false
-    Cage_Part.CastShadow = false
-    Cage_Part.Material = Enum.Material.Neon
-    Cage_Part.Color = Color3.fromRGB(80, 220, 130)
-    Cage_Part.Transparency = 0.7
-    Cage_Part.Parent = Workspace
+    local wallHeight = 1
+    local wallThickness = 0.5
+    local color = Color3.fromRGB(80, 220, 130)
+    local trans = 0.6
+
+    local function makeWall(name, cframe, sz)
+        local p = Instance.new("Part")
+        p.Name = "VST_Cage_" .. name
+        p.Size = sz
+        p.CFrame = cframe
+        p.Anchored = true
+        p.CanCollide = false
+        p.CanQuery = false
+        p.CanTouch = false
+        p.CastShadow = false
+        p.Material = Enum.Material.Neon
+        p.Color = color
+        p.Transparency = trans
+        p.Parent = Workspace
+        table.insert(Cage_Walls, p)
+    end
+
+    local half = size / 2
+    local baseY = center.Y - 2
+
+    makeWall("F", CFrame.new(center.X, baseY + wallHeight/2, center.Z - half),
+        Vector3.new(size, wallHeight, wallThickness))
+    makeWall("B", CFrame.new(center.X, baseY + wallHeight/2, center.Z + half),
+        Vector3.new(size, wallHeight, wallThickness))
+    makeWall("L", CFrame.new(center.X - half, baseY + wallHeight/2, center.Z),
+        Vector3.new(wallThickness, wallHeight, size))
+    makeWall("R", CFrame.new(center.X + half, baseY + wallHeight/2, center.Z),
+        Vector3.new(wallThickness, wallHeight, size))
+    makeWall("Floor", CFrame.new(center.X, baseY - 0.1, center.Z),
+        Vector3.new(size, 0.2, size))
+end
+
+local function updateCageVisual(center)
+    if #Cage_Walls == 0 then
+        createCageVisual(center)
+        return
+    end
+
+    local size = State.BallCage.Size
+    local half = size / 2
+    local wallHeight = 1
+    local baseY = center.Y - 2
+
+    for _, p in ipairs(Cage_Walls) do
+        if p and p.Parent then
+            local name = p.Name:gsub("VST_Cage_", "")
+            if name == "F" then
+                p.Size = Vector3.new(size, wallHeight, 0.5)
+                p.CFrame = CFrame.new(center.X, baseY + wallHeight/2, center.Z - half)
+            elseif name == "B" then
+                p.Size = Vector3.new(size, wallHeight, 0.5)
+                p.CFrame = CFrame.new(center.X, baseY + wallHeight/2, center.Z + half)
+            elseif name == "L" then
+                p.Size = Vector3.new(0.5, wallHeight, size)
+                p.CFrame = CFrame.new(center.X - half, baseY + wallHeight/2, center.Z)
+            elseif name == "R" then
+                p.Size = Vector3.new(0.5, wallHeight, size)
+                p.CFrame = CFrame.new(center.X + half, baseY + wallHeight/2, center.Z)
+            elseif name == "Floor" then
+                p.Size = Vector3.new(size, 0.2, size)
+                p.CFrame = CFrame.new(center.X, baseY - 0.1, center.Z)
+            end
+        end
+    end
 end
 
 local function destroyCageVisual()
-    if Cage_Part and Cage_Part.Parent then
-        Cage_Part:Destroy()
+    for _, p in ipairs(Cage_Walls) do
+        if p and p.Parent then p:Destroy() end
     end
-    Cage_Part = nil
+    Cage_Walls = {}
 end
 
+-- ---------- LOOP ----------
 local function cageStart()
     if Cage_Conn then Cage_Conn:Disconnect() end
 
-    Cage_Conn = RunService.Heartbeat:Connect(function()
+    Cage_Conn = RunService.Heartbeat:Connect(function(dt)
         if not State.BallCage.Enabled then return end
 
         local char = LP.Character
@@ -2490,67 +2551,62 @@ local function cageStart()
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return end
 
-        Cage_Center = root.Position
-
         local now = tick()
         if not Cage_Ball or not Cage_Ball.Parent or (now - Cage_BallLastSearch) > 1 then
             Cage_BallLastSearch = now
             Cage_Ball = findBallCage()
         end
         local ball = Cage_Ball
+
+        -- Visual segue o player
+        if State.BallCage.Visible then
+            updateCageVisual(root.Position)
+        else
+            if #Cage_Walls > 0 then destroyCageVisual() end
+        end
+
         if not ball then return end
 
+        -- Se lockada, não faz nada
         local locked = isBallLockedCage(ball)
         if locked then return end
 
+        -- Se foi chutada (velocidade alta), deixa sair
+        local vel = ball.AssemblyLinearVelocity
+        local speed = vel.Magnitude
+        if speed > State.BallCage.ChuteVelocidade then return end
+
+        -- Contenção suave
         local half = State.BallCage.Size / 2
         local relX = ball.Position.X - root.Position.X
         local relZ = ball.Position.Z - root.Position.Z
 
-        local needClamp = false
-        local newX = ball.Position.X
-        local newZ = ball.Position.Z
-
+        local pullDir = Vector3.zero
         if relX > half then
-            newX = root.Position.X + half
-            needClamp = true
+            pullDir = pullDir + Vector3.new(-1, 0, 0)
         elseif relX < -half then
-            newX = root.Position.X - half
-            needClamp = true
+            pullDir = pullDir + Vector3.new(1, 0, 0)
         end
-
         if relZ > half then
-            newZ = root.Position.Z + half
-            needClamp = true
+            pullDir = pullDir + Vector3.new(0, 0, -1)
         elseif relZ < -half then
-            newZ = root.Position.Z - half
-            needClamp = true
+            pullDir = pullDir + Vector3.new(0, 0, 1)
         end
 
-        if needClamp then
+        if pullDir.Magnitude > 0 then
+            local force = pullDir.Unit * (State.BallCage.PullStrength * speed + 5)
             pcall(function()
-                ball.CFrame = CFrame.new(Vector3.new(newX, ball.Position.Y, newZ))
-                ball.AssemblyLinearVelocity = Vector3.zero
+                ball.AssemblyLinearVelocity = Vector3.new(
+                    vel.X + force.X,
+                    vel.Y,
+                    vel.Z + force.Z
+                )
             end)
-        end
-
-        if State.BallCage.Visible then
-            if not Cage_Part or not Cage_Part.Parent then
-                createCageVisual(root.Position)
-            else
-                pcall(function()
-                    Cage_Part.Size = Vector3.new(State.BallCage.Size, 1, State.BallCage.Size)
-                    Cage_Part.Position = Vector3.new(root.Position.X, root.Position.Y - 2, root.Position.Z)
-                end)
-            end
-        else
-            if Cage_Part and Cage_Part.Parent then
-                destroyCageVisual()
-            end
         end
     end)
 end
 
+-- ---------- API ----------
 function BallCageModule.setEnabled(on)
     State.BallCage.Enabled = on
     if on then
@@ -2564,30 +2620,22 @@ function BallCageModule.setEnabled(on)
     end
 end
 
-function BallCageModule.setSize(v)
-    State.BallCage.Size = v
-    if Cage_Part and Cage_Part.Parent then
-        pcall(function()
-            Cage_Part.Size = Vector3.new(v, 1, v)
-        end)
-    end
-end
-
+function BallCageModule.setSize(v) State.BallCage.Size = v end
 function BallCageModule.setVisible(on)
     State.BallCage.Visible = on
-    if not on then
-        destroyCageVisual()
-    end
+    if not on then destroyCageVisual() end
 end
+function BallCageModule.setPullStrength(v) State.BallCage.PullStrength = v end
+function BallCageModule.setChuteVelocidade(v) State.BallCage.ChuteVelocidade = v end
 
 function BallCageModule.recreate()
-    local char = LP.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
     destroyCageVisual()
-    if State.BallCage.Visible then
-        createCageVisual(root.Position)
+    local char = LP.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root and State.BallCage.Visible then
+            createCageVisual(root.Position)
+        end
     end
     notify("Quadrado recriado", "good")
 end
@@ -2616,7 +2664,7 @@ end)
 print("[VoidStrap] Ball Cage carregado.")
 
 --====================================================================
--- ABA AF BÁSICO
+-- ABA AF BASICO
 --====================================================================
 createTab("AF Basico", "AF")
 
@@ -2680,7 +2728,7 @@ do
 end
 
 --====================================================================
--- ABA AF AVANÇADO
+-- ABA AF AVANCADO
 --====================================================================
 createTab("AF Avancado", "AF+")
 
@@ -2725,24 +2773,32 @@ do
         BallCageModule.setSize(v)
     end, 2)
 
+    sliderRow(cageSec, "Forca de Puxar (x100)", 1, 100, math.floor(State.BallCage.PullStrength * 100), function(v)
+        BallCageModule.setPullStrength(v / 100)
+    end, 3)
+
+    sliderRow(cageSec, "Velocidade Minima de Chute", 10, 150, State.BallCage.ChuteVelocidade, function(v)
+        BallCageModule.setChuteVelocidade(v)
+    end, 4)
+
     toggleRow(cageSec, "Mostrar Quadrado", State.BallCage.Visible, function(on)
         BallCageModule.setVisible(on)
-    end, 3)
+    end, 5)
 
     buttonRow(cageSec, "Recriar Quadrado", function()
         BallCageModule.recreate()
-    end, 4)
+    end, 6)
 
     local cageInfo = create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 70),
+        Size = UDim2.new(1, 0, 0, 80),
         BackgroundTransparency = 1,
-        Text = "Prende a bola dentro de um quadrado centrado em voce. Se alguem LOCKAR a bola, ela escapa. Quando soltar, volta a ser presa.",
+        Text = "Segue voce. Prende a bola dentro do quadrado suavemente. Se voce CHUTAR (alta velocidade), a bola sai. Outras pessoas podem entrar livremente.",
         Font = Enum.Font.Gotham,
         TextSize = 11,
         TextColor3 = ActiveTheme.Sub,
         TextWrapped = true,
         TextXAlignment = Enum.TextXAlignment.Left,
-        LayoutOrder = 5,
+        LayoutOrder = 7,
         Parent = cageSec,
     })
     themed(cageInfo, "TextColor3", "Sub")
@@ -2806,7 +2862,7 @@ do
     end, 1)
 end
 
--- CLEANUP
+-- ---------- CLEANUP ----------
 local _prevAF = _G.VoidStrapUnload
 _G.VoidStrapUnload = function()
     if _prevAF then _prevAF() end
@@ -2827,7 +2883,7 @@ Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
-print("[VoidStrap] 6.2 OK")--====================================================================
+print("[VoidStrap] 6.2 OK")
 -- PARTE 6B — CHARS (Aplica skin via comando de chat)
 --====================================================================
 
