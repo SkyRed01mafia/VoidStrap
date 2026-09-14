@@ -1790,7 +1790,7 @@ function BoomBoxModule.tocarPorId(id)
 end
 
 --====================================================================
--- MÓDULO: AUTO FOLLOW (fica colado na bola + botão flutuante)
+-- MÓDULO: AUTO FOLLOW (segue só X/Z — ignora altura da bola)
 --====================================================================
 local AutoFollowModule = {}
 local AF_Estado = {
@@ -1883,8 +1883,9 @@ local function iniciarAF()
         local bola = AF_CachedBall
         if not bola then limparBodyVelAF() return end
 
-        -- Fica exatamente em cima da bola (sem distância parada)
-        local alvo = bola.Position
+        -- ⚠️ SEGUE APENAS X e Z (não pega altura da bola)
+        -- Y do alvo = Y do jogador, para não voar atrás da bola
+        local alvo = Vector3.new(bola.Position.X, root.Position.Y, bola.Position.Z)
         local distancia = (root.Position - alvo).Magnitude
 
         -- Se já está praticamente em cima, para
@@ -1957,7 +1958,7 @@ function AutoFollowModule.resetar()
 end
 
 --====================================================================
--- BOTÃO FLUTUANTE DO AUTO FOLLOW (arrastável + travável)
+-- BOTÃO FLUTUANTE DO AUTO FOLLOW (só aparece quando ativado)
 --====================================================================
 local AF_Btn = nil
 local AF_BtnEstado = { Travado = false, Posicao = UDim2.new(0.85, 0, 0.3, 0) }
@@ -2073,10 +2074,8 @@ function AutoFollowModule.travarBotaoAF(on)
               on and "good" or "bad")
 end
 
-task.spawn(function()
-    task.wait(1)
-    AutoFollowModule.criarBotaoAF()
-end)
+-- ⚠️ NÃO cria o botão automaticamente — só quando ativado pelo painel
+-- (removido o task.spawn que criava o botão ao carregar)
 
 print("[VoidStrap] Parte 5/8 carregada.")--====================================================================
 -- MÓDULO: AUTO CATCH + REACH
@@ -2344,7 +2343,7 @@ function TrailModule.resetar()
 end
 
 print("[VoidStrap] Parte 6/8 carregada.")--====================================================================
--- MÓDULO: TOTE (Curva com dois botões T e D)
+-- MÓDULO: TOTE (Curva imitando teclas T e D do teclado)
 --====================================================================
 local ToteModule = {}
 local TO_Estado = {
@@ -2356,8 +2355,32 @@ local TO_Estado = {
     BtnDPosicao = UDim2.new(0.90, 0, 0.65, 0),
     Ativando = nil,
 }
-local TO_BtnT, TO_BtnD, TO_Conn = nil, nil, nil
+local TO_BtnT, TO_BtnD = nil, nil
 
+--====================================================================
+-- SIMULAÇÃO DE TECLA (T / D)
+--====================================================================
+local function simularTecla(tecla, pressionar)
+    -- Método 1: VirtualInputManager
+    local ok = pcall(function()
+        local VIM = game:GetService("VirtualInputManager")
+        VIM:SendKeyEvent(pressionar, tecla, false, game)
+    end)
+    if ok then return end
+
+    -- Método 2: keypress / keyrelease globais (fallback)
+    pcall(function()
+        if pressionar and keypress then
+            keypress(tecla)
+        elseif not pressionar and keyrelease then
+            keyrelease(tecla)
+        end
+    end)
+end
+
+--====================================================================
+-- DETECÇÃO DA BOLA
+--====================================================================
 local BALL_NAMES_TO = {
     "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
 }
@@ -2379,25 +2402,12 @@ local function buscarBolaTO()
     return nil
 end
 
-local function aplicarCurva()
-    if not TO_Estado.Enabled or not TO_Estado.Ativando then return end
-    local bola = buscarBolaTO()
-    if not bola then return end
-    local char = LP.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    if (bola.Position - root.Position).Magnitude > 15 then return end
-    local vel = bola.AssemblyLinearVelocity
-    if vel.Magnitude < 1 then return end
-    local dir = vel.Unit
-    local perp = Vector3.new(-dir.Z, 0, dir.X)
-    local sentido = (TO_Estado.Ativando == "D") and 1 or -1
-    pcall(function()
-        bola.AssemblyLinearVelocity = vel + (perp * sentido * TO_Estado.Forca * 15)
-    end)
-end
+-- Mantido para compatibilidade (não usado agora, pois a tecla faz o trabalho)
+local function aplicarCurva() end
 
+--====================================================================
+-- ATUALIZAÇÃO VISUAL DOS BOTÕES
+--====================================================================
 local function atualizarBtn(btn, tipo)
     if not btn or not btn.Parent then return end
     if not TO_Estado.Enabled then
@@ -2417,6 +2427,9 @@ local function atualizarTodosBtns()
     atualizarBtn(TO_BtnD, "D")
 end
 
+--====================================================================
+-- CRIAÇÃO DOS BOTÕES
+--====================================================================
 local function criarBotao(btnRef, tipo, posicao)
     if btnRef and btnRef.Parent then
         btnRef.Visible = true
@@ -2453,9 +2466,16 @@ local function criarBotao(btnRef, tipo, posicao)
             posIni = btn.Position
             tempoP = tick()
             posP = input.Position
+
             if TO_Estado.Enabled then
                 TO_Estado.Ativando = tipo
                 atualizarTodosBtns()
+                -- Simula segurar a tecla T ou D
+                if tipo == "T" then
+                    simularTecla(Enum.KeyCode.T, true)
+                else
+                    simularTecla(Enum.KeyCode.D, true)
+                end
             end
         end
     end)
@@ -2479,10 +2499,20 @@ local function criarBotao(btnRef, tipo, posicao)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
             arrastando = false
+
+            -- Solta a tecla correspondente
+            if tipo == "T" then
+                simularTecla(Enum.KeyCode.T, false)
+            else
+                simularTecla(Enum.KeyCode.D, false)
+            end
+
             if TO_Estado.Ativando == tipo then
                 TO_Estado.Ativando = nil
             end
             atualizarTodosBtns()
+
+            -- Clique rápido alterna o Tote
             if posP then
                 local df = input.Position - posP
                 local mov = math.abs(df.X) + math.abs(df.Y)
@@ -2490,11 +2520,8 @@ local function criarBotao(btnRef, tipo, posicao)
                 if mov < 12 and tmp < 0.5 then
                     TO_Estado.Enabled = not TO_Estado.Enabled
                     if TO_Estado.Enabled then
-                        if TO_Conn then TO_Conn:Disconnect() end
-                        TO_Conn = RunService.Heartbeat:Connect(aplicarCurva)
                         notificar("Tote ativado", "good")
                     else
-                        if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
                         notificar("Tote desativado", "bad")
                     end
                     atualizarTodosBtns()
@@ -2507,6 +2534,9 @@ local function criarBotao(btnRef, tipo, posicao)
     return btn
 end
 
+--====================================================================
+-- API PÚBLICA
+--====================================================================
 function ToteModule.criarBotoes()
     TO_BtnT = criarBotao(TO_BtnT, "T", TO_Estado.BtnTPosicao)
     TO_BtnD = criarBotao(TO_BtnD, "D", TO_Estado.BtnDPosicao)
@@ -2515,21 +2545,28 @@ end
 function ToteModule.ativar(ligado)
     TO_Estado.Enabled = ligado
     if ligado then
-        if TO_Conn then TO_Conn:Disconnect() end
-        TO_Conn = RunService.Heartbeat:Connect(aplicarCurva)
         ToteModule.criarBotoes()
         notificar("Tote ativado", "good")
     else
-        if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
+        -- Solta as teclas caso estejam pressionadas
+        if TO_Estado.Ativando == "T" then simularTecla(Enum.KeyCode.T, false) end
+        if TO_Estado.Ativando == "D" then simularTecla(Enum.KeyCode.D, false) end
         TO_Estado.Ativando = nil
         notificar("Tote desativado", "bad")
     end
     atualizarTodosBtns()
 end
 
-function ToteModule.definirForca(v) TO_Estado.Forca = v end
+function ToteModule.definirForca(v)
+    TO_Estado.Forca = v
+end
 
 function ToteModule.esconderBotoes()
+    -- Solta teclas por segurança
+    if TO_Estado.Ativando == "T" then simularTecla(Enum.KeyCode.T, false) end
+    if TO_Estado.Ativando == "D" then simularTecla(Enum.KeyCode.D, false) end
+    TO_Estado.Ativando = nil
+
     if TO_BtnT and TO_BtnT.Parent then TO_BtnT:Destroy(); TO_BtnT = nil end
     if TO_BtnD and TO_BtnD.Parent then TO_BtnD:Destroy(); TO_BtnD = nil end
 end
@@ -2541,10 +2578,8 @@ function ToteModule.travarBotoes(on)
 end
 
 function ToteModule.resetar()
-    TO_Estado.Enabled = false
-    TO_Estado.Ativando = nil
-    if TO_Conn then TO_Conn:Disconnect(); TO_Conn = nil end
     ToteModule.esconderBotoes()
+    TO_Estado.Enabled = false
     notificar("Tote resetado", "bad")
 end
 
@@ -2972,7 +3007,8 @@ do
     local secBtn = section("Botao Flutuante")
     secBtn.Parent = page
 
-    toggleRow(secBtn, "Mostrar Botao AF", true, function(on)
+    -- ⚠️ Padrão DESLIGADO — botão só aparece se o usuário ativar
+    toggleRow(secBtn, "Mostrar Botao AF", false, function(on)
         if on then AutoFollowModule.criarBotaoAF()
         else AutoFollowModule.esconderBotaoAF() end
     end, 1)
@@ -3097,7 +3133,8 @@ do
     local secBtn = section("Botoes Flutuantes (Mobile)")
     secBtn.Parent = page
 
-    toggleRow(secBtn, "Mostrar Botoes T/D", true, function(on)
+    -- ⚠️ Padrão DESLIGADO — botões T/D só aparecem se o usuário ativar
+    toggleRow(secBtn, "Mostrar Botoes T/D", false, function(on)
         if on then ToteModule.criarBotoes() else ToteModule.esconderBotoes() end
     end, 1)
 
@@ -3110,11 +3147,6 @@ do
     buttonRow(resetSec, "Desativar Tote e remover botoes", function()
         ToteModule.resetar()
     end, 1)
-
-    task.spawn(function()
-        task.wait(0.5)
-        ToteModule.criarBotoes()
-    end)
 end
 
 --====================================================================
