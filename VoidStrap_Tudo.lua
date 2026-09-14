@@ -1640,157 +1640,7 @@ function BolaCustomModule.resetar()
 end
 
 print("[VoidStrap] Parte 4/8 carregada.")--====================================================================
--- MÓDULO: BOOM BOX
---====================================================================
-local BoomBoxModule = {}
-local BB_Estado = {
-    Enabled = false, Volume = 1.0, Looped = true,
-    Target = "Player", CurrentTrack = nil,
-}
-local BB_Sound = nil
-local BB_Conn = nil
-
-local TRACKS_BB = {
-    { name = "Nenhuma",          id = nil },
-    { name = "BrooklynBloodPop", id = "96414211708215" },
-    { name = "Sometimes",        id = "128715303988843" },
-    { name = "Meant to Be",      id = "121397051787416" },
-    { name = "Ilusionary",       id = "87570666848900" },
-    { name = "I'm So Fed Up",    id = "103072508653269" },
-    { name = "Super Funk",       id = "107835682687645" },
-}
-
-local BALL_NAMES_BB = {
-    "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
-}
-
-local function ehBolaBB(name)
-    for _, n in ipairs(BALL_NAMES_BB) do
-        if name == n then return true end
-    end
-    return false
-end
-
-local function buscarBolaBB()
-    local char = LP.Character
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and ehBolaBB(obj.Name) then
-            if not (char and obj:IsDescendantOf(char)) then return obj end
-        end
-    end
-    return nil
-end
-
-local function destruirSom()
-    if BB_Sound and BB_Sound.Parent then pcall(function() BB_Sound:Destroy() end) end
-    BB_Sound = nil
-end
-
-local function criarSomEm(alvo)
-    if not alvo then return end
-    if BB_Sound and BB_Sound.Parent == alvo then return end
-    destruirSom()
-    BB_Sound = Instance.new("Sound")
-    BB_Sound.Name = "VST_BoomBox"
-    BB_Sound.Volume = BB_Estado.Volume
-    BB_Sound.Looped = BB_Estado.Looped
-    BB_Sound.RollOffMaxDistance = 200
-    BB_Sound.RollOffMinDistance = 5
-    BB_Sound.RollOffMode = Enum.RollOffMode.InverseTapered
-    BB_Sound.Parent = alvo
-end
-
-local function aplicarFaixa(id)
-    if not BB_Sound then return end
-    if id then
-        pcall(function()
-            BB_Sound.SoundId = "rbxassetid://" .. tostring(id)
-            BB_Sound:Play()
-        end)
-    else
-        pcall(function() BB_Sound:Stop() end)
-    end
-end
-
-local function iniciarBB()
-    if BB_Conn then BB_Conn:Disconnect() end
-    BB_Conn = RunService.Heartbeat:Connect(function()
-        if not BB_Estado.Enabled then return end
-        local alvo
-        if BB_Estado.Target == "Player" then
-            local char = LP.Character
-            alvo = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
-        else
-            alvo = buscarBolaBB()
-        end
-        if not alvo then return end
-        if not BB_Sound or BB_Sound.Parent ~= alvo then
-            criarSomEm(alvo)
-            if BB_Estado.CurrentTrack then aplicarFaixa(BB_Estado.CurrentTrack) end
-        end
-        if BB_Sound then
-            pcall(function()
-                BB_Sound.Volume = BB_Estado.Volume
-                BB_Sound.Looped = BB_Estado.Looped
-            end)
-        end
-    end)
-end
-
-function BoomBoxModule.ativar(ligado)
-    BB_Estado.Enabled = ligado
-    if ligado then
-        iniciarBB()
-        notificar("Boom Box ativada", "good")
-    else
-        if BB_Conn then BB_Conn:Disconnect(); BB_Conn = nil end
-        destruirSom()
-        notificar("Boom Box desativada", "bad")
-    end
-end
-
-function BoomBoxModule.definirAlvo(opt)
-    BB_Estado.Target = opt
-    destruirSom()
-    notificar("Alvo: " .. opt, "good")
-end
-
-function BoomBoxModule.definirVolume(v)
-    BB_Estado.Volume = v
-    if BB_Sound then pcall(function() BB_Sound.Volume = v end) end
-end
-
-function BoomBoxModule.definirLoop(on)
-    BB_Estado.Looped = on
-    if BB_Sound then pcall(function() BB_Sound.Looped = on end) end
-end
-
-function BoomBoxModule.tocarFaixa(nome, id)
-    BB_Estado.CurrentTrack = id
-    if id then
-        aplicarFaixa(id)
-        notificar("Tocando: " .. nome, "good")
-    else
-        aplicarFaixa(nil)
-        notificar("Musica parada", "bad")
-    end
-end
-
-function BoomBoxModule.tocarPorId(id)
-    id = tostring(id or ""):gsub("%s", "")
-    id = id:gsub("rbxassetid://", "")
-    id = id:match("^%d+") or id
-    if id:match("^%d+$") then
-        BB_Estado.CurrentTrack = id
-        aplicarFaixa(id)
-        notificar("Tocando ID: " .. id, "good")
-    else
-        notificar("ID invalido", "bad")
-    end
-end
-
---====================================================================
--- MÓDULO: AUTO FOLLOW (distância + segue X/Z + sem rotação)
+-- MÓDULO: AUTO FOLLOW (sem rotação + otimizado)
 --====================================================================
 local AutoFollowModule = {}
 local AF_Estado = {
@@ -1802,9 +1652,12 @@ local AF_Estado = {
 }
 local AF_BodyVel = nil
 local AF_AlignOrient = nil
+local AF_Attach = nil
 local AF_Conn = nil
 local AF_CachedBall = nil
 local AF_LastSearch = 0
+local AF_LastTick = 0
+local AF_FrameSkip = 0  -- throttle de física (~30 FPS)
 
 local BALL_NAMES_AF = {
     "TPS","ESA","MRS","PRS","MPS","Ball","Football","Soccer Ball","Bola","SoccerBall"
@@ -1854,7 +1707,7 @@ local function buscarBolaPorModoAF()
     return bolas[1]
 end
 
-local function limparBodyVelAF()
+local function limparAF()
     if AF_BodyVel and AF_BodyVel.Parent then
         pcall(function() AF_BodyVel:Destroy() end)
     end
@@ -1863,6 +1716,10 @@ local function limparBodyVelAF()
         pcall(function() AF_AlignOrient:Destroy() end)
     end
     AF_AlignOrient = nil
+    if AF_Attach and AF_Attach.Parent then
+        pcall(function() AF_Attach:Destroy() end)
+    end
+    AF_Attach = nil
 end
 
 local function iniciarAF()
@@ -1870,44 +1727,54 @@ local function iniciarAF()
     local ultimaPos, framesPreso = nil, 0
 
     AF_Conn = RunService.Heartbeat:Connect(function()
-        if not AF_Estado.Enabled then limparBodyVelAF() return end
+        if not AF_Estado.Enabled then
+            if AF_BodyVel then limparAF() end
+            return
+        end
+
+        -- Throttle: roda só a cada 2 frames (~30 FPS no 60 FPS)
+        AF_FrameSkip = AF_FrameSkip + 1
+        if AF_FrameSkip < 2 then return end
+        AF_FrameSkip = 0
+
         local char = LP.Character
-        if not char then limparBodyVelAF() return end
+        if not char then limparAF() return end
 
         local root = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if not root or not humanoid or humanoid.Health <= 0 then
-            limparBodyVelAF()
+            limparAF()
             return
         end
 
+        -- Cache da bola (só re-busca a cada 1.5s)
         local agora = tick()
-        if not AF_CachedBall or not AF_CachedBall.Parent or (agora - AF_LastSearch) > 2 then
+        if not AF_CachedBall or not AF_CachedBall.Parent or (agora - AF_LastSearch) > 1.5 then
             AF_LastSearch = agora
             AF_CachedBall = buscarBolaPorModoAF()
         end
         local bola = AF_CachedBall
-        if not bola then limparBodyVelAF() return end
+        if not bola then limparAF() return end
 
-        -- Segue só X e Z (mantém altura do jogador)
+        -- Alvo X/Z, mantém altura do jogador
         local alvo = Vector3.new(bola.Position.X, root.Position.Y, bola.Position.Z)
         local distancia = (root.Position - alvo).Magnitude
 
         -- Chegou perto → para
         if distancia < AF_Estado.StopDistance then
             if AF_BodyVel then
-                pcall(function() AF_BodyVel.Velocity = AF_BodyVel.Velocity * 0.5 end)
-                if AF_BodyVel.Velocity.Magnitude < 1 then limparBodyVelAF() end
+                pcall(function() AF_BodyVel.Velocity = Vector3.zero end)
             end
             framesPreso = 0
             return
         end
 
+        -- Anti-stuck
         if AF_Estado.AntiStuck then
             if ultimaPos then
                 local moveu = (root.Position - ultimaPos).Magnitude
-                if moveu < 0.1 then framesPreso = framesPreso + 1 else framesPreso = 0 end
-                if framesPreso > 60 then
+                if moveu < 0.15 then framesPreso = framesPreso + 1 else framesPreso = 0 end
+                if framesPreso > 30 then
                     framesPreso = 0
                     local dir = (alvo - root.Position).Unit
                     local perp = Vector3.new(-dir.Z, 0, dir.X)
@@ -1918,46 +1785,53 @@ local function iniciarAF()
             ultimaPos = root.Position
         end
 
-        -- Cria BodyVelocity (movimento sem rotação)
+        -- Cria BodyVelocity uma vez
         if not AF_BodyVel or AF_BodyVel.Parent ~= root then
-            limparBodyVelAF()
+            if AF_BodyVel and AF_BodyVel.Parent then
+                pcall(function() AF_BodyVel:Destroy() end)
+            end
             AF_BodyVel = Instance.new("BodyVelocity")
             AF_BodyVel.Name = "VST_AutoFollow"
-            AF_BodyVel.MaxForce = Vector3.new(math.huge, 0, math.huge)
-            AF_BodyVel.P = 100000
+            AF_BodyVel.MaxForce = Vector3.new(15000, 0, 15000)
+            AF_BodyVel.P = 5000
             AF_BodyVel.Velocity = Vector3.zero
             AF_BodyVel.Parent = root
         end
 
-        -- AlignOrientation para travar rotação do personagem
+        -- Cria AlignOrientation UMA VEZ (trava rotação no eixo Y)
         if not AF_AlignOrient or AF_AlignOrient.Parent ~= root then
             if AF_AlignOrient and AF_AlignOrient.Parent then
                 pcall(function() AF_AlignOrient:Destroy() end)
             end
-            local att = root:FindFirstChild("VST_AlignAtt")
-            if not att then
-                att = Instance.new("Attachment")
-                att.Name = "VST_AlignAtt"
-                att.Parent = root
+            if AF_Attach and AF_Attach.Parent then
+                pcall(function() AF_Attach:Destroy() end)
             end
+
+            AF_Attach = Instance.new("Attachment")
+            AF_Attach.Name = "VST_AlignAtt"
+            AF_Attach.Parent = root
+
             AF_AlignOrient = Instance.new("AlignOrientation")
             AF_AlignOrient.Name = "VST_NoRotation"
             AF_AlignOrient.Mode = Enum.OrientationAlignmentMode.OneAttachment
-            AF_AlignOrient.Attachment0 = att
-            AF_AlignOrient.MaxTorque = math.huge
-            AF_AlignOrient.Responsiveness = 200
-            AF_AlignOrient.RigidityEnabled = true
-            AF_AlignOrient.CFrame = root.CFrame
+            AF_AlignOrient.Attachment0 = AF_Attach
+            AF_AlignOrient.MaxTorque = 8000
+            AF_AlignOrient.Responsiveness = 25
+            AF_AlignOrient.RigidityEnabled = false
+            -- Trava no Y atual apenas (mantém o "olhar" do jogador)
+            AF_AlignOrient.CFrame = CFrame.new(Vector3.zero, Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z))
             AF_AlignOrient.Parent = root
         end
-        if AF_AlignOrient then
-            pcall(function()
-                AF_AlignOrient.CFrame = root.CFrame
-            end)
-        end
 
-        local direcao = (alvo - root.Position).Unit
-        pcall(function() AF_BodyVel.Velocity = direcao * AF_Estado.Speed end)
+        -- Aplica velocidade (só X/Z)
+        local direcao = (alvo - root.Position)
+        direcao = Vector3.new(direcao.X, 0, direcao.Z)
+        if direcao.Magnitude > 0 then
+            direcao = direcao.Unit
+        end
+        pcall(function()
+            AF_BodyVel.Velocity = direcao * AF_Estado.Speed
+        end)
     end)
 end
 
@@ -1967,7 +1841,7 @@ function AutoFollowModule.ativar(ligado)
         iniciarAF()
         notificar("Auto Follow ativado", "good")
     else
-        limparBodyVelAF()
+        limparAF()
         if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
         notificar("Auto Follow desativado", "bad")
     end
@@ -1986,131 +1860,12 @@ function AutoFollowModule.ativarAntiStuck(on) AF_Estado.AntiStuck = on end
 
 function AutoFollowModule.resetar()
     AF_Estado.Enabled = false
-    limparBodyVelAF()
+    limparAF()
     if AF_Conn then AF_Conn:Disconnect(); AF_Conn = nil end
     AF_CachedBall = nil
     if atualizarBtnAF then atualizarBtnAF() end
     notificar("Auto Follow resetado", "bad")
-end
-
---====================================================================
--- BOTÃO FLUTUANTE DO AUTO FOLLOW
---====================================================================
-local AF_Btn = nil
-local AF_BtnEstado = { Travado = false, Posicao = UDim2.new(0.85, 0, 0.3, 0) }
-local AF_BtnArr = false
-local AF_BtnDragIni, AF_BtnPosIni = nil, nil
-local AF_BtnTempoP, AF_BtnPosP = 0, nil
-
-function atualizarBtnAF()
-    if not AF_Btn or not AF_Btn.Parent then return end
-    if AF_Estado.Enabled then
-        AF_Btn.BackgroundColor3 = TemaAtivo.Good
-        AF_Btn.Text = "AF ON"
-    else
-        AF_Btn.BackgroundColor3 = TemaAtivo.Surface2
-        AF_Btn.Text = "AF OFF"
-    end
-    local lock = AF_Btn:FindFirstChild("VST_Lock")
-    if AF_BtnEstado.Travado then
-        if not lock then
-            criar("TextLabel", {
-                Name = "VST_Lock",
-                Size = UDim2.fromOffset(16, 16),
-                Position = UDim2.new(1, -18, 0, 2),
-                BackgroundTransparency = 1,
-                Text = "L",
-                Font = Enum.Font.GothamBold,
-                TextSize = 11,
-                TextColor3 = Color3.fromRGB(255, 220, 60),
-                ZIndex = 100001,
-                Parent = AF_Btn,
-            })
-        end
-    else
-        if lock then lock:Destroy() end
-    end
-end
-
-function AutoFollowModule.criarBotaoAF()
-    if AF_Btn and AF_Btn.Parent then
-        AF_Btn.Visible = true
-        atualizarBtnAF()
-        return
-    end
-
-    AF_Btn = criar("TextButton", {
-        Name = "VST_AutoFollowBtn",
-        Size = UDim2.fromOffset(64, 64),
-        Position = AF_BtnEstado.Posicao,
-        BackgroundColor3 = TemaAtivo.Surface2,
-        BorderSizePixel = 0,
-        Text = "AF OFF",
-        Font = Enum.Font.GothamBold,
-        TextSize = 12,
-        TextColor3 = TemaAtivo.Text,
-        AutoButtonColor = false,
-        ZIndex = 99998,
-        Parent = ScreenOverlay,
-    })
-    canto(32, AF_Btn)
-    contorno(TemaAtivo.AccentDim, 2, 0.2, AF_Btn, 99998)
-    atualizarBtnAF()
-
-    AF_Btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            AF_BtnArr = true
-            AF_BtnDragIni = input.Position
-            AF_BtnPosIni = AF_Btn.Position
-            AF_BtnTempoP = tick()
-            AF_BtnPosP = input.Position
-        end
-    end)
-
-    UIS.InputChanged:Connect(function(input)
-        if not AF_BtnArr or AF_BtnEstado.Travado then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            local d = input.Position - AF_BtnDragIni
-            if math.abs(d.X) > 8 or math.abs(d.Y) > 8 then
-                AF_Btn.Position = UDim2.new(
-                    AF_BtnPosIni.X.Scale, AF_BtnPosIni.X.Offset + d.X,
-                    AF_BtnPosIni.Y.Scale, AF_BtnPosIni.Y.Offset + d.Y)
-                AF_BtnEstado.Posicao = AF_Btn.Position
-            end
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            AF_BtnArr = false
-            if AF_BtnPosP then
-                local df = input.Position - AF_BtnPosP
-                local mov = math.abs(df.X) + math.abs(df.Y)
-                local tmp = tick() - AF_BtnTempoP
-                if mov < 12 and tmp < 0.5 then
-                    AutoFollowModule.ativar(not AF_Estado.Enabled)
-                end
-            end
-            AF_BtnPosP = nil
-        end
-    end)
-end
-
-function AutoFollowModule.esconderBotaoAF()
-    if AF_Btn and AF_Btn.Parent then AF_Btn:Destroy(); AF_Btn = nil end
-end
-
-function AutoFollowModule.travarBotaoAF(on)
-    AF_BtnEstado.Travado = on
-    atualizarBtnAF()
-    notificar(on and "Botao AF travado" or "Botao AF liberado",
-              on and "good" or "bad")
-end
-
-print("[VoidStrap] Parte 5/8 carregada.")--====================================================================
+end--====================================================================
 -- MÓDULO: AUTO CATCH + REACH
 --====================================================================
 local AutoCatchModule = {}
