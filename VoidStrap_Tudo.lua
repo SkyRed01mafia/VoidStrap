@@ -1790,16 +1790,18 @@ function BoomBoxModule.tocarPorId(id)
 end
 
 --====================================================================
--- MÓDULO: AUTO FOLLOW (segue só X/Z — ignora altura da bola)
+-- MÓDULO: AUTO FOLLOW (distância + segue X/Z + sem rotação)
 --====================================================================
 local AutoFollowModule = {}
 local AF_Estado = {
     Enabled = false,
     Speed = 22,
+    StopDistance = 2.5,
     TargetMode = "Mais Próxima",
     AntiStuck = true,
 }
 local AF_BodyVel = nil
+local AF_AlignOrient = nil
 local AF_Conn = nil
 local AF_CachedBall = nil
 local AF_LastSearch = 0
@@ -1857,6 +1859,10 @@ local function limparBodyVelAF()
         pcall(function() AF_BodyVel:Destroy() end)
     end
     AF_BodyVel = nil
+    if AF_AlignOrient and AF_AlignOrient.Parent then
+        pcall(function() AF_AlignOrient:Destroy() end)
+    end
+    AF_AlignOrient = nil
 end
 
 local function iniciarAF()
@@ -1883,16 +1889,17 @@ local function iniciarAF()
         local bola = AF_CachedBall
         if not bola then limparBodyVelAF() return end
 
-        -- ⚠️ SEGUE APENAS X e Z (não pega altura da bola)
-        -- Y do alvo = Y do jogador, para não voar atrás da bola
+        -- Segue só X e Z (mantém altura do jogador)
         local alvo = Vector3.new(bola.Position.X, root.Position.Y, bola.Position.Z)
         local distancia = (root.Position - alvo).Magnitude
 
-        -- Se já está praticamente em cima, para
-        if distancia < 0.5 then
+        -- Chegou perto → para
+        if distancia < AF_Estado.StopDistance then
             if AF_BodyVel then
-                pcall(function() AF_BodyVel.Velocity = Vector3.zero end)
+                pcall(function() AF_BodyVel.Velocity = AF_BodyVel.Velocity * 0.5 end)
+                if AF_BodyVel.Velocity.Magnitude < 1 then limparBodyVelAF() end
             end
+            framesPreso = 0
             return
         end
 
@@ -1911,14 +1918,42 @@ local function iniciarAF()
             ultimaPos = root.Position
         end
 
+        -- Cria BodyVelocity (movimento sem rotação)
         if not AF_BodyVel or AF_BodyVel.Parent ~= root then
             limparBodyVelAF()
             AF_BodyVel = Instance.new("BodyVelocity")
             AF_BodyVel.Name = "VST_AutoFollow"
-            AF_BodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            AF_BodyVel.MaxForce = Vector3.new(math.huge, 0, math.huge)
             AF_BodyVel.P = 100000
             AF_BodyVel.Velocity = Vector3.zero
             AF_BodyVel.Parent = root
+        end
+
+        -- AlignOrientation para travar rotação do personagem
+        if not AF_AlignOrient or AF_AlignOrient.Parent ~= root then
+            if AF_AlignOrient and AF_AlignOrient.Parent then
+                pcall(function() AF_AlignOrient:Destroy() end)
+            end
+            local att = root:FindFirstChild("VST_AlignAtt")
+            if not att then
+                att = Instance.new("Attachment")
+                att.Name = "VST_AlignAtt"
+                att.Parent = root
+            end
+            AF_AlignOrient = Instance.new("AlignOrientation")
+            AF_AlignOrient.Name = "VST_NoRotation"
+            AF_AlignOrient.Mode = Enum.OrientationAlignmentMode.OneAttachment
+            AF_AlignOrient.Attachment0 = att
+            AF_AlignOrient.MaxTorque = math.huge
+            AF_AlignOrient.Responsiveness = 200
+            AF_AlignOrient.RigidityEnabled = true
+            AF_AlignOrient.CFrame = root.CFrame
+            AF_AlignOrient.Parent = root
+        end
+        if AF_AlignOrient then
+            pcall(function()
+                AF_AlignOrient.CFrame = root.CFrame
+            end)
         end
 
         local direcao = (alvo - root.Position).Unit
@@ -1940,6 +1975,7 @@ function AutoFollowModule.ativar(ligado)
 end
 
 function AutoFollowModule.definirVelocidade(v) AF_Estado.Speed = v end
+function AutoFollowModule.definirDistancia(v) AF_Estado.StopDistance = v end
 function AutoFollowModule.definirModo(modo)
     AF_Estado.TargetMode = modo
     AF_CachedBall = nil
@@ -1958,7 +1994,7 @@ function AutoFollowModule.resetar()
 end
 
 --====================================================================
--- BOTÃO FLUTUANTE DO AUTO FOLLOW (só aparece quando ativado)
+-- BOTÃO FLUTUANTE DO AUTO FOLLOW
 --====================================================================
 local AF_Btn = nil
 local AF_BtnEstado = { Travado = false, Posicao = UDim2.new(0.85, 0, 0.3, 0) }
@@ -2073,9 +2109,6 @@ function AutoFollowModule.travarBotaoAF(on)
     notificar(on and "Botao AF travado" or "Botao AF liberado",
               on and "good" or "bad")
 end
-
--- ⚠️ NÃO cria o botão automaticamente — só quando ativado pelo painel
--- (removido o task.spawn que criava o botão ao carregar)
 
 print("[VoidStrap] Parte 5/8 carregada.")--====================================================================
 -- MÓDULO: AUTO CATCH + REACH
@@ -3000,14 +3033,17 @@ do
         AutoFollowModule.definirVelocidade(v)
     end, 3)
 
+    sliderRow(sec, "Distancia Parada (x10)", 10, 100, 25, function(v)
+        AutoFollowModule.definirDistancia(v / 10)
+    end, 4)
+
     toggleRow(sec, "Anti-Stuck", true, function(on)
         AutoFollowModule.ativarAntiStuck(on)
-    end, 4)
+    end, 5)
 
     local secBtn = section("Botao Flutuante")
     secBtn.Parent = page
 
-    -- ⚠️ Padrão DESLIGADO — botão só aparece se o usuário ativar
     toggleRow(secBtn, "Mostrar Botao AF", false, function(on)
         if on then AutoFollowModule.criarBotaoAF()
         else AutoFollowModule.esconderBotaoAF() end
@@ -3133,7 +3169,6 @@ do
     local secBtn = section("Botoes Flutuantes (Mobile)")
     secBtn.Parent = page
 
-    -- ⚠️ Padrão DESLIGADO — botões T/D só aparecem se o usuário ativar
     toggleRow(secBtn, "Mostrar Botoes T/D", false, function(on)
         if on then ToteModule.criarBotoes() else ToteModule.esconderBotoes() end
     end, 1)
