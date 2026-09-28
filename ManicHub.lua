@@ -1,4 +1,4 @@
---[[ MANIC HUB v3.0 | TCS | FluentManic | PARTE 1/8 ]]
+--[[ MANIC HUB v3.0 | TCS | WindUI | PARTE 1/8 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -54,24 +54,36 @@ local FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
 print("[MANIC HUB] firetouchinterest:", FTI ~= nil)
 
 -- ============================================
--- CARREGA FLUENTMANIC
+-- WINDUI
 -- ============================================
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SkyRed01mafia/VoidStrap/refs/heads/main/Velaware.lua"))()
-local Window = Library:CreateWindow({
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
     Title = "Manic Hub",
+    Icon = "eye",
     Author = "The Classic Soccer",
-    Icon = "°",
-    Width = 640,
-    Height = 500,
+    Folder = "ManicHub",
+    Size = UDim2.fromOffset(620, 480),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 180,
+    HasOutline = true,
     Background = "rbxassetid://11717400651",
-    BackgroundTransparency = 0.4,
+    BackgroundImageTransparency = 0.35,
 })
 
-Library:Notify({
+Window:Tag({
+    Title = "v3.0",
+    Icon = "sparkles",
+    Color = Color3.fromHex("#7850f0"),
+    Radius = 30,
+})
+
+WindUI:Notify({
     Title = "Manic Hub",
     Content = "Carregado com sucesso!",
     Duration = 5,
-    Icon = "success",
+    Icon = "check-circle",
 })
 
 UserInputService.InputBegan:Connect(function(i, gp)
@@ -79,11 +91,39 @@ UserInputService.InputBegan:Connect(function(i, gp)
     if i.KeyCode == Enum.KeyCode.LeftShift then
         Window:Toggle()
     end
+end)
+
+-- ============================================
+-- FPS COUNTER
+-- ============================================
+local FpsBox = Instance.new("TextLabel")
+FpsBox.Parent = CoreGui:FindFirstChild("ManicHub") or Instance.new("ScreenGui", CoreGui)
+FpsBox.Size = UDim2.new(0, 90, 0, 32)
+FpsBox.Position = UDim2.new(0, 12, 0, 110)
+FpsBox.BackgroundColor3 = Color3.fromRGB(20, 22, 32)
+FpsBox.BackgroundTransparency = 0.3
+FpsBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+FpsBox.TextSize = 13
+FpsBox.Font = Enum.Font.GothamBold
+FpsBox.Text = "FPS 0"
+FpsBox.BorderSizePixel = 0
+FpsBox.ZIndex = 100
+local FpsC = Instance.new("UICorner"); FpsC.CornerRadius = UDim.new(0, 6); FpsC.Parent = FpsBox
+
+local fpsCount, fpsTime = 0, tick()
+RunService.RenderStepped:Connect(function()
+    fpsCount = fpsCount + 1
+    local now = tick()
+    if now - fpsTime >= 1 then
+        FpsBox.Text = "FPS " .. fpsCount
+        fpsCount = 0
+        fpsTime = now
+    end
 end)--[[ MANIC HUB | PARTE 2/8 — ᴍᴀᴘᴀ ]]
 
-local MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ" })
+local MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ", Icon = "map" })
 
-MapTab:Section("ᴄᴏʀ ᴅᴏ ɢʀᴀᴍᴀᴅᴏ")
+MapTab:Section({ Title = "ᴄᴏʀ ᴅᴏ ɢʀᴀᴍᴀᴅᴏ" })
 
 local function EhGrama(obj)
     if not obj:IsA("BasePart") then return false end
@@ -146,7 +186,7 @@ MapTab:Button({
     Title = "ʀᴇsᴛᴀᴜʀᴀʀ ɢʀᴀᴍᴀ ᴏʀɪɢɪɴᴀʟ",
     Callback = function()
         RestaurarGrama()
-        Library:Notify({Title = "ᴍᴀᴘᴀ", Content = "ɢʀᴀᴍᴀ ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "ᴍᴀᴘᴀ", Content = "ɢʀᴀᴍᴀ ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2})
     end,
 })
 
@@ -166,7 +206,7 @@ end)
 -- ============================================
 -- SKYBOX
 -- ============================================
-MapTab:Section("sᴋʏʙᴏx")
+MapTab:Section({ Title = "sᴋʏʙᴏx" })
 
 local SkyboxIDs = {
     {Name = "sᴋʏ 1", ID = "8202961731"},
@@ -214,7 +254,7 @@ for _, sky in ipairs(SkyboxIDs) do
         Title = sky.Name,
         Callback = function()
             AplicarSkybox(sky.ID)
-            Library:Notify({Title = "sᴋʏʙᴏx", Content = sky.Name, Duration = 2, Icon = "success"})
+            WindUI:Notify({Title = "sᴋʏʙᴏx", Content = sky.Name, Duration = 2})
         end,
     })
 end
@@ -260,7 +300,7 @@ end)
 -- ============================================
 -- GRÁFICOS
 -- ============================================
-MapTab:Section("ɢʀᴀꜰɪᴄᴏs")
+MapTab:Section({ Title = "ɢʀᴀꜰɪᴄᴏs" })
 
 local function ResetarLighting()
     pcall(function()
@@ -339,8 +379,8 @@ MapTab:Button({
     Callback = function() ResetarLighting() end,
 })--[[ MANIC HUB | PARTE 3/8 — ʙᴏᴏᴍ ʙᴏx + Auto Ball ]]
 
-local BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx" })
-BoomTab:Section("ᴍᴜsɪᴄᴀs")
+local BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx", Icon = "music" })
+BoomTab:Section({ Title = "ᴍᴜsɪᴄᴀs" })
 
 local function TocarMusica(id)
     pcall(function()
@@ -366,12 +406,12 @@ for _, m in ipairs(Musicas) do
         Title = m.Nome,
         Callback = function()
             TocarMusica(m.ID)
-            Library:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2, Icon = "success"})
+            WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2})
         end,
     })
 end
 
-BoomTab:Section("ᴄᴜsᴛᴏᴍ")
+BoomTab:Section({ Title = "ᴄᴜsᴛᴏᴍ" })
 
 BoomTab:Input({
     Title = "ɪᴅ ᴅᴀ ᴍᴜsɪᴄᴀ",
@@ -394,8 +434,8 @@ BoomTab:Button({
 -- ============================================
 -- BALL: Auto Ball
 -- ============================================
-local BallTab = Window:Tab({ Title = "ʙᴀʟʟ" })
-BallTab:Section("ᴀᴜᴛᴏ ʙᴀʟʟ")
+local BallTab = Window:Tab({ Title = "ʙᴀʟʟ", Icon = "circle" })
+BallTab:Section({ Title = "ᴀᴜᴛᴏ ʙᴀʟʟ" })
 
 local AutoFollowConnection = nil
 local CurrentFollowBall = nil
@@ -577,17 +617,17 @@ BallTab:Toggle({
 
 BallTab:Slider({
     Title = "ᴅɪsᴛᴀɴᴄɪᴀ ᴅᴇ ᴘᴀʀᴀᴅᴀ",
-    Min = 1, Max = 50, Default = 2,
+    Value = {Min = 1, Max = 50, Default = 2},
     Callback = function(v) FollowStopDistance = v / 10 end,
 })
 
 BallTab:Slider({
     Title = "ꜰᴏʀᴄᴀ ᴅᴏ sᴛᴇᴇʀɪɴɢ",
-    Min = 1, Max = 30, Default = 13,
+    Value = {Min = 1, Max = 30, Default = 13},
     Callback = function(v) ManualSteerStrength = v / 10 end,
-})--[[ MANIC HUB | PARTE 4/8 — ʙᴀʟʟ Efeitos ]]
+})--[[ MANIC HUB | PARTE 4/8 — ʙᴀʟʟ Cor + Fogo + Trail ]]
 
-BallTab:Section("ᴀᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ʙᴀʟʟ")
+BallTab:Section({ Title = "ᴀᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ʙᴀʟʟ" })
 
 local BallTextureBackup = {}
 
@@ -722,13 +762,13 @@ BallTab:Colorpicker({
 
 BallTab:Slider({
     Title = "ᴛᴀᴍᴀɴʜᴏ ᴅᴏ ꜰᴏɢᴏ",
-    Min = 1, Max = 50, Default = 15,
+    Value = {Min = 1, Max = 50, Default = 15},
     Callback = function(v) FireSize = v end,
 })
 
 BallTab:Slider({
     Title = "ɪɴᴛᴇɴsɪᴅᴀᴅᴇ ᴅᴏ ꜰᴏɢᴏ",
-    Min = 1, Max = 50, Default = 25,
+    Value = {Min = 1, Max = 50, Default = 25},
     Callback = function(v) FireHeat = v end,
 })
 
@@ -773,13 +813,13 @@ BallTab:Colorpicker({
 
 BallTab:Slider({
     Title = "ʟᴀʀɢᴜʀᴀ ᴅᴏ ᴛʀᴀɪʟ",
-    Min = 1, Max = 50, Default = 10,
+    Value = {Min = 1, Max = 50, Default = 10},
     Callback = function(v) TrailWidth = v / 10 end,
 })
 
 BallTab:Slider({
     Title = "ᴅᴜʀᴀᴄᴀᴏ ᴅᴏ ᴛʀᴀɪʟ",
-    Min = 1, Max = 50, Default = 10,
+    Value = {Min = 1, Max = 50, Default = 10},
     Callback = function(v) TrailLifetime = v / 10 end,
 })
 
@@ -788,11 +828,10 @@ BallTab:Button({
     Callback = function()
         RestaurarBall()
         TrailEnabled = false
-        Library:Notify({Title = "ʙᴀʟʟ", Content = "ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "ʙᴀʟʟ", Content = "ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2})
     end,
 })
 
--- Loop Fire + Trail + Cor
 spawn(function()
     while true do
         task.wait(0.25)
@@ -858,28 +897,38 @@ spawn(function()
             end
         end
     end
-end)
+end)--[[ MANIC HUB | PARTE 5/8 — Curva + Botão Flutuante ]]
 
--- CURVA
-BallTab:Section("ᴄᴜʀᴠᴀ ʙᴀʟʟ")
+BallTab:Section({ Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ" })
 
 BallTab:Button({
     Title = "ᴀʙʀɪʀ ᴄᴜʀᴠᴀ ʙᴀʟʟ",
-    Desc = "ᴇxᴇᴄᴜᴛᴀ sᴄʀɪᴘᴛ ᴅᴇ ᴄᴜʀᴠᴀ",
+    Desc = "ᴇxᴇᴄᴜᴛᴀ ᴏ sᴄʀɪᴘᴛ ᴅᴇ ᴄᴜʀᴠᴀ ᴇxᴛᴇʀɴᴏ",
     Callback = function()
         local ok, err = pcall(function()
             loadstring(game:HttpGet("https://pastebin.com/raw/7ixqsxx7"))()
         end)
         if ok then
-            Library:Notify({Title = "ᴄᴜʀᴠᴀ", Content = "sᴄʀɪᴘᴛ ᴇxᴇᴄᴜᴛᴀᴅᴏ", Duration = 2, Icon = "success"})
+            WindUI:Notify({Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ", Content = "sᴄʀɪᴘᴛ ᴇxᴇᴄᴜᴛᴀᴅᴏ", Duration = 3, Icon = "check-circle"})
         else
-            Library:Notify({Title = "ᴄᴜʀᴠᴀ", Content = "ᴇʀʀᴏ: " .. tostring(err), Duration = 5, Icon = "error"})
+            WindUI:Notify({Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ", Content = "ᴇʀʀᴏ: " .. tostring(err), Duration = 5, Icon = "x-circle"})
         end
     end,
 })
 
+BallTab:Button({
+    Title = "ʀᴇᴄᴀʀʀᴇɢᴀʀ ᴄᴜʀᴠᴀ",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/7ixqsxx7"))()
+        end)
+    end,
+})
+
+-- ============================================
 -- BOTÃO FLUTUANTE
-BallTab:Section("ʙᴏᴛᴀᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ")
+-- ============================================
+BallTab:Section({ Title = "ʙᴏᴛᴀᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ" })
 
 local FloatGui = nil
 local FloatBtn = nil
@@ -890,10 +939,12 @@ local StartPos = nil
 
 local function CriarFloatBtn()
     if FloatGui then FloatGui:Destroy() end
+
     FloatGui = Instance.new("ScreenGui")
     FloatGui.Name = "ManicFloat"
     FloatGui.ResetOnSpawn = false
     FloatGui.IgnoreGuiInset = true
+    FloatGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     FloatGui.Parent = CoreGui
 
     FloatBtn = Instance.new("TextButton")
@@ -946,6 +997,13 @@ local function CriarFloatBtn()
             FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
             FloatBtn.Text = "⚽\nFOLLOW ON"
         end
+        pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "ᴀᴜᴛᴏ ʙᴀʟʟ",
+                Text = State.AutoBall and "ᴀᴛɪᴠᴀᴅᴏ" or "ᴅᴇsᴀᴛɪᴠᴀᴅᴏ",
+                Duration = 2
+            })
+        end)
     end)
 end
 
@@ -977,10 +1035,10 @@ BallTab:Button({
             FloatBtn.Visible = true
         end
     end,
-})--[[ MANIC HUB | PARTE 5/8 — ᴘʟᴀʏᴇʀ + ᴄʜᴀʀs ]]
+})--[[ MANIC HUB | PARTE 6/8 — ᴘʟᴀʏᴇʀ + ᴄʜᴀʀs ]]
 
-local PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ" })
-PlayerTab:Section("ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ")
+local PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ", Icon = "user" })
+PlayerTab:Section({ Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ" })
 
 local TrailObj = nil
 local TrailColorP = Color3.fromRGB(120, 90, 240)
@@ -1005,7 +1063,7 @@ end
 
 PlayerTab:Slider({
     Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴏ ᴊᴏɢᴀᴅᴏʀ",
-    Min = 16, Max = 200, Default = 16,
+    Value = {Min = 16, Max = 200, Default = 16},
     Callback = function(v)
         State.PlayerSpeed = v
         if Humanoid then pcall(function() Humanoid.WalkSpeed = v end) end
@@ -1028,7 +1086,7 @@ LocalPlayer.CharacterAdded:Connect(function(c)
     if State.Trail then CriarTrail() end
 end)
 
-PlayerTab:Section("ᴛʀᴀɪʟ")
+PlayerTab:Section({ Title = "ᴛʀᴀɪʟ" })
 
 PlayerTab:Toggle({
     Title = "ᴛʀᴀɪʟ ɴᴏ ᴊᴏɢᴀᴅᴏʀ",
@@ -1049,7 +1107,7 @@ PlayerTab:Colorpicker({
     end,
 })
 
-PlayerTab:Section("ᴛᴇʟᴀ ᴇsᴛɪᴄᴀᴅᴀ")
+PlayerTab:Section({ Title = "ᴛᴇʟᴀ ᴇsᴛɪᴄᴀᴅᴀ" })
 
 local StretchHConn = nil
 local StretchVConn = nil
@@ -1088,9 +1146,11 @@ PlayerTab:Toggle({
     end,
 })
 
+-- ============================================
 -- CHARS
-local CharsTab = Window:Tab({ Title = "ᴄʜᴀʀs" })
-CharsTab:Section("ᴄʜᴀʀs ᴅɪsᴘᴏɴɪᴠᴇɪs")
+-- ============================================
+local CharsTab = Window:Tab({ Title = "ᴄʜᴀʀs", Icon = "users" })
+CharsTab:Section({ Title = "ᴄʜᴀʀs ᴅɪsᴘᴏɴɪᴠᴇɪs" })
 
 local CharsList = {
     "oxentepivetih77","RB9844","FearZakk","pachowillian","DavskCbm9",
@@ -1118,13 +1178,13 @@ for _, char in ipairs(CharsList) do
         Title = char,
         Callback = function()
             SendChar(char)
-            Library:Notify({Title = "ᴄʜᴀʀ", Content = char, Duration = 2, Icon = "success"})
+            WindUI:Notify({Title = "ᴄʜᴀʀ", Content = char, Duration = 2})
         end,
     })
-end--[[ MANIC HUB | PARTE 6/8 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
+end--[[ MANIC HUB | PARTE 7/8 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
 
-local ACTab = Window:Tab({ Title = "ᴀᴄ" })
-ACTab:Section("ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ")
+local ACTab = Window:Tab({ Title = "ᴀᴄ", Icon = "shield" })
+ACTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ" })
 
 local CatchRemote = nil
 pcall(function()
@@ -1174,13 +1234,13 @@ ACTab:Toggle({
 
 ACTab:Slider({
     Title = "ᴀʟᴄᴀɴᴄᴇ",
-    Min = 3, Max = 30, Default = 8,
+    Value = {Min = 3, Max = 30, Default = 8},
     Callback = function(v) AutoCatchRange = v end,
 })
 
 ACTab:Slider({
     Title = "ᴄᴏᴏʟᴅᴏᴡɴ (x100ᴍs)",
-    Min = 2, Max = 30, Default = 8,
+    Value = {Min = 2, Max = 30, Default = 8},
     Callback = function(v) AutoCatchDelay = v / 10 end,
 })
 
@@ -1190,9 +1250,11 @@ ACTab:Toggle({
     Callback = function(v) AC_Hitbox = v end,
 })
 
+-- ============================================
 -- REACH
-local ReachTab = Window:Tab({ Title = "ʀᴇᴀᴄʜ" })
-ReachTab:Section("ʀᴇᴀᴄʜ")
+-- ============================================
+local ReachTab = Window:Tab({ Title = "ʀᴇᴀᴄʜ", Icon = "ruler" })
+ReachTab:Section({ Title = "ʀᴇᴀᴄʜ" })
 
 local ReachLast = 0
 
@@ -1204,13 +1266,15 @@ ReachTab:Toggle({
 
 ReachTab:Slider({
     Title = "ᴅɪsᴛᴀɴᴄɪᴀ",
-    Min = 1, Max = 50, Default = 10,
+    Value = {Min = 1, Max = 50, Default = 10},
     Callback = function(v) State.ReachDistance = v end,
 })
 
+-- ============================================
 -- AUTO DRIVE
-local DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
-DriveTab:Section("ᴀᴜᴛᴏ ᴅʀɪᴠᴇ (ɢᴋ)")
+-- ============================================
+local DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ (ɢᴋ)" })
 
 local GKBotoes = {}
 local AutoDiveLast = 0
@@ -1249,6 +1313,7 @@ local function EscanearBotoesGK()
             end
         end
     end)
+    print("[ᴀᴜᴛᴏ ᴅʀɪᴠᴇ] ʙᴏᴛᴏᴇs:", #GKBotoes)
 end
 
 EscanearBotoesGK()
@@ -1373,13 +1438,13 @@ DriveTab:Dropdown({
 
 DriveTab:Slider({
     Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴅɪᴠᴇ",
-    Min = 5, Max = 30, Default = 15,
+    Value = {Min = 5, Max = 30, Default = 15},
     Callback = function(v) AutoDiveRange = v end,
 })
 
 DriveTab:Slider({
     Title = "ᴄᴏᴏʟᴅᴏᴡɴ ᴅᴏ ᴅɪᴠᴇ",
-    Min = 3, Max = 50, Default = 8,
+    Value = {Min = 3, Max = 50, Default = 8},
     Callback = function(v) AutoDiveCooldown = v / 10 end,
 })
 
@@ -1387,10 +1452,13 @@ DriveTab:Button({
     Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ʙᴏᴛᴏᴇs ɢᴋ",
     Callback = function()
         EscanearBotoesGK()
-        Library:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 7/8 — Loops ]]
+})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops ]]
 
+-- ============================================
+-- LOOPS
+-- ============================================
 RunService.Heartbeat:Connect(function()
     if State.AutoCatch then
         local ball = CurrentFollowBall or FindClosestBall()
@@ -1436,33 +1504,32 @@ RunService.Heartbeat:Connect(function()
     ReachLast = os.clock() + 0.05
 end)
 
-Library:Notify({
-    Title = "Manic Hub",
-    Content = "Carregado! Use LeftShift para abrir/fechar.",
-    Duration = 5,
-    Icon = "success",
-})
+-- ============================================
+-- ABA sᴄʀɪᴘᴛ
+-- ============================================
+local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
 
-print("[MANIC HUB] Carregado!")
-print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
-print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
-print("[MANIC HUB] Botões GK:", #GKBotoes)--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + ᴄʀᴇᴅɪᴛᴏs ]]
-
-local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ" })
-
-ScriptTab:Section("ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs")
+ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
 local BackgroundAtual = "11717400651"
 
 local function AplicarBackground(assetId)
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
-    local bg = Window.Frame:FindFirstChildWhichIsA("ImageLabel")
+    local bg = nil
+    pcall(function()
+        for _, v in ipairs(CoreGui:GetDescendants()) do
+            if v:IsA("ImageLabel") and v.Name == "BackgroundImage" then
+                bg = v
+                break
+            end
+        end
+    end)
     if bg then
         bg.Image = url
         BackgroundAtual = assetId
-        Library:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ", Duration = 2, Icon = "check-circle"})
     else
-        Library:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ", Duration = 3, Icon = "error"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ", Duration = 3, Icon = "x-circle"})
     end
 end
 
@@ -1476,21 +1543,12 @@ ScriptTab:Input({
     end,
 })
 
-ScriptTab:Slider({
-    Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ",
-    Min = 0, Max = 100, Default = 35,
-    Callback = function(v)
-        local bg = Window.Frame:FindFirstChildWhichIsA("ImageLabel")
-        if bg then bg.ImageTransparency = v / 100 end
-    end,
-})
-
 ScriptTab:Button({
     Title = "ᴀᴘʟɪᴄᴀʀ ɪᴅ ᴍᴀɴᴜᴀʟ",
     Callback = function() AplicarBackground(BackgroundAtual) end,
 })
 
-ScriptTab:Section("ᴀssᴇᴛs ᴘʀᴇsᴇᴛ")
+ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
 
 local ASSETS_PRESET = {
     {Nome = "ᴀssᴇᴛ 1", ID = "86503454003964"},
@@ -1507,33 +1565,11 @@ for _, asset in ipairs(ASSETS_PRESET) do
     })
 end
 
-ScriptTab:Section("ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴛɪᴛᴜʟᴏ")
-
-ScriptTab:Input({
-    Title = "ɴᴏᴠᴏ ᴛɪᴛᴜʟᴏ",
-    Placeholder = "ᴍᴀɴɪᴄ ʜᴜʙ",
-    Callback = function(text)
-        if text and text ~= "" then
-            pcall(function() Window:SetTitle(text) end)
-        end
-    end,
-})
-
-ScriptTab:Input({
-    Title = "ɴᴏᴠᴏ ᴀᴜᴛᴏʀ",
-    Placeholder = "ᴛʜᴇᴀɴɢᴇʟʟᴀɴᴅxꜱ",
-    Callback = function(text)
-        if text and text ~= "" then
-            pcall(function() Window:SetAuthor(text) end)
-        end
-    end,
-})
-
-ScriptTab:Section("ɪɴꜰᴏʀᴍᴀᴄᴏᴇs")
+ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
 
 ScriptTab:Button({
     Title = "ᴠᴇʀsᴀᴏ: ᴠ3.0",
-    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ꜰʟᴜᴇɴᴛ ᴇᴅɪᴛɪᴏɴ",
+    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛᴄs ᴇᴅɪᴛɪᴏɴ",
     Callback = function() end,
 })
 
@@ -1543,7 +1579,7 @@ ScriptTab:Button({
     Callback = function() end,
 })
 
-ScriptTab:Section("ᴄʀᴇᴅɪᴛᴏs")
+ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
 
 ScriptTab:Button({
     Title = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘",
@@ -1552,7 +1588,7 @@ ScriptTab:Button({
         pcall(function()
             if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘") end
         end)
-        Library:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɴᴏᴍᴇ ᴄᴏᴘɪᴀᴅᴏ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɴᴏᴍᴇ ᴄᴏᴘɪᴀᴅᴏ", Duration = 2, Icon = "success"})
     end,
 })
 
@@ -1560,9 +1596,22 @@ ScriptTab:Button({
     Title = "ᴏʙʀɪɢᴀᴅᴏ ᴘᴏʀ ᴜsᴀʀ!",
     Desc = "sᴇ ᴄᴜʀᴛɪᴜ, ᴄᴏᴍᴘᴀʀᴛɪʟʜᴀ ᴄᴏᴍ ᴏs ᴀᴍɪɢᴏs.",
     Callback = function()
-        Library:Notify({Title = "ᴍᴀɴɪᴄ ʜᴜʙ", Content = "ᴠᴀʟᴇᴜ ᴘᴇʟᴏ ᴀᴘᴏɪᴏ!", Duration = 3, Icon = "success"})
+        WindUI:Notify({Title = "ᴍᴀɴɪᴄ ʜᴜʙ", Content = "ᴠᴀʟᴇᴜ ᴘᴇʟᴏ ᴀᴘᴏɪᴏ!", Duration = 3, Icon = "success"})
     end,
 })
 
-print("[MANIC HUB] sᴄʀɪᴘᴛ ᴀᴅɪᴄɪᴏɴᴀᴅᴀ!")
+-- ============================================
+-- FINAL
+-- ============================================
+WindUI:Notify({
+    Title = "Manic Hub",
+    Content = "Carregado! Use LeftShift para abrir/fechar.",
+    Duration = 5,
+    Icon = "check-circle",
+})
+
+print("[MANIC HUB] Carregado com WindUI!")
+print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
+print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
+print("[MANIC HUB] Botões GK:", #GKBotoes)
 print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")
