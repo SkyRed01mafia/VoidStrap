@@ -11,22 +11,23 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 getgenv().ManicHub = getgenv().ManicHub or {}
 local Flags = getgenv().ManicHub
 
--- Personagem
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-LocalPlayer.CharacterAdded:Connect(function(c)
+local function UpdateCharacter(c)
     Character = c
     Humanoid = c:WaitForChild("Humanoid")
     RootPart = c:WaitForChild("HumanoidRootPart")
-end)
+end
+LocalPlayer.CharacterAdded:Connect(UpdateCharacter)
 
--- Backups
 local Backups = {
     Grass = {},
     Lighting = {
@@ -41,16 +42,15 @@ local Backups = {
     }
 }
 
--- Estado global
 local State = {
     AutoBall = false, AutoDrive = false, AutoCatch = false, Reach = false,
     ReachDistance = 10, PlayerSpeed = 16, Trail = false,
     StretchH = false, StretchV = false,
     BallColor = nil, BallFire = false,
     GrassColor = nil, Skybox = nil, GraphicPreset = nil, BoomBoxSound = nil,
+    CurvaMode = "Desativar", CurvaForce = 30,
 }
 
--- FTI
 local FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
 print("[MANIC HUB] firetouchinterest:", FTI ~= nil)
 
@@ -92,14 +92,11 @@ UserInputService.InputBegan:Connect(function(i, gp)
     if i.KeyCode == Enum.KeyCode.LeftShift then
         Window:Toggle()
     end
-end)--[[ MANIC HUB | PARTE 2/7 — MAPA ]]
+end)--[[ MANIC HUB | PARTE 2/7 — ᴍᴀᴘᴀ ]]
 
-local MapTab = Window:Tab({ Title = "Mapa", Icon = "map" })
+local MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ", Icon = "map" })
 
--- ============================================
--- GRAMA
--- ============================================
-MapTab:Section({ Title = "🎨 Cor do Gramado" })
+MapTab:Section({ Title = "ᴄᴏʀ ᴅᴏ ɢʀᴀᴍᴀᴅᴏ" })
 
 local function EhGrama(obj)
     if not obj:IsA("BasePart") then return false end
@@ -153,16 +150,16 @@ local function RestaurarGrama()
 end
 
 MapTab:Colorpicker({
-    Title = "Map Color",
+    Title = "ᴍᴀᴘ ᴄᴏʟᴏʀ",
     Default = Color3.fromRGB(60, 145, 60),
     Callback = function(color) AplicarCorGrama(color) end,
 })
 
 MapTab:Button({
-    Title = "↩ Restaurar Grama Original",
+    Title = "ʀᴇsᴛᴀᴜʀᴀʀ ɢʀᴀᴍᴀ ᴏʀɪɢɪɴᴀʟ",
     Callback = function()
         RestaurarGrama()
-        WindUI:Notify({Title = "Mapa", Content = "Grama restaurada!", Duration = 2})
+        WindUI:Notify({Title = "ᴍᴀᴘᴀ", Content = "ɢʀᴀᴍᴀ ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2})
     end,
 })
 
@@ -180,39 +177,43 @@ spawn(function()
 end)
 
 -- ============================================
--- SKYBOX
+-- SKYBOX (CORRIGIDO)
 -- ============================================
-MapTab:Section({ Title = "☁ Skybox" })
+MapTab:Section({ Title = "sᴋʏʙᴏx" })
 
 local SkyboxIDs = {
-    {Name = "Sky 1", ID = "8202961731"},
-    {Name = "Sky 2", ID = "2758029221"},
-    {Name = "Night", ID = "13107361022"},
-    {Name = "Sky 4", ID = "7108851308"},
-    {Name = "Sky 5", ID = "339406852"},
-    {Name = "Sky 6", ID = "15502592084"},
-    {Name = "Sky 7", ID = "15359965253"},
-    {Name = "Sky 8", ID = "15470370280"},
-    {Name = "Blue Sky", ID = "8808550143"},
-    {Name = "Sky 10", ID = "10594723714"},
+    {Name = "sᴋʏ 1", ID = "8202961731"},
+    {Name = "sᴋʏ 2", ID = "2758029221"},
+    {Name = "ɴɪɢʜᴛ", ID = "13107361022"},
+    {Name = "sᴋʏ 4", ID = "7108851308"},
+    {Name = "sᴋʏ 5", ID = "339406852"},
+    {Name = "sᴋʏ 6", ID = "15502592084"},
+    {Name = "sᴋʏ 7", ID = "15359965253"},
+    {Name = "sᴋʏ 8", ID = "15470370280"},
+    {Name = "ʙʟᴜᴇ sᴋʏ", ID = "8808550143"},
+    {Name = "sᴋʏ 10", ID = "10594723714"},
 }
 
 local function AplicarSkybox(assetId)
     pcall(function()
+        -- 1. Destrói TODAS as Sky
         for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("Sky") then v:Destroy() end
         end
+        -- 2. Destrói Atmosphere (escurece a sky)
         for _, v in ipairs(Lighting:GetChildren()) do
             if v:IsA("Atmosphere") then v:Destroy() end
         end
+        -- 3. Cria a nova Sky
         local sky = Instance.new("Sky")
         sky.Name = "Manic_Sky"
-        sky.SkyboxBk = "rbxassetid://" .. assetId
-        sky.SkyboxDn = "rbxassetid://" .. assetId
-        sky.SkyboxFt = "rbxassetid://" .. assetId
-        sky.SkyboxLf = "rbxassetid://" .. assetId
-        sky.SkyboxRt = "rbxassetid://" .. assetId
-        sky.SkyboxUp = "rbxassetid://" .. assetId
+        local url = "rbxassetid://" .. assetId
+        sky.SkyboxBk = url
+        sky.SkyboxDn = url
+        sky.SkyboxFt = url
+        sky.SkyboxLf = url
+        sky.SkyboxRt = url
+        sky.SkyboxUp = url
         sky.SunAngularSize = 0
         sky.MoonAngularSize = 0
         sky.StarCount = 0
@@ -223,16 +224,16 @@ end
 
 for _, sky in ipairs(SkyboxIDs) do
     MapTab:Button({
-        Title = "☁ " .. sky.Name,
+        Title = sky.Name,
         Callback = function()
             AplicarSkybox(sky.ID)
-            WindUI:Notify({Title = "Skybox", Content = sky.Name .. " aplicada!", Duration = 2})
+            WindUI:Notify({Title = "sᴋʏʙᴏx", Content = sky.Name .. " ᴀᴘʟɪᴄᴀᴅᴀ", Duration = 2})
         end,
     })
 end
 
 MapTab:Button({
-    Title = "↩ Remover Skybox Customizada",
+    Title = "ʀᴇᴍᴏᴠᴇʀ sᴋʏʙᴏx",
     Callback = function()
         pcall(function()
             for _, v in ipairs(Lighting:GetDescendants()) do
@@ -243,15 +244,27 @@ MapTab:Button({
     end,
 })
 
--- Loop anti-reset skybox
+-- Loop AGRESSIVO anti-reset
 RunService.RenderStepped:Connect(function()
     if not State.Skybox then return end
-    if not Lighting:FindFirstChild("Manic_Sky") then
+    local sky = Lighting:FindFirstChild("Manic_Sky")
+    if not sky then
         AplicarSkybox(State.Skybox)
         return
     end
+    -- Se a Sky não tiver os assets certos, recria
+    local url = "rbxassetid://" .. State.Skybox
+    if sky.SkyboxBk ~= url then
+        sky.SkyboxBk = url
+        sky.SkyboxDn = url
+        sky.SkyboxFt = url
+        sky.SkyboxLf = url
+        sky.SkyboxRt = url
+        sky.SkyboxUp = url
+    end
+    -- Remove Sky/Atmosphere intrusos
     for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("Sky") and v.Name ~= "Manic_Sky" then v:Destroy() end
+        if v:IsA("Sky") and v ~= sky then v:Destroy() end
         if v:IsA("Atmosphere") then v:Destroy() end
     end
 end)
@@ -259,7 +272,7 @@ end)
 -- ============================================
 -- GRÁFICOS
 -- ============================================
-MapTab:Section({ Title = "🌅 Gráficos" })
+MapTab:Section({ Title = "ɢʀᴀꜰɪᴄᴏs" })
 
 local function ResetarLighting()
     pcall(function()
@@ -275,69 +288,71 @@ local function ResetarLighting()
     end)
 end
 
-local function AplicarFlorido()
-    ResetarLighting()
-    pcall(function()
-        Lighting.Ambient = Color3.fromRGB(255, 200, 230)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 220)
-        Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 200)
-        Lighting.ColorShift_Bottom = Color3.fromRGB(255, 100, 180)
-        Lighting.Brightness = 2.5
-        Lighting.ClockTime = 14
-        Lighting.FogColor = Color3.fromRGB(255, 200, 230)
-    end)
-end
+MapTab:Button({
+    Title = "ꜰʟᴏʀɪᴅᴏ (ɢʀᴀᴅɪᴇɴᴛᴇ ʀᴏsᴀ)",
+    Callback = function()
+        ResetarLighting()
+        pcall(function()
+            Lighting.Ambient = Color3.fromRGB(255, 200, 230)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 220)
+            Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 200)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(255, 100, 180)
+            Lighting.Brightness = 2.5
+            Lighting.ClockTime = 14
+            Lighting.FogColor = Color3.fromRGB(255, 200, 230)
+        end)
+    end,
+})
 
-local function AplicarBonito()
-    ResetarLighting()
-    pcall(function()
-        Lighting.Ambient = Color3.fromRGB(90, 90, 90)
-        Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.GlobalShadows = true
-    end)
-end
+MapTab:Button({
+    Title = "ʙᴏɴɪᴛᴏ (ʀᴇᴀʟɪsᴛᴀ)",
+    Callback = function()
+        ResetarLighting()
+        pcall(function()
+            Lighting.Ambient = Color3.fromRGB(90, 90, 90)
+            Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+        end)
+    end,
+})
 
-local function AplicarSol()
-    ResetarLighting()
-    pcall(function()
-        Lighting.Ambient = Color3.fromRGB(255, 200, 150)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 120)
-        Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 60)
-        Lighting.ColorShift_Bottom = Color3.fromRGB(255, 120, 40)
-        Lighting.Brightness = 3
-        Lighting.ClockTime = 17
-        Lighting.FogColor = Color3.fromRGB(255, 200, 150)
-    end)
-end
+MapTab:Button({
+    Title = "sᴏʟ (ʀᴇᴀʟɪsᴛᴀ ʟᴀʀᴀɴᴊᴀ)",
+    Callback = function()
+        ResetarLighting()
+        pcall(function()
+            Lighting.Ambient = Color3.fromRGB(255, 200, 150)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 120)
+            Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 60)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(255, 120, 40)
+            Lighting.Brightness = 3
+            Lighting.ClockTime = 17
+        end)
+    end,
+})
 
-local function AplicarRecomendado()
-    ResetarLighting()
-    pcall(function()
-        Lighting.Ambient = Color3.fromRGB(80, 80, 80)
-        Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 120)
-        Lighting.ColorShift_Top = Color3.fromRGB(200, 200, 200)
-        Lighting.ColorShift_Bottom = Color3.fromRGB(50, 50, 50)
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.GlobalShadows = true
-    end)
-end
+MapTab:Button({
+    Title = "ʀᴇᴄᴏᴍᴇɴᴅᴀᴅᴏ (ʙʀᴀɴᴄᴏ ᴇ ᴘʀᴇᴛᴏ)",
+    Callback = function()
+        ResetarLighting()
+        pcall(function()
+            Lighting.Ambient = Color3.fromRGB(80, 80, 80)
+            Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 120)
+            Lighting.ColorShift_Top = Color3.fromRGB(200, 200, 200)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(50, 50, 50)
+            Lighting.Brightness = 2
+        end)
+    end,
+})
 
-MapTab:Button({Title = "🌸 Florido (Gradiente Rosa)",
-    Callback = function() AplicarFlorido(); State.GraphicPreset = "Florido" end})
-MapTab:Button({Title = "🎬 Bonito (Realista)",
-    Callback = function() AplicarBonito(); State.GraphicPreset = "Bonito" end})
-MapTab:Button({Title = "🌞 Sol (Realista Laranja)",
-    Callback = function() AplicarSol(); State.GraphicPreset = "Sol" end})
-MapTab:Button({Title = "⭐ Recomendado (Branco e Preto)",
-    Callback = function() AplicarRecomendado(); State.GraphicPreset = "Recomendado" end})
-MapTab:Button({Title = "↩ Resetar Gráficos",
-    Callback = function() ResetarLighting(); State.GraphicPreset = nil end})--[[ MANIC HUB | PARTE 3/7 — Boom Box + Auto Follow ]]
+MapTab:Button({
+    Title = "ʀᴇsᴇᴛᴀʀ ɢʀᴀꜰɪᴄᴏs",
+    Callback = function() ResetarLighting() end,
+})--[[ MANIC HUB | PARTE 3/7 — ʙᴏᴏᴍ ʙᴏx + Auto Follow ]]
 
-local BoomTab = Window:Tab({ Title = "Boom Box", Icon = "music" })
-BoomTab:Section({ Title = "🎵 Músicas" })
+local BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx", Icon = "music" })
+BoomTab:Section({ Title = "ᴍᴜsɪᴄᴀs" })
 
 local function TocarMusica(id)
     pcall(function()
@@ -353,9 +368,9 @@ local function TocarMusica(id)
 end
 
 local Musicas = {
-    {Nome = "🎵 Meant To Be", ID = "84321228471359"},
-    {Nome = "🎵 Misery", ID = "128715303988843"},
-    {Nome = "🎵 Blodlyn Bloodpop", ID = "96414211708215"},
+    {Nome = "ᴍᴇᴀɴᴛ ᴛᴏ ʙᴇ", ID = "84321228471359"},
+    {Nome = "ᴍɪsᴇʀʏ", ID = "128715303988843"},
+    {Nome = "ʙʟᴏᴅʟʏɴ ʙʟᴏᴏᴅᴘᴏᴘ", ID = "96414211708215"},
 }
 
 for _, m in ipairs(Musicas) do
@@ -363,23 +378,23 @@ for _, m in ipairs(Musicas) do
         Title = m.Nome,
         Callback = function()
             TocarMusica(m.ID)
-            WindUI:Notify({Title = "Boom Box", Content = "Tocando: " .. m.Nome, Duration = 2})
+            WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2})
         end,
     })
 end
 
-BoomTab:Section({ Title = "🎵 Custom" })
+BoomTab:Section({ Title = "ᴄᴜsᴛᴏᴍ" })
 
 BoomTab:Input({
-    Title = "ID da Música",
-    Placeholder = "Digite o ID...",
+    Title = "ɪᴅ ᴅᴀ ᴍᴜsɪᴄᴀ",
+    Placeholder = "ɪᴅ...",
     Callback = function(text)
         if text and text ~= "" then TocarMusica(text) end
     end,
 })
 
 BoomTab:Button({
-    Title = "⏹ Parar Música",
+    Title = "ᴘᴀʀᴀʀ ᴍᴜsɪᴄᴀ",
     Callback = function()
         if State.BoomBoxSound then
             pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
@@ -391,8 +406,8 @@ BoomTab:Button({
 -- ============================================
 -- BALL: Auto Follow
 -- ============================================
-local BallTab = Window:Tab({ Title = "Ball", Icon = "circle" })
-BallTab:Section({ Title = "⚽ Auto Follow" })
+local BallTab = Window:Tab({ Title = "ʙᴀʟʟ", Icon = "circle" })
+BallTab:Section({ Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ" })
 
 local AutoFollowConnection = nil
 local CurrentBall = nil
@@ -515,7 +530,7 @@ local function StopAutoBall()
 end
 
 BallTab:Toggle({
-    Title = "Auto Follow (Seguir Bola)",
+    Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ (sᴇɢᴜɪʀ ʙᴏʟᴀ)",
     Value = false,
     Callback = function(v)
         if v then StartAutoBall() else StopAutoBall() end
@@ -523,18 +538,18 @@ BallTab:Toggle({
 })
 
 BallTab:Slider({
-    Title = "Distância de Parada",
+    Title = "ᴅɪsᴛᴀɴᴄɪᴀ ᴅᴇ ᴘᴀʀᴀᴅᴀ",
     Value = {Min = 1, Max = 50, Default = 2},
     Callback = function(v) StopDistance = v / 10 end,
 })
 
 BallTab:Slider({
-    Title = "Força do Steering",
+    Title = "ꜰᴏʀᴄᴀ ᴅᴏ sᴛᴇᴇʀɪɴɢ",
     Value = {Min = 1, Max = 30, Default = 13},
     Callback = function(v) SteerStrength = v / 10 end,
-})--[[ MANIC HUB | PARTE 4/7 — Ball: Cor + Fogo + Curva ]]
+})--[[ MANIC HUB | PARTE 4/7 — ʙᴀʟʟ Cor + Fogo + Curva ]]
 
-BallTab:Section({ Title = "🎨 Aparência da Ball" })
+BallTab:Section({ Title = "ᴀᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ʙᴀʟʟ" })
 
 local BallTextureBackup = {}
 
@@ -607,13 +622,13 @@ local function RestaurarBall()
 end
 
 BallTab:Colorpicker({
-    Title = "Cor da Ball",
+    Title = "ᴄᴏʀ ᴅᴀ ʙᴀʟʟ",
     Default = Color3.fromRGB(89, 247, 255),
     Callback = function(c) AplicarCorBall(c) end,
 })
 
 BallTab:Toggle({
-    Title = "🔥 Fogo na Ball",
+    Title = "ꜰᴏɢᴏ ɴᴀ ʙᴀʟʟ",
     Value = false,
     Callback = function(v)
         State.BallFire = v
@@ -629,10 +644,10 @@ BallTab:Toggle({
 })
 
 BallTab:Button({
-    Title = "↩ Restaurar Ball Original",
+    Title = "ʀᴇsᴛᴀᴜʀᴀʀ ʙᴀʟʟ ᴏʀɪɢɪɴᴀʟ",
     Callback = function()
         RestaurarBall()
-        WindUI:Notify({Title = "Ball", Content = "Restaurada!", Duration = 2})
+        WindUI:Notify({Title = "ʙᴀʟʟ", Content = "ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2})
     end,
 })
 
@@ -658,160 +673,288 @@ spawn(function()
 end)
 
 -- ============================================
--- CURVA UI
+-- CURVA BALL
 -- ============================================
-BallTab:Section({ Title = "🌀 Curva / Skills" })
+BallTab:Section({ Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ" })
 
-local CurvaGui = nil
+local CurvaConn = nil
+local CurvaKickEnd = 0
+local CurvaKickDuration = 0.5
+local CurvaOnKick = true
 
-local function SendChat(msg)
-    pcall(function()
-        local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-        if ch then ch:SendAsync(msg) end
-    end)
-    pcall(function()
-        ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
-            :WaitForChild("SayMessageRequest"):FireServer(msg, "All")
+local function AplicarCurva(ball, dt)
+    if not ball or not ball.Parent then return end
+    local vel = ball.AssemblyLinearVelocity
+    local velH = Vector3.new(vel.X, 0, vel.Z)
+    if velH.Magnitude < 5 then return end
+
+    local forward = velH.Unit
+    local force = Vector3.zero
+
+    if State.CurvaMode == "ᴅɪʀᴇɪᴛᴀ" then
+        force = Vector3.new(forward.Z, 0, -forward.X)
+    elseif State.CurvaMode == "ᴇsǫᴜᴇʀᴅᴀ" then
+        force = Vector3.new(-forward.Z, 0, forward.X)
+    elseif State.CurvaMode == "ᴄɪᴍᴀ" then
+        force = Vector3.new(0, 1, 0)
+    else
+        return
+    end
+
+    local curveForce = force * State.CurvaForce * dt * 60
+    local finalVel = vel + curveForce
+    local velHFinal = Vector3.new(finalVel.X, 0, finalVel.Z)
+    if velHFinal.Magnitude > 0.1 then
+        local forwardDot = velHFinal.Unit:Dot(forward)
+        if forwardDot < 0.5 then
+            local correctedH = (forward * velH.Magnitude * 0.9) + Vector3.new(curveForce.X, 0, curveForce.Z)
+            finalVel = Vector3.new(correctedH.X, finalVel.Y, correctedH.Z)
+        end
+    end
+    ball.AssemblyLinearVelocity = finalVel
+end
+
+local function StartCurva()
+    if CurvaConn then return end
+    CurvaConn = RunService.Heartbeat:Connect(function(dt)
+        if State.CurvaMode == "ᴅᴇsᴀᴛɪᴠᴀʀ" then return end
+        if CurvaOnKick and tick() > CurvaKickEnd then return end
+        for _, ball in ipairs(Workspace:GetDescendants()) do
+            if IsValidBall(ball) then
+                AplicarCurva(ball, dt)
+            end
+        end
     end)
 end
 
-local function CriarCurvaUI()
-    if CurvaGui then CurvaGui:Destroy() end
-    CurvaGui = Instance.new("ScreenGui")
-    CurvaGui.Name = "ManicCurvaUI"
-    CurvaGui.ResetOnSpawn = false
-    CurvaGui.IgnoreGuiInset = true
-    CurvaGui.Parent = CoreGui
-
-    local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 500, 0, 500)
-    main.Position = UDim2.new(0.5, -250, 0.5, -250)
-    main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-    main.BorderSizePixel = 0
-    main.Active = true
-    main.Parent = CurvaGui
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(120, 90, 240)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    stroke.Parent = main
-
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 20, 45)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 12, 20)),
-    })
-    gradient.Rotation = 135
-    gradient.Parent = main
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 45)
-    title.BackgroundTransparency = 1
-    title.Text = "🌀 MANIC CURVA"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 20
-    title.Font = Enum.Font.GothamBold
-    title.Parent = main
-
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 32, 0, 32)
-    closeBtn.Position = UDim2.new(1, -40, 0, 8)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 100)
-    closeBtn.Text = "✕"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 16
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Parent = main
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
-    closeBtn.MouseButton1Click:Connect(function() CurvaGui:Destroy(); CurvaGui = nil end)
-
-    local dragging, dragInput, dragStart, startPos
-    title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = main.Position
-        end
-    end)
-    title.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    title.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    local grid = Instance.new("Frame")
-    grid.Size = UDim2.new(1, -30, 1, -60)
-    grid.Position = UDim2.new(0, 15, 0, 55)
-    grid.BackgroundTransparency = 1
-    grid.Parent = main
-
-    local gridLayout = Instance.new("UIGridLayout")
-    gridLayout.CellSize = UDim2.new(0.5, -8, 0, 42)
-    gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
-    gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    gridLayout.Parent = grid
-
-    local Skills = {
-        {Nome="Dominar", C=":dominar"}, {Nome="Esquerda", C=":esquerda"},
-        {Nome="Direita", C=":direita"}, {Nome="Alto", C=":alto"},
-        {Nome="Chute Baixo", C=":chutebaixo"}, {Nome="Lambreta", C=":lambreta"},
-        {Nome="Chapéu", C=":chapeu"}, {Nome="Calcanhar", C=":calcanhar"},
-        {Nome="Voleio", C=":voleio"}, {Nome="Direita Atrás", C=":direitaatras"},
-        {Nome="Esquerda Atrás", C=":esquerdaatras"}, {Nome="Conduzir", C=":conduzir"},
-        {Nome="Chute Falso", C=":chutefalso"}, {Nome="Arraste Para Trás", C=":arraste"},
-        {Nome="Cabeceio", C=":cabeceio"}, {Nome="Bicicleta", C=":bicicleta"},
-    }
-
-    for _, skill in ipairs(Skills) do
-        local btn = Instance.new("TextButton")
-        btn.BackgroundColor3 = Color3.fromRGB(28, 32, 48)
-        btn.Text = skill.Nome
-        btn.TextColor3 = Color3.fromRGB(230, 230, 240)
-        btn.TextSize = 14
-        btn.Font = Enum.Font.GothamBold
-        btn.BorderSizePixel = 0
-        btn.AutoButtonColor = false
-        btn.Parent = grid
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-        local s = Instance.new("UIStroke")
-        s.Color = Color3.fromRGB(80, 70, 140)
-        s.Thickness = 1.5; s.Transparency = 0.5
-        s.Parent = btn
-
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(120, 90, 240)}):Play()
-        end)
-        btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(28, 32, 48)}):Play()
-        end)
-        btn.MouseButton1Click:Connect(function()
-            SendChat(skill.C)
-            pcall(function()
-                StarterGui:SetCore("SendNotification", {Title="Curva", Text=skill.Nome, Duration=1})
-            end)
-        end)
+local function StopCurva()
+    if CurvaConn then
+        CurvaConn:Disconnect()
+        CurvaConn = nil
     end
 end
 
-BallTab:Button({
-    Title = "🌀 Abrir Curva UI",
-    Callback = function() CriarCurvaUI() end,
-})--[[ MANIC HUB | PARTE 6/7 — AC + Reach + Auto Drive ]]
+local function UpdateCurva()
+    if State.CurvaMode == "ᴅᴇsᴀᴛɪᴠᴀʀ" then StopCurva()
+    elseif not CurvaConn then StartCurva() end
+end
 
-local ACTab = Window:Tab({ Title = "AC", Icon = "shield" })
-ACTab:Section({ Title = "🧤 Auto Catch" })
+BallTab:Dropdown({
+    Title = "ᴅɪʀᴇᴄᴀᴏ ᴅᴀ ᴄᴜʀᴠᴀ",
+    Values = {"ᴅᴇsᴀᴛɪᴠᴀʀ", "ᴅɪʀᴇɪᴛᴀ", "ᴇsǫᴜᴇʀᴅᴀ", "ᴄɪᴍᴀ"},
+    Value = "ᴅᴇsᴀᴛɪᴠᴀʀ",
+    Callback = function(v)
+        State.CurvaMode = v
+        UpdateCurva()
+    end,
+})
+
+BallTab:Slider({
+    Title = "ꜰᴏʀᴄᴀ ᴅᴀ ᴄᴜʀᴠᴀ",
+    Value = {Min = 5, Max = 100, Default = 30},
+    Callback = function(v) State.CurvaForce = v end,
+})
+
+BallTab:Toggle({
+    Title = "ᴄᴜʀᴠᴀʀ ᴀᴘᴇɴᴀs ɴᴏ ᴄʜᴜᴛᴇ",
+    Value = true,
+    Callback = function(v) CurvaOnKick = v end,
+})
+
+BallTab:Slider({
+    Title = "ᴅᴜʀᴀᴄᴀᴏ ᴘᴏs ᴄʜᴜᴛᴇ",
+    Value = {Min = 1, Max = 30, Default = 5, Suffix = "x0.1s"},
+    Callback = function(v) CurvaKickDuration = v / 10 end,
+})
+
+-- Detectar chute (tools + remote)
+spawn(function()
+    local function marcarChute() CurvaKickEnd = tick() + CurvaKickDuration end
+    local function hookTool(tool)
+        if not tool:IsA("Tool") then return end
+        local n = tool.Name:lower()
+        if n:find("chutar") or n:find("chute") or n:find("kick")
+        or n:find("shoot") or n:find("bater") or n:find("toque") then
+            tool.Activated:Connect(marcarChute)
+            tool.Unequipped:Connect(marcarChute)
+        end
+    end
+    local function hookContainer(c)
+        if not c then return end
+        for _, o in ipairs(c:GetChildren()) do hookTool(o) end
+        c.ChildAdded:Connect(function(ch) task.wait(0.1); hookTool(ch) end)
+    end
+    hookContainer(LocalPlayer:FindFirstChild("Backpack"))
+    hookContainer(Character)
+    LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait(1)
+        hookContainer(LocalPlayer:FindFirstChild("Backpack"))
+        hookContainer(c)
+    end)
+    -- Remote fallback
+    pcall(function()
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") then
+                local n = v.Name:lower()
+                if n:find("chutar") or n:find("chute") or n:find("kick") or n:find("shoot") then
+                    v.OnClientEvent:Connect(marcarChute)
+                end
+            end
+        end
+    end)
+end)--[[ MANIC HUB | PARTE 5/7 — ᴘʟᴀʏᴇʀ + ᴄʜᴀʀs ]]
+
+local PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ", Icon = "user" })
+PlayerTab:Section({ Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ" })
+
+local TrailObj = nil
+local TrailColor = Color3.fromRGB(120, 90, 240)
+
+local function CriarTrail()
+    if TrailObj then TrailObj:Destroy() end
+    if not Character then return end
+    local hrp = Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local a0 = Instance.new("Attachment", hrp); a0.Name = "ManicTrailA0"; a0.Position = Vector3.new(0, 1, 0)
+    local a1 = Instance.new("Attachment", hrp); a1.Name = "ManicTrailA1"; a1.Position = Vector3.new(0, -1, 0)
+    TrailObj = Instance.new("Trail")
+    TrailObj.Name = "ManicTrail"
+    TrailObj.Attachment0 = a0
+    TrailObj.Attachment1 = a1
+    TrailObj.Color = ColorSequence.new(TrailColor)
+    TrailObj.Lifetime = 1
+    TrailObj.MinLength = 0.1
+    TrailObj.WidthScale = NumberSequence.new(0.5)
+    TrailObj.Parent = hrp
+end
+
+PlayerTab:Slider({
+    Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴏ ᴊᴏɢᴀᴅᴏʀ",
+    Value = {Min = 16, Max = 200, Default = 16},
+    Callback = function(v)
+        State.PlayerSpeed = v
+        if Humanoid then pcall(function() Humanoid.WalkSpeed = v end) end
+    end,
+})
+
+RunService.RenderStepped:Connect(function()
+    if not State.PlayerSpeed then return end
+    if not Humanoid or Humanoid.Health <= 0 then return end
+    if Humanoid.WalkSpeed ~= State.PlayerSpeed then
+        pcall(function() Humanoid.WalkSpeed = State.PlayerSpeed end)
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(c)
+    task.wait(0.5)
+    if Humanoid and State.PlayerSpeed then
+        pcall(function() Humanoid.WalkSpeed = State.PlayerSpeed end)
+    end
+    if State.Trail then CriarTrail() end
+end)
+
+PlayerTab:Section({ Title = "ᴛʀᴀɪʟ" })
+
+PlayerTab:Toggle({
+    Title = "ᴛʀᴀɪʟ ɴᴏ ᴊᴏɢᴀᴅᴏʀ",
+    Value = false,
+    Callback = function(v)
+        State.Trail = v
+        if v then CriarTrail()
+        elseif TrailObj then TrailObj:Destroy(); TrailObj = nil end
+    end,
+})
+
+PlayerTab:Colorpicker({
+    Title = "ᴄᴏʀ ᴅᴏ ᴛʀᴀɪʟ",
+    Default = TrailColor,
+    Callback = function(c)
+        TrailColor = c
+        if TrailObj then TrailObj.Color = ColorSequence.new(c) end
+    end,
+})
+
+PlayerTab:Section({ Title = "ᴛᴇʟᴀ ᴇsᴛɪᴄᴀᴅᴀ" })
+
+local StretchHConn = nil
+local StretchVConn = nil
+
+PlayerTab:Toggle({
+    Title = "ᴇsᴛɪᴄᴀʀ ʜᴏʀɪᴢᴏɴᴛᴀʟ (ʟᴀᴅᴏs)",
+    Value = false,
+    Callback = function(v)
+        State.StretchH = v
+        if v then
+            if StretchHConn then StretchHConn:Disconnect() end
+            local cam = Workspace.CurrentCamera
+            StretchHConn = RunService.RenderStepped:Connect(function()
+                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 0.75, 0, 0, 0, 1, 0, 0, 0, 1)
+            end)
+        elseif StretchHConn then
+            StretchHConn:Disconnect(); StretchHConn = nil
+        end
+    end,
+})
+
+PlayerTab:Toggle({
+    Title = "ᴇsᴛɪᴄᴀʀ ᴠᴇʀᴛɪᴄᴀʟ (ᴄɪᴍᴀ)",
+    Value = false,
+    Callback = function(v)
+        State.StretchV = v
+        if v then
+            if StretchVConn then StretchVConn:Disconnect() end
+            local cam = Workspace.CurrentCamera
+            StretchVConn = RunService.RenderStepped:Connect(function()
+                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, 0.67, 0, 0, 0, 1)
+            end)
+        elseif StretchVConn then
+            StretchVConn:Disconnect(); StretchVConn = nil
+        end
+    end,
+})
+
+-- ============================================
+-- CHARS
+-- ============================================
+local CharsTab = Window:Tab({ Title = "ᴄʜᴀʀs", Icon = "users" })
+CharsTab:Section({ Title = "ᴄʜᴀʀs ᴅɪsᴘᴏɴɪᴠᴇɪs" })
+
+local CharsList = {
+    "oxentepivetih77","RB9844","FearZakk","pachowillian","DavskCbm9",
+    "6unfire","mikaelfacada10","guto785662","orieehrjr","beastsxc",
+    "candyxzzz0","polarnyp","kayquealt1106","Skxgoat7","KingOfKitsunezx",
+    "slk_eosouzax","defantastico","hyago_mach","mica1203ely5","b_2020f",
+    "bernadow_w","ythek9on1","Samblox_Xd","3qu","021_KayqueJr",
+    "monalisopitango","a4rloo","Ilulict","m3mbers0nly","19_Nxx",
+    "Juninhojwve","ensixraa","keny_tcs","MSS10_ALT1",
+}
+
+local function SendChar(nome)
+    pcall(function()
+        local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if ch then ch:SendAsync(":char " .. nome) end
+    end)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
+            :WaitForChild("SayMessageRequest"):FireServer(":char " .. nome, "All")
+    end)
+end
+
+for _, char in ipairs(CharsList) do
+    CharsTab:Button({
+        Title = char,
+        Callback = function()
+            SendChar(char)
+            WindUI:Notify({Title = "ᴄʜᴀʀ", Content = char, Duration = 2})
+        end,
+    })
+end--[[ MANIC HUB | PARTE 6/7 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
+
+-- ============================================
+-- AC (Auto Catch)
+-- ============================================
+local ACTab = Window:Tab({ Title = "ᴀᴄ", Icon = "shield" })
+ACTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ" })
 
 local CatchRemote = nil
 pcall(function()
@@ -844,38 +987,35 @@ local function DoAutoCatch(ball)
             end
         end)
     end
-
     if FTI then
         for _, n in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
             local p = Character:FindFirstChild(n)
-            if p then
-                pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1)
-            end
+            if p then pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1) end
         end
     end
     AutoCatchLast = os.clock() + AutoCatchDelay
 end
 
 ACTab:Toggle({
-    Title = "Auto Catch",
+    Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ",
     Value = false,
     Callback = function(v) State.AutoCatch = v end,
 })
 
 ACTab:Slider({
-    Title = "Alcance",
+    Title = "ᴀʟᴄᴀɴᴄᴇ",
     Value = {Min = 3, Max = 30, Default = 8},
     Callback = function(v) AutoCatchRange = v end,
 })
 
 ACTab:Slider({
-    Title = "Cooldown (x100ms)",
+    Title = "ᴄᴏᴏʟᴅᴏᴡɴ (x100ᴍs)",
     Value = {Min = 2, Max = 30, Default = 8},
     Callback = function(v) AutoCatchDelay = v / 10 end,
 })
 
 ACTab:Toggle({
-    Title = "Mostrar Hitbox",
+    Title = "ᴍᴏsᴛʀᴀʀ ʜɪᴛʙᴏx",
     Value = false,
     Callback = function(v) AC_Hitbox = v end,
 })
@@ -883,94 +1023,218 @@ ACTab:Toggle({
 -- ============================================
 -- REACH
 -- ============================================
-local ReachTab = Window:Tab({ Title = "Reach", Icon = "ruler" })
-ReachTab:Section({ Title = "📏 Reach" })
+local ReachTab = Window:Tab({ Title = "ʀᴇᴀᴄʜ", Icon = "ruler" })
+ReachTab:Section({ Title = "ʀᴇᴀᴄʜ" })
 
 local ReachLast = 0
 
 ReachTab:Toggle({
-    Title = "Ativar Reach",
+    Title = "ᴀᴛɪᴠᴀʀ ʀᴇᴀᴄʜ",
     Value = false,
     Callback = function(v) State.Reach = v end,
 })
 
 ReachTab:Slider({
-    Title = "Distância",
+    Title = "ᴅɪsᴛᴀɴᴄɪᴀ",
     Value = {Min = 1, Max = 50, Default = 10},
     Callback = function(v) State.ReachDistance = v end,
 })
 
 -- ============================================
--- AUTO DRIVE
+-- AUTO DRIVE (Botões GK via firesignal)
 -- ============================================
-local DriveTab = Window:Tab({ Title = "Auto Drive", Icon = "car" })
-DriveTab:Section({ Title = "🚀 Auto Drive" })
+local DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ (ɢᴋ)" })
 
-local AutoDriveLast = 0
-local AutoDriveRange = 35
-local AutoDriveCooldown = 0.7
-local AutoDriveSpeed = 32
+local GKBotoes = {}
+local AutoDiveLast = 0
+local AutoDiveRange = 15
+local AutoDiveCooldown = 0.8
+local AutoDiveConn = nil
+local AutoDiveMode = "ᴀᴜᴛᴏ"
+local GKBloquearSeIntelAtivo = true
 
-local function DoAutoDrive(ball)
-    if not State.AutoDrive then return end
-    if os.clock() < AutoDriveLast then return end
-    if not ball or not ball.Parent then return end
-    if not FTI then return end
+local GK_BUTTON_TEXTS = {
+    ["ᴇsǫᴜᴇʀᴅᴀ ᴀʟᴛᴏ"] = "High Dive Left",
+    ["ᴅɪʀᴇɪᴛᴀ ᴀʟᴛᴏ"] = "High Dive Right",
+    ["ᴇsǫᴜᴇʀᴅᴀ ʙᴀɪxᴏ"] = "Dive Left",
+    ["ᴅɪʀᴇɪᴛᴀ ʙᴀɪxᴏ"] = "Dive Right",
+    ["ᴀɢᴀʀʀᴀʀ ᴀʟᴛᴏ"] = "High Catch",
+    ["ᴀɢᴀʀʀᴀʀ ʙᴀɪxᴏ"] = "Low Catch",
+    ["ʀᴇꜰʟᴇxᴏ"] = "Reflex",
+    ["ꜰʀᴇɴᴛᴇ"] = "Front Dive",
+    ["ᴇɴꜰʀᴇɴᴛᴀʀ"] = "Rush",
+}
 
-    local _, hum, root = GetChar()
-    if not hum or not root then return end
-
-    local ballVel = ball.AssemblyLinearVelocity
-    if ballVel.Magnitude < 10 then return end
-
-    local toMe = root.Position - ball.Position
-    if ballVel.Unit:Dot(toMe.Unit) <= 0.3 then return end
-    if (ball.Position - root.Position).Magnitude > AutoDriveRange then return end
-
-    local predicted = ball.Position + ballVel * 0.35
-    local diff = predicted - root.Position
-    local flat = Vector3.new(diff.X, 0, diff.Z)
-
-    if flat.Magnitude > 0.5 and flat.Magnitude < 18 then
-        local orig = hum.WalkSpeed
-        hum:Move(flat.Unit, false)
-        hum.WalkSpeed = AutoDriveSpeed
-        for _, n in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
-            local p = Character:FindFirstChild(n)
-            if p then pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1) end
+local function EscanearBotoesGK()
+    GKBotoes = {}
+    pcall(function()
+        for _, v in ipairs(PlayerGui:GetDescendants()) do
+            if v:IsA("TextButton") or v:IsA("ImageButton") then
+                local nome = v.Name
+                local texto = ""
+                pcall(function() texto = v.Text end)
+                if nome:find("GK") or nome:find("C2")
+                or texto:find("Dive") or texto:find("Catch")
+                or texto:find("High") or texto:find("Low")
+                or texto:find("Reflex") or texto:find("Forward")
+                or texto:find("Front") or texto:find("Rush") then
+                    table.insert(GKBotoes, {Button = v, Nome = nome, Texto = texto})
+                end
+            end
         end
-        if ball.Position.Y > root.Position.Y + 3 and hum.FloorMaterial ~= Enum.Material.Air then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end)
+    print("[ᴀᴜᴛᴏ ᴅʀɪᴠᴇ] ʙᴏᴛᴏᴇs ᴇɴᴄᴏɴᴛʀᴀᴅᴏs:", #GKBotoes)
+end
+
+EscanearBotoesGK()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    EscanearBotoesGK()
+end)
+
+local function EncontrarBotaoPorTexto(texto)
+    for _, info in ipairs(GKBotoes) do
+        if info.Texto and info.Texto:lower() == texto:lower() then
+            return info.Button
         end
-        AutoDriveLast = os.clock() + AutoDriveCooldown
-        task.delay(0.5, function()
-            if hum and State.AutoDrive then hum.WalkSpeed = State.PlayerSpeed or orig end
-        end)
+    end
+    for _, info in ipairs(GKBotoes) do
+        if info.Texto and info.Texto:lower():find(texto:lower(), 1, true) then
+            return info.Button
+        end
+    end
+    return nil
+end
+
+local function ClicarBotao(botao)
+    if not botao then return end
+    pcall(function() firesignal(botao.Activated) end)
+    pcall(function() firesignal(botao.MouseButton1Click) end)
+    pcall(function() firesignal(botao.MouseButton1Down) end)
+    pcall(function() firesignal(botao.MouseButton1Up) end)
+    pcall(function() firesignal(botao.TouchTap) end)
+end
+
+local function AnalisarBola()
+    local ball = CurrentBall or FindClosestBall()
+    if not ball or not RootPart then return nil end
+    local vel = ball.AssemblyLinearVelocity
+    local dist = (ball.Position - RootPart.Position).Magnitude
+    local tempo = 0
+    if vel.Magnitude > 3 then
+        tempo = dist / vel.Magnitude
+        tempo = math.clamp(tempo, 0, 0.6)
+    end
+    local posFutura = ball.Position + (vel * tempo)
+    local camLook = Camera.CFrame.LookVector
+    local camRight = Camera.CFrame.RightVector
+    local frenteH = Vector3.new(camLook.X, 0, camLook.Z)
+    if frenteH.Magnitude < 0.1 then frenteH = Vector3.new(0, 0, -1) end
+    frenteH = frenteH.Unit
+    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
+    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
+    direitaH = direitaH.Unit
+    local delta = posFutura - RootPart.Position
+    local deltaH = Vector3.new(delta.X, 0, delta.Z)
+    local lado = deltaH:Dot(direitaH)
+    local altura = posFutura.Y - RootPart.Position.Y
+    return {ball = ball, vel = vel, dist = dist, lado = lado, altura = altura}
+end
+
+local function ExecutarDive()
+    local info = AnalisarBola()
+    if not info then return end
+    local lado = info.lado
+    local altura = info.altura
+    local textoAlvo
+
+    if AutoDiveMode ~= "ᴀᴜᴛᴏ" then
+        textoAlvo = GK_BUTTON_TEXTS[AutoDiveMode]
+    else
+        if altura > 3.5 then
+            textoAlvo = lado > 0 and "High Dive Right" or "High Dive Left"
+        else
+            textoAlvo = lado > 0 and "Dive Right" or "Dive Left"
+        end
+    end
+
+    if not textoAlvo then return end
+    local botao = EncontrarBotaoPorTexto(textoAlvo)
+    if botao then
+        ClicarBotao(botao)
+        print(string.format("[ᴀᴜᴛᴏ ᴅʀɪᴠᴇ] %s | ʟᴀᴅᴏ: %.1f | ᴀʟᴛᴜʀᴀ: %.1f", textoAlvo, lado, altura))
+    end
+end
+
+local function StartAutoDive()
+    if AutoDiveConn then return end
+    if #GKBotoes == 0 then EscanearBotoesGK() end
+    AutoDiveConn = RunService.Heartbeat:Connect(function()
+        if not State.AutoDrive then return end
+        if not RootPart or not RootPart.Parent then return end
+        if tick() - AutoDiveLast < AutoDiveCooldown then return end
+        local ball = CurrentBall or FindClosestBall()
+        if not ball or not ball.Parent then return end
+        local dist = (ball.Position - RootPart.Position).Magnitude
+        if dist > AutoDiveRange then return end
+        local ballVel = ball.AssemblyLinearVelocity
+        if ballVel.Magnitude < 5 then return end
+        local dirParaPlayer = (RootPart.Position - ball.Position)
+        local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
+        if dirH.Magnitude < 0.1 then return end
+        local ballVelH = Vector3.new(ballVel.X, 0, ballVel.Z)
+        if ballVelH.Magnitude < 0.1 then return end
+        local dot = ballVelH.Unit:Dot(dirH.Unit)
+        if dot > 0.15 then
+            AutoDiveLast = tick()
+            task.spawn(ExecutarDive)
+        end
+    end)
+end
+
+local function StopAutoDive()
+    if AutoDiveConn then
+        AutoDiveConn:Disconnect()
+        AutoDiveConn = nil
     end
 end
 
 DriveTab:Toggle({
-    Title = "Ativar Auto Drive",
+    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ",
     Value = false,
-    Callback = function(v) State.AutoDrive = v end,
+    Callback = function(v)
+        State.AutoDrive = v
+        if v then StartAutoDive() else StopAutoDive() end
+    end,
+})
+
+DriveTab:Dropdown({
+    Title = "ᴍᴏᴅᴏ ᴅᴏ ᴅɪᴠᴇ",
+    Values = {"ᴀᴜᴛᴏ", "ᴇsǫᴜᴇʀᴅᴀ ᴀʟᴛᴏ", "ᴅɪʀᴇɪᴛᴀ ᴀʟᴛᴏ", "ᴇsǫᴜᴇʀᴅᴀ ʙᴀɪxᴏ", "ᴅɪʀᴇɪᴛᴀ ʙᴀɪxᴏ",
+              "ᴀɢᴀʀʀᴀʀ ᴀʟᴛᴏ", "ᴀɢᴀʀʀᴀʀ ʙᴀɪxᴏ", "ʀᴇꜰʟᴇxᴏ", "ꜰʀᴇɴᴛᴇ", "ᴇɴꜰʀᴇɴᴛᴀʀ"},
+    Value = "ᴀᴜᴛᴏ",
+    Callback = function(v) AutoDiveMode = v end,
 })
 
 DriveTab:Slider({
-    Title = "Alcance",
-    Value = {Min = 10, Max = 50, Default = 35},
-    Callback = function(v) AutoDriveRange = v end,
+    Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴅɪᴠᴇ",
+    Value = {Min = 5, Max = 30, Default = 15},
+    Callback = function(v) AutoDiveRange = v end,
 })
 
 DriveTab:Slider({
-    Title = "Velocidade ao Perseguir",
-    Value = {Min = 16, Max = 60, Default = 32},
-    Callback = function(v) AutoDriveSpeed = v end,
+    Title = "ᴄᴏᴏʟᴅᴏᴡɴ ᴅᴏ ᴅɪᴠᴇ",
+    Value = {Min = 3, Max = 50, Default = 8, Suffix = "x0.1s"},
+    Callback = function(v) AutoDiveCooldown = v / 10 end,
 })
 
-DriveTab:Slider({
-    Title = "Cooldown (x100ms)",
-    Value = {Min = 2, Max = 20, Default = 7},
-    Callback = function(v) AutoDriveCooldown = v / 10 end,
+DriveTab:Button({
+    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ʙᴏᴛᴏᴇs ɢᴋ",
+    Callback = function()
+        EscanearBotoesGK()
+        WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
+    end,
 })--[[ MANIC HUB | PARTE 7/7 — Loops + Finalização ]]
 
 -- Loop Auto Catch + Hitbox
@@ -1020,22 +1284,15 @@ RunService.Heartbeat:Connect(function()
     ReachLast = os.clock() + 0.05
 end)
 
--- Loop Auto Drive
-RunService.Heartbeat:Connect(function()
-    if State.AutoDrive then
-        local ball = CurrentBall or FindClosestBall()
-        if ball then DoAutoDrive(ball) end
-    end
-end)
-
 -- Notificação final
 WindUI:Notify({
     Title = "Manic Hub",
-    Content = "✅ Carregado! Use LeftShift para abrir/fechar.",
+    Content = "Carregado! Use LeftShift para abrir/fechar.",
     Duration = 5,
     Icon = "check-circle",
 })
 
-print("[MANIC HUB] ✅ Carregado com WindUI!")
+print("[MANIC HUB] Carregado com WindUI!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
+print("[MANIC HUB] Botões GK encontrados:", #GKBotoes)
