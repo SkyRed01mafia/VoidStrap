@@ -1,4 +1,4 @@
---[[ FLUENT-WIND UI v1.0 | PARTE 1/3 ]]
+--[[ VELAWARE UI v1.0 | PARTE 1/3 ]]
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -8,31 +8,38 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- ============================================
--- TEMA
+-- TEMA VELAWARE
 -- ============================================
 local Theme = {
-    Accent        = Color3.fromRGB(120, 90, 240),
-    AccentDark    = Color3.fromRGB(85, 60, 200),
-    AccentLight   = Color3.fromRGB(160, 130, 255),
-    Secondary     = Color3.fromRGB(60, 180, 255),
-    Success       = Color3.fromRGB(80, 220, 120),
-    Warning       = Color3.fromRGB(255, 180, 60),
-    Danger        = Color3.fromRGB(255, 80, 100),
+    -- Cores principais (roxo/rosa Velaware)
+    Accent        = Color3.fromRGB(180, 120, 255),
+    AccentDark    = Color3.fromRGB(140, 80, 220),
+    AccentLight   = Color3.fromRGB(220, 180, 255),
+    Pink          = Color3.fromRGB(255, 130, 200),
+    Success       = Color3.fromRGB(90, 220, 130),
+    Warning       = Color3.fromRGB(255, 190, 80),
+    Danger        = Color3.fromRGB(255, 90, 110),
+    Red           = Color3.fromRGB(255, 95, 86),
+    Yellow        = Color3.fromRGB(255, 189, 46),
+    Green         = Color3.fromRGB(39, 201, 63),
 
-    WindowBg      = Color3.fromRGB(18, 20, 28),
-    SidebarBg     = Color3.fromRGB(12, 14, 20),
-    TopBarBg      = Color3.fromRGB(25, 28, 38),
-    PanelBg       = Color3.fromRGB(28, 31, 42),
-    PanelHover    = Color3.fromRGB(38, 42, 58),
-    PanelLight    = Color3.fromRGB(48, 52, 70),
-    InputBg       = Color3.fromRGB(22, 24, 34),
+    -- Fundos
+    WindowBg      = Color3.fromRGB(22, 18, 32),
+    TopBarBg      = Color3.fromRGB(28, 22, 40),
+    SidebarBg     = Color3.fromRGB(18, 14, 28),
+    PanelBg       = Color3.fromRGB(35, 28, 50),
+    PanelHover    = Color3.fromRGB(45, 36, 65),
+    PanelLight    = Color3.fromRGB(52, 42, 75),
+    InputBg       = Color3.fromRGB(28, 22, 42),
 
-    Stroke        = Color3.fromRGB(50, 54, 70),
-    StrokeLight   = Color3.fromRGB(70, 75, 95),
+    -- Bordas
+    Stroke        = Color3.fromRGB(70, 55, 100),
+    StrokeLight   = Color3.fromRGB(100, 80, 140),
 
-    Text          = Color3.fromRGB(240, 242, 250),
-    TextDim       = Color3.fromRGB(160, 165, 185),
-    TextMuted     = Color3.fromRGB(110, 115, 135),
+    -- Texto
+    Text          = Color3.fromRGB(248, 245, 255),
+    TextDim       = Color3.fromRGB(190, 180, 210),
+    TextMuted     = Color3.fromRGB(130, 120, 160),
 
     Font          = Enum.Font.GothamMedium,
     FontBold      = Enum.Font.GothamBold,
@@ -40,10 +47,10 @@ local Theme = {
 }
 
 local Config = {
-    BackgroundImage = "rbxassetid://11717400651",
-    BackgroundTransparency = 0.4,
-    WindowCorner = 12,
-    PanelCorner = 8,
+    BackgroundImage = "",
+    BackgroundTransparency = 0.55,
+    WindowCorner = 16,
+    PanelCorner = 10,
     AnimSpeed = 0.15,
 }
 
@@ -129,10 +136,10 @@ local function Drag(frame, handle)
 end
 
 -- ============================================
--- NOTIFICAÇÕES (estilo WindUI)
+-- NOTIFICAÇÕES
 -- ============================================
 local NotifyGui = Create("ScreenGui", {
-    Name = "FW_Notify",
+    Name = "VW_Notify",
     ResetOnSpawn = false,
     IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -145,10 +152,10 @@ local function PushNotify(title, content, duration, iconType)
     duration = duration or 3
     iconType = iconType or "info"
 
-    local iconColor = Theme.Accent
-    if iconType == "success" then iconColor = Theme.Success
-    elseif iconType == "error" then iconColor = Theme.Danger
-    elseif iconType == "warning" then iconColor = Theme.Warning end
+    local accent = Theme.Accent
+    if iconType == "success" then accent = Theme.Success
+    elseif iconType == "error" then accent = Theme.Danger
+    elseif iconType == "warning" then accent = Theme.Warning end
 
     local frame = Create("Frame", {
         Size = UDim2.new(0, 300, 0, 0),
@@ -159,20 +166,20 @@ local function PushNotify(title, content, duration, iconType)
         ClipsDescendants = true,
         Parent = NotifyGui,
     })
-    Corner(frame, 10)
-    Stroke(frame, Theme.Stroke, 1, 0.3)
+    Corner(frame, 12)
+    Stroke(frame, accent, 1, 0.4)
 
     local bar = Create("Frame", {
         Size = UDim2.new(0, 4, 1, 0),
-        BackgroundColor3 = iconColor,
+        BackgroundColor3 = accent,
         BorderSizePixel = 0,
         Parent = frame,
     })
-    Corner(bar, 10)
+    Corner(bar, 12)
 
     Create("TextLabel", {
         Size = UDim2.new(1, -30, 0, 22),
-        Position = UDim2.new(0, 14, 0, 10),
+        Position = UDim2.new(0, 16, 0, 10),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Theme.Text,
@@ -184,7 +191,7 @@ local function PushNotify(title, content, duration, iconType)
 
     Create("TextLabel", {
         Size = UDim2.new(1, -30, 0, 36),
-        Position = UDim2.new(0, 14, 0, 30),
+        Position = UDim2.new(0, 16, 0, 30),
         BackgroundTransparency = 1,
         Text = content,
         TextColor3 = Theme.TextDim,
@@ -227,7 +234,7 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
     local overlay = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.new(0, 0, 0),
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.5,
         BorderSizePixel = 0,
         ZIndex = 300,
         Parent = parentScreen,
@@ -241,7 +248,7 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
         ZIndex = 301,
         Parent = overlay,
     })
-    Corner(popup, 14)
+    Corner(popup, 16)
     Stroke(popup, Theme.Accent, 1.5, 0.3)
     Drag(popup)
 
@@ -267,7 +274,7 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
         ZIndex = 302,
         Parent = popup,
     })
-    Corner(sv, 6)
+    Corner(sv, 8)
 
     local cursor = Create("Frame", {
         Size = UDim2.new(0, 12, 0, 12),
@@ -309,7 +316,7 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
         ZIndex = 302,
         Parent = popup,
     })
-    Corner(preview, 6)
+    Corner(preview, 8)
     Stroke(preview, Theme.StrokeLight, 1, 0.4)
 
     local inputs = {}
@@ -379,7 +386,7 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
         Parent = popup,
     })
     Corner(applyBtn, 8)
-    Gradient(applyBtn, Theme.Accent, Theme.AccentLight, 0)
+    Gradient(applyBtn, Theme.Accent, Theme.Pink, 0)
 
     local updating = false
     local function updateAll()
@@ -461,61 +468,78 @@ local function OpenColorEditor(parentScreen, initialColor, callback)
         callback(currentColor)
         overlay:Destroy()
     end)
-end--[[ FLUENT-WIND UI v1.0 | PARTE 2/3 — Componentes ]]
+end--[[ VELAWARE UI v1.0 | PARTE 2/3 — Componentes ]]
 
 local Components = {}
 
-function Components.Section(parent, title)
+-- Section com ícone (estilo Velaware)
+function Components.Section(parent, title, iconText)
     local container = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 26),
+        Size = UDim2.new(1, 0, 0, 32),
         BackgroundTransparency = 1,
         Parent = parent,
     })
+
+    if iconText then
+        Create("TextLabel", {
+            Size = UDim2.new(0, 24, 1, 0),
+            Position = UDim2.new(0, 6, 0, 0),
+            BackgroundTransparency = 1,
+            Text = iconText,
+            TextColor3 = Theme.Accent,
+            TextSize = 18,
+            Font = Theme.FontBold,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            Parent = container,
+        })
+    end
+
     Create("TextLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0, 6, 0, 0),
+        Size = UDim2.new(1, iconText and -40 or -12, 1, 0),
+        Position = UDim2.new(0, iconText and 36 or 6, 0, 0),
         BackgroundTransparency = 1,
-        Text = string.upper(title or ""),
-        TextColor3 = Theme.TextMuted,
-        TextSize = 10,
+        Text = title or "",
+        TextColor3 = Theme.Text,
+        TextSize = 15,
         Font = Theme.FontBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = container,
     })
+
     return container
 end
 
+-- Toggle estilo Velaware (linha larga, desc abaixo, switch à direita)
 function Components.Toggle(parent, title, desc, default, callback)
     local row = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, desc and 50 or 40),
+        Size = UDim2.new(1, 0, 0, 56),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.35,
+        BackgroundTransparency = 0.55,
         BorderSizePixel = 0,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     Create("TextLabel", {
-        Size = UDim2.new(1, -70, 0, desc and 22 or 40),
-        Position = UDim2.new(0, 12, 0, desc and 8 or 0),
+        Size = UDim2.new(1, -80, 0, 22),
+        Position = UDim2.new(0, 14, 0, 8),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Theme.Text,
-        TextSize = 13,
-        Font = Theme.Font,
+        TextSize = 14,
+        Font = Theme.FontBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = row,
     })
 
     if desc then
         Create("TextLabel", {
-            Size = UDim2.new(1, -70, 0, 14),
-            Position = UDim2.new(0, 12, 0, 28),
+            Size = UDim2.new(1, -80, 0, 16),
+            Position = UDim2.new(0, 14, 0, 30),
             BackgroundTransparency = 1,
             Text = desc,
             TextColor3 = Theme.TextMuted,
-            TextSize = 10,
+            TextSize = 11,
             Font = Theme.FontSemi,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = row,
@@ -524,8 +548,8 @@ function Components.Toggle(parent, title, desc, default, callback)
 
     local state = default or false
     local switch = Create("TextButton", {
-        Size = UDim2.new(0, 40, 0, 22),
-        Position = UDim2.new(1, -52, 0.5, -11),
+        Size = UDim2.new(0, 44, 0, 24),
+        Position = UDim2.new(1, -56, 0.5, -12),
         BackgroundColor3 = state and Theme.Accent or Theme.PanelLight,
         Text = "",
         BorderSizePixel = 0,
@@ -535,8 +559,8 @@ function Components.Toggle(parent, title, desc, default, callback)
     Corner(switch, 999)
 
     local dot = Create("Frame", {
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
+        Size = UDim2.new(0, 18, 0, 18),
+        Position = state and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 3, 0.5, -9),
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = switch,
@@ -549,8 +573,8 @@ function Components.Toggle(parent, title, desc, default, callback)
             BackgroundColor3 = state and Theme.Accent or Theme.PanelLight,
         })
         Tween(dot, 0.2, {
-            Position = state and UDim2.new(1, -18, 0.5, -8)
-                or UDim2.new(0, 3, 0.5, -8),
+            Position = state and UDim2.new(1, -20, 0.5, -9)
+                or UDim2.new(0, 3, 0.5, -9),
         })
         if callback then callback(state) end
     end)
@@ -558,6 +582,7 @@ function Components.Toggle(parent, title, desc, default, callback)
     return row
 end
 
+-- Slider estilo Velaware
 function Components.Slider(parent, title, min, max, default, suffix, callback)
     min = min or 0
     max = max or 100
@@ -565,29 +590,28 @@ function Components.Slider(parent, title, min, max, default, suffix, callback)
     suffix = suffix or ""
 
     local row = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 62),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.35,
+        BackgroundTransparency = 0.55,
         BorderSizePixel = 0,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     Create("TextLabel", {
-        Size = UDim2.new(0.6, 0, 0, 20),
-        Position = UDim2.new(0, 12, 0, 8),
+        Size = UDim2.new(0.6, 0, 0, 22),
+        Position = UDim2.new(0, 14, 0, 8),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Theme.Text,
-        TextSize = 13,
-        Font = Theme.Font,
+        TextSize = 14,
+        Font = Theme.FontBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = row,
     })
 
     local valueLbl = Create("TextLabel", {
-        Size = UDim2.new(0.3, 0, 0, 20),
+        Size = UDim2.new(0.3, 0, 0, 22),
         Position = UDim2.new(0.65, 0, 0, 8),
         BackgroundTransparency = 1,
         Text = tostring(default) .. suffix,
@@ -599,8 +623,8 @@ function Components.Slider(parent, title, min, max, default, suffix, callback)
     })
 
     local bar = Create("Frame", {
-        Size = UDim2.new(1, -24, 0, 5),
-        Position = UDim2.new(0, 12, 1, -16),
+        Size = UDim2.new(1, -28, 0, 5),
+        Position = UDim2.new(0, 14, 1, -18),
         BackgroundColor3 = Theme.PanelLight,
         BorderSizePixel = 0,
         Parent = row,
@@ -614,7 +638,7 @@ function Components.Slider(parent, title, min, max, default, suffix, callback)
         Parent = bar,
     })
     Corner(fill, 999)
-    Gradient(fill, Theme.Accent, Theme.Secondary, 0)
+    Gradient(fill, Theme.Accent, Theme.Pink, 0)
 
     local dragging = false
     local function update(input)
@@ -653,37 +677,36 @@ end
 
 function Components.Button(parent, title, desc, callback)
     local row = Create("TextButton", {
-        Size = UDim2.new(1, 0, 0, desc and 50 or 36),
+        Size = UDim2.new(1, 0, 0, desc and 54 or 40),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.55,
         Text = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     Create("TextLabel", {
-        Size = UDim2.new(1, -20, 0, desc and 22 or 36),
-        Position = UDim2.new(0, 12, 0, desc and 8 or 0),
+        Size = UDim2.new(1, -20, 0, desc and 22 or 40),
+        Position = UDim2.new(0, 14, 0, desc and 8 or 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Theme.Text,
-        TextSize = 13,
-        Font = Theme.Font,
+        TextSize = 14,
+        Font = Theme.FontBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = row,
     })
 
     if desc then
         Create("TextLabel", {
-            Size = UDim2.new(1, -20, 0, 14),
-            Position = UDim2.new(0, 12, 0, 28),
+            Size = UDim2.new(1, -20, 0, 16),
+            Position = UDim2.new(0, 14, 0, 30),
             BackgroundTransparency = 1,
             Text = desc,
             TextColor3 = Theme.TextMuted,
-            TextSize = 10,
+            TextSize = 11,
             Font = Theme.FontSemi,
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = row,
@@ -691,16 +714,10 @@ function Components.Button(parent, title, desc, callback)
     end
 
     row.MouseEnter:Connect(function()
-        Tween(row, 0.15, {
-            BackgroundColor3 = Theme.PanelHover,
-            BackgroundTransparency = 0.15,
-        })
+        Tween(row, 0.15, { BackgroundColor3 = Theme.PanelHover, BackgroundTransparency = 0.4 })
     end)
     row.MouseLeave:Connect(function()
-        Tween(row, 0.15, {
-            BackgroundColor3 = Theme.PanelBg,
-            BackgroundTransparency = 0.3,
-        })
+        Tween(row, 0.15, { BackgroundColor3 = Theme.PanelBg, BackgroundTransparency = 0.55 })
     end)
     row.MouseButton1Click:Connect(function()
         if callback then callback() end
@@ -713,23 +730,22 @@ function Components.Input(parent, title, placeholder, callback)
     local row = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.55,
         BorderSizePixel = 0,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     local box = Create("TextBox", {
         Size = UDim2.new(1, -24, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         PlaceholderText = placeholder or "digite aqui...",
         PlaceholderColor3 = Theme.TextMuted,
         TextColor3 = Theme.Text,
-        TextSize = 12,
-        Font = Theme.Font,
+        TextSize = 13,
+        Font = Theme.FontSemi,
         TextXAlignment = Enum.TextXAlignment.Left,
         ClearTextOnFocus = false,
         Parent = row,
@@ -746,23 +762,22 @@ function Components.Dropdown(parent, title, options, default, callback)
     local row = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.55,
         BorderSizePixel = 0,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     local current = default or options[1]
 
     local lbl = Create("TextLabel", {
         Size = UDim2.new(1, -20, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
-        Text = title .. "  v  " .. tostring(current),
+        Text = title .. "  ▾  " .. tostring(current),
         TextColor3 = Theme.Text,
-        TextSize = 12,
-        Font = Theme.Font,
+        TextSize = 13,
+        Font = Theme.FontSemi,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = row,
     })
@@ -777,15 +792,12 @@ function Components.Dropdown(parent, title, options, default, callback)
     btn.MouseButton1Click:Connect(function()
         local idx = 1
         for i, v in ipairs(options) do
-            if v == current then
-                idx = i
-                break
-            end
+            if v == current then idx = i break end
         end
         idx = idx + 1
         if idx > #options then idx = 1 end
         current = options[idx]
-        lbl.Text = title .. "  v  " .. tostring(current)
+        lbl.Text = title .. "  ▾  " .. tostring(current)
         if callback then callback(current) end
     end)
 
@@ -796,30 +808,29 @@ function Components.Colorpicker(parent, screenGui, title, default, callback)
     local row = Create("TextButton", {
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = Theme.PanelBg,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.55,
         Text = "",
         BorderSizePixel = 0,
         AutoButtonColor = false,
         Parent = parent,
     })
-    Corner(row, 8)
-    Stroke(row, Theme.Stroke, 1, 0.7)
+    Corner(row, 10)
 
     Create("TextLabel", {
         Size = UDim2.new(0.7, 0, 1, 0),
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = Theme.Text,
         TextSize = 13,
-        Font = Theme.Font,
+        Font = Theme.FontSemi,
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = row,
     })
 
     local preview = Create("Frame", {
-        Size = UDim2.new(0, 22, 0, 22),
-        Position = UDim2.new(1, -34, 0.5, -11),
+        Size = UDim2.new(0, 24, 0, 24),
+        Position = UDim2.new(1, -36, 0.5, -12),
         BackgroundColor3 = default or Theme.Accent,
         BorderSizePixel = 0,
         Parent = row,
@@ -835,13 +846,13 @@ function Components.Colorpicker(parent, screenGui, title, default, callback)
     end)
 
     return row
-    end--[[ FLUENT-WIND UI v1.0 | PARTE 3/3 — Library ]]
+    end--[[ VELAWARE UI v1.0 | PARTE 3/3 — Library ]]
 
 local Library = {}
 
 function Library:Notify(cfg)
     PushNotify(
-        cfg.Title or "Manic",
+        cfg.Title or "Velaware",
         cfg.Content or "",
         cfg.Duration or 3,
         cfg.Icon or "info"
@@ -855,10 +866,12 @@ function Library:CreateWindow(cfg)
     Window.Tabs = {}
     Window.CurrentTab = nil
     Window.Minimized = false
-    Window.FullHeight = cfg.Height or 480
+    Window.FullWidth = cfg.Width or 620
+    Window.FullHeight = cfg.Height or 420
 
+    -- ScreenGui
     local ScreenGui = Create("ScreenGui", {
-        Name = "FW_UI",
+        Name = "VelawareUI",
         ResetOnSpawn = false,
         IgnoreGuiInset = true,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -866,26 +879,29 @@ function Library:CreateWindow(cfg)
     })
     Window.GUI = ScreenGui
 
+    -- Main Frame
     local Main = Create("Frame", {
-        Name = "Window",
-        Size = UDim2.new(0, cfg.Width or 620, 0, cfg.Height or 480),
+        Name = "Main",
+        Size = UDim2.new(0, Window.FullWidth, 0, Window.FullHeight),
         Position = UDim2.new(
-            0.5, -(cfg.Width or 620) / 2,
-            0.5, -(cfg.Height or 480) / 2
+            0.5, -Window.FullWidth / 2,
+            0.5, -Window.FullHeight / 2
         ),
         BackgroundColor3 = Theme.WindowBg,
+        BackgroundTransparency = 0.05,
         BorderSizePixel = 0,
         Active = true,
         ClipsDescendants = true,
         Parent = ScreenGui,
     })
     Corner(Main, Config.WindowCorner)
-    Stroke(Main, Theme.StrokeLight, 1.5, 0.4)
+    Stroke(Main, Theme.Accent, 1.5, 0.5)
     Drag(Main)
     Window.Frame = Main
 
+    -- Background Image
     local bgImage = cfg.Background or Config.BackgroundImage
-    if bgImage then
+    if bgImage and bgImage ~= "" then
         local bg = Create("ImageLabel", {
             Name = "BackgroundImage",
             Size = UDim2.new(1, 0, 1, 0),
@@ -899,56 +915,79 @@ function Library:CreateWindow(cfg)
         Corner(bg, Config.WindowCorner)
     end
 
+    -- Overlay escuro (dá o look Velaware)
     local overlay = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Theme.WindowBg,
-        BackgroundTransparency = 0.15,
+        BackgroundTransparency = 0.25,
         BorderSizePixel = 0,
         ZIndex = 1,
         Parent = Main,
     })
     Corner(overlay, Config.WindowCorner)
 
+    -- ============================================
+    -- TOPBAR (com botões mac-style)
+    -- ============================================
     local TopBar = Create("Frame", {
         Name = "TopBar",
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 46),
         BackgroundColor3 = Theme.TopBarBg,
-        BackgroundTransparency = 0.4,
+        BackgroundTransparency = 0.3,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = Main,
     })
     Corner(TopBar, Config.WindowCorner)
 
-    local logoFrame = Create("Frame", {
-        Size = UDim2.new(0, 34, 0, 34),
-        Position = UDim2.new(0, 12, 0.5, -17),
-        BackgroundColor3 = Theme.Accent,
-        BorderSizePixel = 0,
-        ZIndex = 3,
-        Parent = TopBar,
-    })
-    Corner(logoFrame, 8)
-    Gradient(logoFrame, Theme.Accent, Theme.Secondary, 45)
+    -- Botões mac-style (red, yellow, green)
+    local function makeMacBtn(color, xOffset, callback, hoverFunc)
+        local btn = Create("TextButton", {
+            Size = UDim2.new(0, 12, 0, 12),
+            Position = UDim2.new(0, xOffset, 0.5, -6),
+            BackgroundColor3 = color,
+            Text = "",
+            BorderSizePixel = 0,
+            AutoButtonColor = false,
+            ZIndex = 3,
+            Parent = TopBar,
+        })
+        Corner(btn, 999)
 
-    Create("TextLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = cfg.Icon or "UI",
-        TextColor3 = Color3.new(1, 1, 1),
-        TextSize = 13,
-        Font = Theme.FontBold,
-        ZIndex = 4,
-        Parent = logoFrame,
-    })
+        local hover = hoverFunc or function() end
+        btn.MouseEnter:Connect(function()
+            hover(true)
+        end)
+        btn.MouseLeave:Connect(function()
+            hover(false)
+        end)
+        btn.MouseButton1Click:Connect(callback)
+        return btn
+    end
 
+    -- Botão vermelho (X - fechar)
+    makeMacBtn(Theme.Red, 14, function()
+        ScreenGui.Enabled = false
+    end)
+
+    -- Botão amarelo (minimizar → vira botão flutuante)
+    makeMacBtn(Theme.Yellow, 32, function()
+        Window:Minimize()
+    end)
+
+    -- Botão verde (maximizar)
+    makeMacBtn(Theme.Green, 50, function()
+        Window:Maximize()
+    end)
+
+    -- Título
     local titleLbl = Create("TextLabel", {
-        Size = UDim2.new(1, -240, 0, 20),
-        Position = UDim2.new(0, 56, 0, 6),
+        Size = UDim2.new(1, -220, 0, 22),
+        Position = UDim2.new(0, 80, 0, 6),
         BackgroundTransparency = 1,
-        Text = cfg.Title or "Manic Hub",
+        Text = cfg.Title or "Velaware",
         TextColor3 = Theme.Text,
-        TextSize = 15,
+        TextSize = 14,
         Font = Theme.FontBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 3,
@@ -957,12 +996,12 @@ function Library:CreateWindow(cfg)
     Window.TitleLabel = titleLbl
 
     local subtitleLbl = Create("TextLabel", {
-        Size = UDim2.new(1, -240, 0, 14),
-        Position = UDim2.new(0, 56, 0, 26),
+        Size = UDim2.new(1, -220, 0, 14),
+        Position = UDim2.new(0, 80, 0, 26),
         BackgroundTransparency = 1,
         Text = cfg.Author or "interface",
         TextColor3 = Theme.TextMuted,
-        TextSize = 11,
+        TextSize = 10,
         Font = Theme.FontSemi,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 3,
@@ -970,121 +1009,116 @@ function Library:CreateWindow(cfg)
     })
     Window.SubtitleLabel = subtitleLbl
 
-    local function makeTopBtn(symbol, xOffset, hoverColor, callback)
-        local btn = Create("TextButton", {
-            Size = UDim2.new(0, 30, 0, 30),
-            Position = UDim2.new(1, xOffset, 0.5, -15),
-            BackgroundColor3 = Theme.PanelBg,
-            BackgroundTransparency = 0.4,
-            Text = symbol,
-            TextColor3 = Theme.Text,
-            TextSize = 13,
-            Font = Theme.FontBold,
-            BorderSizePixel = 0,
-            AutoButtonColor = false,
-            ZIndex = 3,
-            Parent = TopBar,
-        })
-        Corner(btn, 6)
-
-        btn.MouseEnter:Connect(function()
-            Tween(btn, 0.15, {
-                BackgroundColor3 = hoverColor,
-                BackgroundTransparency = 0.2,
-            })
-        end)
-        btn.MouseLeave:Connect(function()
-            Tween(btn, 0.15, {
-                BackgroundColor3 = Theme.PanelBg,
-                BackgroundTransparency = 0.4,
-            })
-        end)
-        btn.MouseButton1Click:Connect(callback)
-        return btn
-    end
-
-    local minimizeBtn = makeTopBtn("-", -105, Theme.PanelLight, function()
-        Window.Minimized = not Window.Minimized
-        if Window.Minimized then
-            Tween(Main, 0.25, { Size = UDim2.new(0, cfg.Width or 620, 0, 50) })
-            Window.Sidebar.Visible = false
-            Window.Content.Visible = false
-            minimizeBtn.Text = "+"
-        else
-            Tween(Main, 0.25, {
-                Size = UDim2.new(0, cfg.Width or 620, 0, Window.FullHeight),
-            })
-            Window.Sidebar.Visible = true
-            Window.Content.Visible = true
-            minimizeBtn.Text = "-"
-        end
-    end)
-
-    makeTopBtn("[]", -70, Theme.PanelLight, function()
-        Tween(Main, 0.2, {
-            Size = UDim2.new(0, cfg.Width or 620, 0, cfg.Height or 480),
-        })
-        Window.Sidebar.Visible = true
-        Window.Content.Visible = true
-        Window.Minimized = false
-        minimizeBtn.Text = "-"
-    end)
-
-    makeTopBtn("X", -35, Theme.Danger, function()
-        ScreenGui.Enabled = false
-    end)
-
+    -- ============================================
+    -- SIDEBAR (estilo Velaware)
+    -- ============================================
     local Sidebar = Create("Frame", {
         Name = "Sidebar",
-        Size = UDim2.new(0, 160, 1, -62),
-        Position = UDim2.new(0, 6, 0, 56),
+        Size = UDim2.new(0, 170, 1, -60),
+        Position = UDim2.new(0, 8, 0, 52),
         BackgroundColor3 = Theme.SidebarBg,
-        BackgroundTransparency = 0.3,
+        BackgroundTransparency = 0.35,
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = Main,
     })
-    Corner(Sidebar, 10)
+    Corner(Sidebar, 12)
+    Stroke(Sidebar, Theme.Stroke, 1, 0.7)
     Window.Sidebar = Sidebar
 
     Create("UIListLayout", {
-        Padding = UDim.new(0, 5),
+        Padding = UDim.new(0, 4),
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = Sidebar,
     })
     Create("UIPadding", {
-        PaddingTop = UDim.new(0, 10),
-        PaddingLeft = UDim.new(0, 6),
-        PaddingRight = UDim.new(0, 6),
+        PaddingTop = UDim.new(0, 12),
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
         Parent = Sidebar,
     })
 
+    -- ============================================
+    -- CONTENT
+    -- ============================================
     local Content = Create("Frame", {
         Name = "Content",
-        Size = UDim2.new(1, -178, 1, -62),
-        Position = UDim2.new(0, 172, 0, 56),
+        Size = UDim2.new(1, -194, 1, -60),
+        Position = UDim2.new(0, 186, 0, 52),
         BackgroundTransparency = 1,
         ZIndex = 2,
         Parent = Main,
     })
     Window.Content = Content
 
+    -- ============================================
+    -- BOTÃO FLUTUANTE (aparece quando minimizado)
+    -- ============================================
+    local FloatGui = Create("ScreenGui", {
+        Name = "VW_Float",
+        ResetOnSpawn = false,
+        IgnoreGuiInset = true,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Parent = CoreGui,
+        Enabled = false,
+    })
+
+    local FloatBtn = Create("TextButton", {
+        Size = UDim2.new(0, 52, 0, 52),
+        Position = UDim2.new(0.03, 0, 0.4, 0),
+        BackgroundColor3 = Theme.WindowBg,
+        BackgroundTransparency = 0.05,
+        Text = cfg.Icon or "V",
+        TextColor3 = Theme.Accent,
+        TextSize = 22,
+        Font = Theme.FontBold,
+        BorderSizePixel = 0,
+        AutoButtonColor = false,
+        Parent = FloatGui,
+    })
+    Corner(FloatBtn, 999)
+    Stroke(FloatBtn, Theme.Accent, 1.5, 0.3)
+    Drag(FloatBtn)
+
+    FloatBtn.MouseButton1Click:Connect(function()
+        Window:Maximize()
+    end)
+
+    -- ============================================
+    -- MINIMIZE / MAXIMIZE
+    -- ============================================
+    function Window:Minimize()
+        Window.Minimized = true
+        Main.Visible = false
+        FloatGui.Enabled = true
+    end
+
+    function Window:Maximize()
+        Window.Minimized = false
+        Main.Visible = true
+        Main.Size = UDim2.new(0, Window.FullWidth, 0, Window.FullHeight)
+        FloatGui.Enabled = false
+    end
+
+    -- ============================================
+    -- TAB API
+    -- ============================================
     function Window:Tab(tabCfg)
         local btn = Create("TextButton", {
-            Size = UDim2.new(1, 0, 0, 36),
+            Size = UDim2.new(1, 0, 0, 40),
             BackgroundColor3 = Theme.PanelBg,
             BackgroundTransparency = 1,
-            Text = "  " .. (tabCfg.Title or "Tab"),
+            Text = "  " .. (tabCfg.Icon or "") .. "   " .. (tabCfg.Title or "Tab"),
             TextColor3 = Theme.TextDim,
-            TextSize = 13,
-            Font = Theme.Font,
+            TextSize = 14,
+            Font = Theme.FontSemi,
             TextXAlignment = Enum.TextXAlignment.Left,
             BorderSizePixel = 0,
             AutoButtonColor = false,
             ZIndex = 3,
             Parent = Sidebar,
         })
-        Corner(btn, 8)
+        Corner(btn, 10)
 
         local page = Create("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0),
@@ -1092,7 +1126,7 @@ function Library:CreateWindow(cfg)
             BorderSizePixel = 0,
             ScrollBarThickness = 3,
             ScrollBarImageColor3 = Theme.Accent,
-            ScrollBarImageTransparency = 0.3,
+            ScrollBarImageTransparency = 0.4,
             CanvasSize = UDim2.new(0, 0, 0, 0),
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             Visible = false,
@@ -1107,7 +1141,7 @@ function Library:CreateWindow(cfg)
             Parent = page,
         })
         Create("UIListLayout", {
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 8),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = page,
         })
@@ -1116,7 +1150,7 @@ function Library:CreateWindow(cfg)
 
         btn.MouseEnter:Connect(function()
             if Window.CurrentTab ~= btn then
-                Tween(btn, 0.15, { BackgroundTransparency = 0.7 })
+                Tween(btn, 0.15, { BackgroundTransparency = 0.6 })
             end
         end)
         btn.MouseLeave:Connect(function()
@@ -1141,8 +1175,8 @@ function Library:CreateWindow(cfg)
 
         local Tab = {}
 
-        function Tab:Section(title)
-            Components.Section(page, title)
+        function Tab:Section(title, iconText)
+            Components.Section(page, title, iconText)
             return Tab
         end
 
@@ -1187,8 +1221,15 @@ function Library:CreateWindow(cfg)
         return Tab
     end
 
+    -- ============================================
+    -- WINDOW API
+    -- ============================================
     function Window:Toggle()
-        ScreenGui.Enabled = not ScreenGui.Enabled
+        if Window.Minimized then
+            Window:Maximize()
+        else
+            ScreenGui.Enabled = not ScreenGui.Enabled
+        end
     end
 
     function Window:SetTitle(text)
@@ -1201,14 +1242,25 @@ function Library:CreateWindow(cfg)
 
     function Window:SetBackground(imageId, transparency)
         local bg = Main:FindFirstChild("BackgroundImage")
-        if bg then
-            bg.Image = "rbxassetid://" .. tostring(imageId):gsub("rbxassetid://", "")
-            if transparency then bg.ImageTransparency = transparency end
+        if not bg then
+            bg = Create("ImageLabel", {
+                Name = "BackgroundImage",
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                ImageTransparency = transparency or Config.BackgroundTransparency,
+                ScaleType = Enum.ScaleType.Crop,
+                ZIndex = 0,
+                Parent = Main,
+            })
+            Corner(bg, Config.WindowCorner)
         end
+        bg.Image = "rbxassetid://" .. tostring(imageId):gsub("rbxassetid://", "")
+        if transparency then bg.ImageTransparency = transparency end
     end
 
     function Window:Destroy()
         ScreenGui:Destroy()
+        FloatGui:Destroy()
     end
 
     return Window
