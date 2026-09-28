@@ -1,4 +1,4 @@
---[[ MANIC HUB v2.0 | TCS Edition | PARTE 1/7 — Base + Rayfield ]]
+--[[ MANIC HUB v2.0 | TCS Edition | WindUI | PARTE 1/7 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -54,42 +54,52 @@ local State = {
 local FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
 print("[MANIC HUB] firetouchinterest:", FTI ~= nil)
 
--- Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ============================================
+-- WINDUI
+-- ============================================
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
-local Window = Rayfield:CreateWindow({
-    Name = "Manic Hub",
-    Icon = 0,
-    LoadingTitle = "Manic Hub",
-    LoadingSubtitle = "TCS Edition",
-    Theme = "Default",
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "ManicHub",
-        FileName = "ManicConfig"
-    },
-    Discord = { Enabled = false },
-    KeySystem = false,
+local Window = WindUI:CreateWindow({
+    Title = "Manic Hub",
+    Icon = "eye",
+    Author = "Manic Hub | TCS",
+    Folder = "ManicHub",
+    Size = UDim2.fromOffset(620, 480),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 180,
+    HasOutline = true,
+    Background = "rbxassetid://11717400651",
+    BackgroundImageTransparency = 0.35,
 })
 
-Rayfield:Notify({
+Window:Tag({
+    Title = "v2.0",
+    Icon = "sparkles",
+    Color = Color3.fromHex("#7850f0"),
+    Radius = 30,
+})
+
+WindUI:Notify({
     Title = "Manic Hub",
     Content = "Carregado com sucesso!",
     Duration = 5,
-    Image = 4483362458,
+    Icon = "check-circle",
 })
 
 UserInputService.InputBegan:Connect(function(i, gp)
     if gp then return end
     if i.KeyCode == Enum.KeyCode.LeftShift then
-        Rayfield:ToggleWindow()
+        Window:Toggle()
     end
 end)--[[ MANIC HUB | PARTE 2/7 — MAPA ]]
 
-local MapTab = Window:CreateTab("ᴍᴀᴘᴀ", 4483362458)
-MapTab:CreateSection("🎨 Cor do Gramado")
+local MapTab = Window:Tab({ Title = "Mapa", Icon = "map" })
+
+-- ============================================
+-- GRAMA
+-- ============================================
+MapTab:Section({ Title = "🎨 Cor do Gramado" })
 
 local function EhGrama(obj)
     if not obj:IsA("BasePart") then return false end
@@ -142,18 +152,17 @@ local function RestaurarGrama()
     State.GrassColor = nil
 end
 
-MapTab:CreateColorPicker({
-    Name = "Map Color",
-    Color = Color3.fromRGB(60, 145, 60),
-    Flag = "GrassColor",
+MapTab:Colorpicker({
+    Title = "Map Color",
+    Default = Color3.fromRGB(60, 145, 60),
     Callback = function(color) AplicarCorGrama(color) end,
 })
 
-MapTab:CreateButton({
-    Name = "↩ Restaurar Grama Original",
+MapTab:Button({
+    Title = "↩ Restaurar Grama Original",
     Callback = function()
         RestaurarGrama()
-        Rayfield:Notify({Title = "Mapa", Content = "Grama restaurada!", Duration = 2})
+        WindUI:Notify({Title = "Mapa", Content = "Grama restaurada!", Duration = 2})
     end,
 })
 
@@ -168,10 +177,12 @@ spawn(function()
             end
         end
     end
-end)-- ============================================
--- SKYBOX (CORRIGIDO - anti-reset)
+end)
+
 -- ============================================
-MapTab:CreateSection("☁ Skybox")
+-- SKYBOX
+-- ============================================
+MapTab:Section({ Title = "☁ Skybox" })
 
 local SkyboxIDs = {
     {Name = "Sky 1", ID = "8202961731"},
@@ -188,15 +199,12 @@ local SkyboxIDs = {
 
 local function AplicarSkybox(assetId)
     pcall(function()
-        -- 1. Destrói TODAS as Sky (inclusive dentro de pastas)
         for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("Sky") then v:Destroy() end
         end
-        -- 2. Destrói Atmosphere (pode escurecer a sky)
         for _, v in ipairs(Lighting:GetChildren()) do
             if v:IsA("Atmosphere") then v:Destroy() end
         end
-        -- 3. Cria a nova Sky
         local sky = Instance.new("Sky")
         sky.Name = "Manic_Sky"
         sky.SkyboxBk = "rbxassetid://" .. assetId
@@ -213,65 +221,45 @@ local function AplicarSkybox(assetId)
     end)
 end
 
-local function RemoverSkybox()
-    pcall(function()
-        for _, v in ipairs(Lighting:GetDescendants()) do
-            if v:IsA("Sky") then v:Destroy() end
-        end
-    end)
-    State.Skybox = nil
-end
-
--- Botões das skyboxes
 for _, sky in ipairs(SkyboxIDs) do
-    MapTab:CreateButton({
-        Name = "☁ " .. sky.Name,
+    MapTab:Button({
+        Title = "☁ " .. sky.Name,
         Callback = function()
             AplicarSkybox(sky.ID)
-            Rayfield:Notify({
-                Title = "Skybox",
-                Content = sky.Name .. " aplicada!",
-                Duration = 2
-            })
+            WindUI:Notify({Title = "Skybox", Content = sky.Name .. " aplicada!", Duration = 2})
         end,
     })
 end
 
-MapTab:CreateButton({
-    Name = "↩ Remover Skybox Customizada",
+MapTab:Button({
+    Title = "↩ Remover Skybox Customizada",
     Callback = function()
-        RemoverSkybox()
-        Rayfield:Notify({Title = "Skybox", Content = "Removida!", Duration = 2})
+        pcall(function()
+            for _, v in ipairs(Lighting:GetDescendants()) do
+                if v:IsA("Sky") then v:Destroy() end
+            end
+        end)
+        State.Skybox = nil
     end,
 })
 
--- 🔥 LOOP ANTI-RESET: re-aplica se o TCS sobrescrever
+-- Loop anti-reset skybox
 RunService.RenderStepped:Connect(function()
     if not State.Skybox then return end
-
-    -- Se a nossa sky sumiu, recria
     if not Lighting:FindFirstChild("Manic_Sky") then
         AplicarSkybox(State.Skybox)
         return
     end
-
-    -- Remove qualquer Sky que NÃO seja a nossa
     for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("Sky") and v.Name ~= "Manic_Sky" then
-            v:Destroy()
-        end
+        if v:IsA("Sky") and v.Name ~= "Manic_Sky" then v:Destroy() end
+        if v:IsA("Atmosphere") then v:Destroy() end
     end
+end)
 
-    -- Remove Atmosphere se aparecer
-    for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("Atmosphere") then
-            v:Destroy()
-        end
-    end
-end)-- ============================================
+-- ============================================
 -- GRÁFICOS
 -- ============================================
-MapTab:CreateSection("🌅 Gráficos")
+MapTab:Section({ Title = "🌅 Gráficos" })
 
 local function ResetarLighting()
     pcall(function()
@@ -337,19 +325,19 @@ local function AplicarRecomendado()
     end)
 end
 
-MapTab:CreateButton({Name = "🌸 Florido (Gradiente Rosa)",
+MapTab:Button({Title = "🌸 Florido (Gradiente Rosa)",
     Callback = function() AplicarFlorido(); State.GraphicPreset = "Florido" end})
-MapTab:CreateButton({Name = "🎬 Bonito (Realista)",
+MapTab:Button({Title = "🎬 Bonito (Realista)",
     Callback = function() AplicarBonito(); State.GraphicPreset = "Bonito" end})
-MapTab:CreateButton({Name = "🌞 Sol (Realista Laranja)",
+MapTab:Button({Title = "🌞 Sol (Realista Laranja)",
     Callback = function() AplicarSol(); State.GraphicPreset = "Sol" end})
-MapTab:CreateButton({Name = "⭐ Recomendado (Branco e Preto)",
+MapTab:Button({Title = "⭐ Recomendado (Branco e Preto)",
     Callback = function() AplicarRecomendado(); State.GraphicPreset = "Recomendado" end})
-MapTab:CreateButton({Name = "↩ Resetar Gráficos",
+MapTab:Button({Title = "↩ Resetar Gráficos",
     Callback = function() ResetarLighting(); State.GraphicPreset = nil end})--[[ MANIC HUB | PARTE 3/7 — Boom Box + Auto Follow ]]
 
-local BoomTab = Window:CreateTab("ʙᴏᴏᴍ ʙᴏx", 4483362458)
-BoomTab:CreateSection("🎵 Músicas")
+local BoomTab = Window:Tab({ Title = "Boom Box", Icon = "music" })
+BoomTab:Section({ Title = "🎵 Músicas" })
 
 local function TocarMusica(id)
     pcall(function()
@@ -371,27 +359,27 @@ local Musicas = {
 }
 
 for _, m in ipairs(Musicas) do
-    BoomTab:CreateButton({
-        Name = m.Nome,
+    BoomTab:Button({
+        Title = m.Nome,
         Callback = function()
             TocarMusica(m.ID)
-            Rayfield:Notify({Title = "Boom Box", Content = "Tocando: " .. m.Nome, Duration = 2})
+            WindUI:Notify({Title = "Boom Box", Content = "Tocando: " .. m.Nome, Duration = 2})
         end,
     })
 end
 
-BoomTab:CreateSection("🎵 Custom")
-BoomTab:CreateInput({
-    Name = "ID da Música",
-    PlaceholderText = "Digite o ID...",
-    RemoveTextAfterFocusLost = false,
+BoomTab:Section({ Title = "🎵 Custom" })
+
+BoomTab:Input({
+    Title = "ID da Música",
+    Placeholder = "Digite o ID...",
     Callback = function(text)
         if text and text ~= "" then TocarMusica(text) end
     end,
 })
 
-BoomTab:CreateButton({
-    Name = "⏹ Parar Música",
+BoomTab:Button({
+    Title = "⏹ Parar Música",
     Callback = function()
         if State.BoomBoxSound then
             pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
@@ -403,8 +391,8 @@ BoomTab:CreateButton({
 -- ============================================
 -- BALL: Auto Follow
 -- ============================================
-local BallTab = Window:CreateTab("ʙᴀʟʟ", 4483362458)
-BallTab:CreateSection("⚽ Auto Follow")
+local BallTab = Window:Tab({ Title = "Ball", Icon = "circle" })
+BallTab:Section({ Title = "⚽ Auto Follow" })
 
 local AutoFollowConnection = nil
 local CurrentBall = nil
@@ -526,30 +514,27 @@ local function StopAutoBall()
     end
 end
 
-BallTab:CreateToggle({
-    Name = "Auto Follow (Seguir Bola)",
-    CurrentValue = false,
-    Flag = "AutoFollow",
+BallTab:Toggle({
+    Title = "Auto Follow (Seguir Bola)",
+    Value = false,
     Callback = function(v)
         if v then StartAutoBall() else StopAutoBall() end
     end,
 })
 
-BallTab:CreateSlider({
-    Name = "Distância de Parada",
-    Range = {1, 50}, Increment = 1, Suffix = "x10",
-    CurrentValue = 2, Flag = "StopDistance",
+BallTab:Slider({
+    Title = "Distância de Parada",
+    Value = {Min = 1, Max = 50, Default = 2},
     Callback = function(v) StopDistance = v / 10 end,
 })
 
-BallTab:CreateSlider({
-    Name = "Força do Steering",
-    Range = {1, 30}, Increment = 1, Suffix = "x10",
-    CurrentValue = 13, Flag = "SteerStrength",
+BallTab:Slider({
+    Title = "Força do Steering",
+    Value = {Min = 1, Max = 30, Default = 13},
     Callback = function(v) SteerStrength = v / 10 end,
 })--[[ MANIC HUB | PARTE 4/7 — Ball: Cor + Fogo + Curva ]]
 
-BallTab:CreateSection("🎨 Aparência da Ball")
+BallTab:Section({ Title = "🎨 Aparência da Ball" })
 
 local BallTextureBackup = {}
 
@@ -621,17 +606,15 @@ local function RestaurarBall()
     end
 end
 
-BallTab:CreateColorPicker({
-    Name = "Cor da Ball",
-    Color = Color3.fromRGB(89, 247, 255),
-    Flag = "BallColor",
+BallTab:Colorpicker({
+    Title = "Cor da Ball",
+    Default = Color3.fromRGB(89, 247, 255),
     Callback = function(c) AplicarCorBall(c) end,
 })
 
-BallTab:CreateToggle({
-    Name = "🔥 Fogo na Ball",
-    CurrentValue = false,
-    Flag = "BallFire",
+BallTab:Toggle({
+    Title = "🔥 Fogo na Ball",
+    Value = false,
     Callback = function(v)
         State.BallFire = v
         if not v then
@@ -645,11 +628,11 @@ BallTab:CreateToggle({
     end,
 })
 
-BallTab:CreateButton({
-    Name = "↩ Restaurar Ball Original",
+BallTab:Button({
+    Title = "↩ Restaurar Ball Original",
     Callback = function()
         RestaurarBall()
-        Rayfield:Notify({Title = "Ball", Content = "Restaurada!", Duration = 2})
+        WindUI:Notify({Title = "Ball", Content = "Restaurada!", Duration = 2})
     end,
 })
 
@@ -677,7 +660,7 @@ end)
 -- ============================================
 -- CURVA UI
 -- ============================================
-BallTab:CreateSection("🌀 Curva / Skills")
+BallTab:Section({ Title = "🌀 Curva / Skills" })
 
 local CurvaGui = nil
 
@@ -822,152 +805,13 @@ local function CriarCurvaUI()
     end
 end
 
-BallTab:CreateButton({
-    Name = "🌀 Abrir Curva UI",
+BallTab:Button({
+    Title = "🌀 Abrir Curva UI",
     Callback = function() CriarCurvaUI() end,
-})--[[ MANIC HUB | PARTE 5/7 — Player + Chars ]]
+})--[[ MANIC HUB | PARTE 6/7 — AC + Reach + Auto Drive ]]
 
-local PlayerTab = Window:CreateTab("ᴘʟᴀʏᴇʀ", 4483362458)
-PlayerTab:CreateSection("🏃 Velocidade")
-
-local TrailObj = nil
-local TrailColor = Color3.fromRGB(120, 90, 240)
-
-local function CriarTrail()
-    if TrailObj then TrailObj:Destroy() end
-    if not Character then return end
-    local hrp = Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local a0 = Instance.new("Attachment", hrp); a0.Name = "ManicTrailA0"; a0.Position = Vector3.new(0, 1, 0)
-    local a1 = Instance.new("Attachment", hrp); a1.Name = "ManicTrailA1"; a1.Position = Vector3.new(0, -1, 0)
-    TrailObj = Instance.new("Trail")
-    TrailObj.Name = "ManicTrail"
-    TrailObj.Attachment0 = a0
-    TrailObj.Attachment1 = a1
-    TrailObj.Color = ColorSequence.new(TrailColor)
-    TrailObj.Lifetime = 1
-    TrailObj.MinLength = 0.1
-    TrailObj.WidthScale = NumberSequence.new(0.5)
-    TrailObj.Parent = hrp
-end
-
-PlayerTab:CreateSlider({
-    Name = "Velocidade do Jogador",
-    Range = {16, 200}, Increment = 1, Suffix = "studs/s",
-    CurrentValue = 16, Flag = "PlayerSpeed",
-    Callback = function(v)
-        State.PlayerSpeed = v
-        if Humanoid then Humanoid.WalkSpeed = v end
-    end,
-})
-
-PlayerTab:CreateSection("✨ Trail")
-PlayerTab:CreateToggle({
-    Name = "Trail no Jogador",
-    CurrentValue = false, Flag = "TrailEnabled",
-    Callback = function(v)
-        State.Trail = v
-        if v then CriarTrail()
-        elseif TrailObj then TrailObj:Destroy(); TrailObj = nil end
-    end,
-})
-
-PlayerTab:CreateColorPicker({
-    Name = "Cor do Trail",
-    Color = TrailColor, Flag = "TrailColor",
-    Callback = function(c)
-        TrailColor = c
-        if TrailObj then TrailObj.Color = ColorSequence.new(c) end
-    end,
-})
-
-LocalPlayer.CharacterAdded:Connect(function(c)
-    task.wait(1)
-    if State.Trail then CriarTrail() end
-    if Humanoid then Humanoid.WalkSpeed = State.PlayerSpeed end
-end)
-
--- ============================================
--- TELA ESTICADA
--- ============================================
-PlayerTab:CreateSection("📺 Tela Esticada")
-
-local StretchHConn = nil
-local StretchVConn = nil
-
-PlayerTab:CreateToggle({
-    Name = "Esticar Horizontal (Lados)",
-    CurrentValue = false, Flag = "StretchH",
-    Callback = function(v)
-        State.StretchH = v
-        if v then
-            if StretchHConn then StretchHConn:Disconnect() end
-            local cam = Workspace.CurrentCamera
-            StretchHConn = RunService.RenderStepped:Connect(function()
-                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 0.75, 0, 0, 0, 1, 0, 0, 0, 1)
-            end)
-        elseif StretchHConn then
-            StretchHConn:Disconnect(); StretchHConn = nil
-        end
-    end,
-})
-
-PlayerTab:CreateToggle({
-    Name = "Esticar Vertical (Cima)",
-    CurrentValue = false, Flag = "StretchV",
-    Callback = function(v)
-        State.StretchV = v
-        if v then
-            if StretchVConn then StretchVConn:Disconnect() end
-            local cam = Workspace.CurrentCamera
-            StretchVConn = RunService.RenderStepped:Connect(function()
-                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, 0.67, 0, 0, 0, 1)
-            end)
-        elseif StretchVConn then
-            StretchVConn:Disconnect(); StretchVConn = nil
-        end
-    end,
-})
-
--- ============================================
--- CHARS
--- ============================================
-local CharsTab = Window:CreateTab("ᴄʜᴀʀs", 4483362458)
-CharsTab:CreateSection("🎭 Chars Disponíveis")
-
-local CharsList = {
-    "oxentepivetih77","RB9844","FearZakk","pachowillian","DavskCbm9",
-    "6unfire","mikaelfacada10","guto785662","orieehrjr","beastsxc",
-    "candyxzzz0","polarnyp","kayquealt1106","Skxgoat7","KingOfKitsunezx",
-    "slk_eosouzax","defantastico","hyago_mach","mica1203ely5","b_2020f",
-    "bernadow_w","ythek9on1","Samblox_Xd","3qu","021_KayqueJr",
-    "monalisopitango","a4rloo","Ilulict","m3mbers0nly","19_Nxx",
-    "Juninhojwve","ensixraa","keny_tcs","MSS10_ALT1",
-}
-
-local function SendChar(nome)
-    pcall(function()
-        local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-        if ch then ch:SendAsync(":char " .. nome) end
-    end)
-    pcall(function()
-        ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
-            :WaitForChild("SayMessageRequest"):FireServer(":char " .. nome, "All")
-    end)
-end
-
-for _, char in ipairs(CharsList) do
-    CharsTab:CreateButton({
-        Name = "🎭 " .. char,
-        Callback = function()
-            SendChar(char)
-            Rayfield:Notify({Title = "Char", Content = "Aplicando: " .. char, Duration = 2})
-        end,
-    })
-end--[[ MANIC HUB | PARTE 6/7 — AC + Reach + Auto Drive ]]
-
-local ACTab = Window:CreateTab("ᴀᴄ", 4483362458)
-ACTab:CreateSection("🧤 Auto Catch")
+local ACTab = Window:Tab({ Title = "AC", Icon = "shield" })
+ACTab:Section({ Title = "🧤 Auto Catch" })
 
 local CatchRemote = nil
 pcall(function()
@@ -1012,55 +856,55 @@ local function DoAutoCatch(ball)
     AutoCatchLast = os.clock() + AutoCatchDelay
 end
 
-ACTab:CreateToggle({
-    Name = "Auto Catch",
-    CurrentValue = false, Flag = "AutoCatch",
+ACTab:Toggle({
+    Title = "Auto Catch",
+    Value = false,
     Callback = function(v) State.AutoCatch = v end,
 })
 
-ACTab:CreateSlider({
-    Name = "Alcance", Range = {3, 30}, Increment = 1, Suffix = "studs",
-    CurrentValue = 8, Flag = "ACCatchRange",
+ACTab:Slider({
+    Title = "Alcance",
+    Value = {Min = 3, Max = 30, Default = 8},
     Callback = function(v) AutoCatchRange = v end,
 })
 
-ACTab:CreateSlider({
-    Name = "Cooldown", Range = {2, 30}, Increment = 1, Suffix = "x100ms",
-    CurrentValue = 8, Flag = "ACCatchDelay",
+ACTab:Slider({
+    Title = "Cooldown (x100ms)",
+    Value = {Min = 2, Max = 30, Default = 8},
     Callback = function(v) AutoCatchDelay = v / 10 end,
 })
 
-ACTab:CreateToggle({
-    Name = "Mostrar Hitbox",
-    CurrentValue = false, Flag = "AC_Hitbox",
+ACTab:Toggle({
+    Title = "Mostrar Hitbox",
+    Value = false,
     Callback = function(v) AC_Hitbox = v end,
 })
 
 -- ============================================
 -- REACH
 -- ============================================
-local ReachTab = Window:CreateTab("ʀᴇᴀᴄʜ", 4483362458)
-ReachTab:CreateSection("📏 Reach")
+local ReachTab = Window:Tab({ Title = "Reach", Icon = "ruler" })
+ReachTab:Section({ Title = "📏 Reach" })
 
 local ReachLast = 0
 
-ReachTab:CreateToggle({
-    Name = "Ativar Reach",
-    CurrentValue = false, Flag = "ReachEnabled",
+ReachTab:Toggle({
+    Title = "Ativar Reach",
+    Value = false,
     Callback = function(v) State.Reach = v end,
 })
 
-ReachTab:CreateSlider({
-    Name = "Distância", Range = {1, 50}, Increment = 1, Suffix = "studs",
-    CurrentValue = 10, Flag = "ReachDistance",
+ReachTab:Slider({
+    Title = "Distância",
+    Value = {Min = 1, Max = 50, Default = 10},
     Callback = function(v) State.ReachDistance = v end,
 })
 
 -- ============================================
 -- AUTO DRIVE
 -- ============================================
-local DriveTab = Window:CreateTab("ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", 4483362458)
-DriveTab:CreateSection("🚀 Auto Drive")
+local DriveTab = Window:Tab({ Title = "Auto Drive", Icon = "car" })
+DriveTab:Section({ Title = "🚀 Auto Drive" })
 
 local AutoDriveLast = 0
 local AutoDriveRange = 35
@@ -1105,28 +949,27 @@ local function DoAutoDrive(ball)
     end
 end
 
-DriveTab:CreateToggle({
-    Name = "Ativar Auto Drive",
-    CurrentValue = false, Flag = "AutoDrive",
+DriveTab:Toggle({
+    Title = "Ativar Auto Drive",
+    Value = false,
     Callback = function(v) State.AutoDrive = v end,
 })
 
-DriveTab:CreateSlider({
-    Name = "Alcance", Range = {10, 50}, Increment = 1, Suffix = "studs",
-    CurrentValue = 35, Flag = "ADRange",
+DriveTab:Slider({
+    Title = "Alcance",
+    Value = {Min = 10, Max = 50, Default = 35},
     Callback = function(v) AutoDriveRange = v end,
 })
 
-DriveTab:CreateSlider({
-    Name = "Velocidade ao Perseguir",
-    Range = {16, 60}, Increment = 1, Suffix = "studs",
-    CurrentValue = 32, Flag = "ADSpeed",
+DriveTab:Slider({
+    Title = "Velocidade ao Perseguir",
+    Value = {Min = 16, Max = 60, Default = 32},
     Callback = function(v) AutoDriveSpeed = v end,
 })
 
-DriveTab:CreateSlider({
-    Name = "Cooldown", Range = {2, 20}, Increment = 1, Suffix = "x100ms",
-    CurrentValue = 7, Flag = "ADCooldown",
+DriveTab:Slider({
+    Title = "Cooldown (x100ms)",
+    Value = {Min = 2, Max = 20, Default = 7},
     Callback = function(v) AutoDriveCooldown = v / 10 end,
 })--[[ MANIC HUB | PARTE 7/7 — Loops + Finalização ]]
 
@@ -1186,12 +1029,13 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- Notificação final
-Rayfield:Notify({
+WindUI:Notify({
     Title = "Manic Hub",
     Content = "✅ Carregado! Use LeftShift para abrir/fechar.",
     Duration = 5,
+    Icon = "check-circle",
 })
 
-print("[MANIC HUB] ✅ Carregado!")
+print("[MANIC HUB] ✅ Carregado com WindUI!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
