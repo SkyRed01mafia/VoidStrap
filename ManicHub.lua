@@ -56,14 +56,11 @@ print("[MANIC HUB] firetouchinterest:", FTI ~= nil)
 -- ============================================
 -- CARREGA FLUENTMANIC
 -- ============================================
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/SkyRed01mafia/VoidStrap/refs/heads/main/FluentManic.lua"
-))()
-
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/SkyRed01mafia/VoidStrap/refs/heads/main/Velaware.lua"))()
 local Window = Library:CreateWindow({
     Title = "Manic Hub",
     Author = "The Classic Soccer",
-    Icon = "👁",
+    Icon = "°",
     Width = 640,
     Height = 500,
     Background = "rbxassetid://11717400651",
