@@ -1,4 +1,4 @@
---[[ MANIC HUB v2.0 | TCS Edition | WindUI | PARTE 1/7 ]]
+--[[ MANIC HUB v2.0 | TCS Edition | WindUI | PARTE 1/8 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -46,9 +46,8 @@ local State = {
     AutoBall = false, AutoDrive = false, AutoCatch = false, Reach = false,
     ReachDistance = 10, PlayerSpeed = 16, Trail = false,
     StretchH = false, StretchV = false,
-    BallColor = nil, BallFire = false,
+    BallColor = nil, BallFire = false, BallTrail = false,
     GrassColor = nil, Skybox = nil, GraphicPreset = nil, BoomBoxSound = nil,
-    CurvaMode = "Desativar", CurvaForce = 30,
 }
 
 local FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
@@ -92,7 +91,7 @@ UserInputService.InputBegan:Connect(function(i, gp)
     if i.KeyCode == Enum.KeyCode.LeftShift then
         Window:Toggle()
     end
-end)--[[ MANIC HUB | PARTE 2/7 — ᴍᴀᴘᴀ ]]
+end)--[[ MANIC HUB | PARTE 2/8 — ᴍᴀᴘᴀ ]]
 
 local MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ", Icon = "map" })
 
@@ -177,7 +176,7 @@ spawn(function()
 end)
 
 -- ============================================
--- SKYBOX (CORRIGIDO)
+-- SKYBOX (CORRIGIDO v2)
 -- ============================================
 MapTab:Section({ Title = "sᴋʏʙᴏx" })
 
@@ -195,19 +194,16 @@ local SkyboxIDs = {
 }
 
 local function AplicarSkybox(assetId)
+    local url = "rbxassetid://" .. assetId
     pcall(function()
-        -- 1. Destrói TODAS as Sky
         for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("Sky") then v:Destroy() end
         end
-        -- 2. Destrói Atmosphere (escurece a sky)
         for _, v in ipairs(Lighting:GetChildren()) do
             if v:IsA("Atmosphere") then v:Destroy() end
         end
-        -- 3. Cria a nova Sky
         local sky = Instance.new("Sky")
         sky.Name = "Manic_Sky"
-        local url = "rbxassetid://" .. assetId
         sky.SkyboxBk = url
         sky.SkyboxDn = url
         sky.SkyboxFt = url
@@ -217,6 +213,9 @@ local function AplicarSkybox(assetId)
         sky.SunAngularSize = 0
         sky.MoonAngularSize = 0
         sky.StarCount = 0
+        sky.CelestialBodiesShowSun = false
+        sky.CelestialBodiesShowMoon = false
+        sky.CelestialBodiesShowStars = false
         sky.Parent = Lighting
         State.Skybox = assetId
     end)
@@ -227,7 +226,7 @@ for _, sky in ipairs(SkyboxIDs) do
         Title = sky.Name,
         Callback = function()
             AplicarSkybox(sky.ID)
-            WindUI:Notify({Title = "sᴋʏʙᴏx", Content = sky.Name .. " ᴀᴘʟɪᴄᴀᴅᴀ", Duration = 2})
+            WindUI:Notify({Title = "sᴋʏʙᴏx", Content = sky.Name, Duration = 2})
         end,
     })
 end
@@ -244,28 +243,30 @@ MapTab:Button({
     end,
 })
 
--- Loop AGRESSIVO anti-reset
-RunService.RenderStepped:Connect(function()
-    if not State.Skybox then return end
-    local sky = Lighting:FindFirstChild("Manic_Sky")
-    if not sky then
-        AplicarSkybox(State.Skybox)
-        return
-    end
-    -- Se a Sky não tiver os assets certos, recria
-    local url = "rbxassetid://" .. State.Skybox
-    if sky.SkyboxBk ~= url then
-        sky.SkyboxBk = url
-        sky.SkyboxDn = url
-        sky.SkyboxFt = url
-        sky.SkyboxLf = url
-        sky.SkyboxRt = url
-        sky.SkyboxUp = url
-    end
-    -- Remove Sky/Atmosphere intrusos
-    for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("Sky") and v ~= sky then v:Destroy() end
-        if v:IsA("Atmosphere") then v:Destroy() end
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if not State.Skybox then continue end
+        local url = "rbxassetid://" .. State.Skybox
+        local sky = Lighting:FindFirstChild("Manic_Sky")
+        if not sky then
+            AplicarSkybox(State.Skybox)
+        else
+            if sky.SkyboxBk ~= url then
+                pcall(function()
+                    sky.SkyboxBk = url
+                    sky.SkyboxDn = url
+                    sky.SkyboxFt = url
+                    sky.SkyboxLf = url
+                    sky.SkyboxRt = url
+                    sky.SkyboxUp = url
+                end)
+            end
+        end
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") and v.Name ~= "Manic_Sky" then v:Destroy() end
+            if v:IsA("Atmosphere") then v:Destroy() end
+        end
     end
 end)
 
@@ -349,7 +350,7 @@ MapTab:Button({
 MapTab:Button({
     Title = "ʀᴇsᴇᴛᴀʀ ɢʀᴀꜰɪᴄᴏs",
     Callback = function() ResetarLighting() end,
-})--[[ MANIC HUB | PARTE 3/7 — ʙᴏᴏᴍ ʙᴏx + Auto Follow ]]
+})--[[ MANIC HUB | PARTE 3/8 — ʙᴏᴏᴍ ʙᴏx + Auto Ball ]]
 
 local BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx", Icon = "music" })
 BoomTab:Section({ Title = "ᴍᴜsɪᴄᴀs" })
@@ -369,7 +370,7 @@ end
 
 local Musicas = {
     {Nome = "ᴍᴇᴀɴᴛ ᴛᴏ ʙᴇ", ID = "84321228471359"},
-    {Nome = "ᴍɪsᴇʀʏ", ID = "128715303988843"},
+    {Nome = "sᴏᴍᴇᴛɪᴍᴇs", ID = "128715303988843"},
     {Nome = "ʙʟᴏᴅʟʏɴ ʙʟᴏᴏᴅᴘᴏᴘ", ID = "96414211708215"},
 }
 
@@ -404,16 +405,17 @@ BoomTab:Button({
 })
 
 -- ============================================
--- BALL: Auto Follow
+-- BALL: Auto Ball
 -- ============================================
 local BallTab = Window:Tab({ Title = "ʙᴀʟʟ", Icon = "circle" })
-BallTab:Section({ Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ" })
+BallTab:Section({ Title = "ᴀᴜᴛᴏ ʙᴀʟʟ" })
 
 local AutoFollowConnection = nil
 local CurrentBall = nil
 local ScanTimer = 0
-local StopDistance = 0.2
-local SteerStrength = 1.25
+local SteerStrength = 2.5
+local TeleportDistance = 20
+local ChaseSpeed = 40
 local PlayerControls = nil
 
 pcall(function()
@@ -493,7 +495,7 @@ local function StartAutoBall()
         local inv = not CurrentBall or not CurrentBall.Parent
         if CurrentBall and CurrentBall.Parent and not IsValidBall(CurrentBall) then inv = true end
 
-        if inv or ScanTimer >= 0.25 then
+        if inv or ScanTimer >= 0.15 then
             ScanTimer = 0
             CurrentBall = FindClosestBall()
         end
@@ -505,17 +507,28 @@ local function StartAutoBall()
         local dist = toBall.Magnitude
         local manual = GetManualDir()
 
-        if dist > StopDistance then
-            local fl = toBall.Unit
-            local fin = fl
-            if manual.Magnitude > 0.01 then
-                local amt = math.clamp(manual.Magnitude, 0, 1)
-                fin = fl * (1 - amt * 0.45) + manual * SteerStrength
-                if fin.Magnitude > 0 then fin = fin.Unit end
-            end
-            hum:Move(fin, false)
-        elseif manual.Magnitude > 0.01 then
-            hum:Move(manual, false)
+        if dist > TeleportDistance then
+            local dir = toBall.Unit
+            local targetPos = ball.Position - (dir * 2) + Vector3.new(0, 3, 0)
+            pcall(function()
+                root.CFrame = CFrame.new(targetPos, ball.Position + Vector3.new(0, 1, 0))
+            end)
+            return
+        end
+
+        local fl = toBall.Unit
+        local fin = fl
+        if manual.Magnitude > 0.01 then
+            local amt = math.clamp(manual.Magnitude, 0, 1)
+            fin = fl * (1 - amt * 0.35) + manual * SteerStrength
+            if fin.Magnitude > 0 then fin = fin.Unit end
+        end
+        hum:Move(fin, false)
+
+        if dist > 2 then
+            hum.WalkSpeed = math.max(hum.WalkSpeed, ChaseSpeed)
+        elseif hum.WalkSpeed > (State.PlayerSpeed or 16) then
+            hum.WalkSpeed = State.PlayerSpeed or 16
         end
     end)
 end
@@ -527,10 +540,13 @@ local function StopAutoBall()
         AutoFollowConnection:Disconnect()
         AutoFollowConnection = nil
     end
+    if Humanoid then
+        Humanoid.WalkSpeed = State.PlayerSpeed or 16
+    end
 end
 
 BallTab:Toggle({
-    Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ (sᴇɢᴜɪʀ ʙᴏʟᴀ)",
+    Title = "ᴀᴜᴛᴏ ʙᴀʟʟ",
     Value = false,
     Callback = function(v)
         if v then StartAutoBall() else StopAutoBall() end
@@ -538,16 +554,22 @@ BallTab:Toggle({
 })
 
 BallTab:Slider({
-    Title = "ᴅɪsᴛᴀɴᴄɪᴀ ᴅᴇ ᴘᴀʀᴀᴅᴀ",
-    Value = {Min = 1, Max = 50, Default = 2},
-    Callback = function(v) StopDistance = v / 10 end,
+    Title = "ꜰᴏʀᴄᴀ ᴅᴏ sᴛᴇᴇʀɪɴɢ",
+    Value = {Min = 5, Max = 50, Default = 25},
+    Callback = function(v) SteerStrength = v / 10 end,
 })
 
 BallTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴏ sᴛᴇᴇʀɪɴɢ",
-    Value = {Min = 1, Max = 30, Default = 13},
-    Callback = function(v) SteerStrength = v / 10 end,
-})--[[ MANIC HUB | PARTE 4/7 — ʙᴀʟʟ Cor + Fogo + Curva ]]
+    Title = "ᴛᴇʟᴇᴘᴏʀᴛᴀʀ sᴇ ᴅɪsᴛᴀɴᴄɪᴀ",
+    Value = {Min = 5, Max = 50, Default = 20},
+    Callback = function(v) TeleportDistance = v end,
+})
+
+BallTab:Slider({
+    Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴀᴏ ᴘᴇʀsᴇɢᴜɪʀ",
+    Value = {Min = 16, Max = 120, Default = 40},
+    Callback = function(v) ChaseSpeed = v end,
+})--[[ MANIC HUB | PARTE 4/8 — ʙᴀʟʟ Cor + Fogo + Trail + Curva ]]
 
 BallTab:Section({ Title = "ᴀᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ʙᴀʟʟ" })
 
@@ -613,10 +635,16 @@ local function RestaurarBall()
     end
     State.BallColor = nil
     State.BallFire = false
+    State.BallTrail = false
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if IsValidBall(obj) then
             local f = obj:FindFirstChild("Manic_BallFire")
             if f then f:Destroy() end
+            local t = obj:FindFirstChild("Manic_BallTrail")
+            if t then t:Destroy() end
+            for _, a in ipairs(obj:GetChildren()) do
+                if a.Name == "Manic_TrailA0" or a.Name == "Manic_TrailA1" then a:Destroy() end
+            end
         end
     end
 end
@@ -626,6 +654,12 @@ BallTab:Colorpicker({
     Default = Color3.fromRGB(89, 247, 255),
     Callback = function(c) AplicarCorBall(c) end,
 })
+
+-- 🔥 FOGO
+local FireColor1 = Color3.fromRGB(255, 100, 0)
+local FireColor2 = Color3.fromRGB(255, 200, 0)
+local FireSize = 15
+local FireHeat = 25
 
 BallTab:Toggle({
     Title = "ꜰᴏɢᴏ ɴᴀ ʙᴀʟʟ",
@@ -643,29 +677,171 @@ BallTab:Toggle({
     end,
 })
 
+BallTab:Colorpicker({
+    Title = "ᴄᴏʀ ᴘʀɪɴᴄɪᴘᴀʟ ᴅᴏ ꜰᴏɢᴏ",
+    Default = FireColor1,
+    Callback = function(c)
+        FireColor1 = c
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if IsValidBall(obj) then
+                local f = obj:FindFirstChild("Manic_BallFire")
+                if f then pcall(function() f.Color = c end) end
+            end
+        end
+    end,
+})
+
+BallTab:Colorpicker({
+    Title = "ᴄᴏʀ sᴇᴄᴜɴᴅᴀʀɪᴀ ᴅᴏ ꜰᴏɢᴏ",
+    Default = FireColor2,
+    Callback = function(c)
+        FireColor2 = c
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if IsValidBall(obj) then
+                local f = obj:FindFirstChild("Manic_BallFire")
+                if f then pcall(function() f.SecondaryColor = c end) end
+            end
+        end
+    end,
+})
+
+BallTab:Slider({
+    Title = "ᴛᴀᴍᴀɴʜᴏ ᴅᴏ ꜰᴏɢᴏ",
+    Value = {Min = 1, Max = 50, Default = 15},
+    Callback = function(v) FireSize = v end,
+})
+
+BallTab:Slider({
+    Title = "ɪɴᴛᴇɴsɪᴅᴀᴅᴇ ᴅᴏ ꜰᴏɢᴏ",
+    Value = {Min = 1, Max = 50, Default = 25},
+    Callback = function(v) FireHeat = v end,
+})
+
+-- ✨ TRAIL
+local TrailEnabled = false
+local TrailColor = Color3.fromRGB(120, 90, 240)
+local TrailWidth = 1
+local TrailLifetime = 1
+
+BallTab:Toggle({
+    Title = "ᴛʀᴀɪʟ ɴᴀ ʙᴀʟʟ",
+    Value = false,
+    Callback = function(v)
+        TrailEnabled = v
+        State.BallTrail = v
+        if not v then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if IsValidBall(obj) then
+                    local t = obj:FindFirstChild("Manic_BallTrail")
+                    if t then t:Destroy() end
+                    for _, a in ipairs(obj:GetChildren()) do
+                        if a.Name == "Manic_TrailA0" or a.Name == "Manic_TrailA1" then a:Destroy() end
+                    end
+                end
+            end
+        end
+    end,
+})
+
+BallTab:Colorpicker({
+    Title = "ᴄᴏʀ ᴅᴏ ᴛʀᴀɪʟ",
+    Default = TrailColor,
+    Callback = function(c)
+        TrailColor = c
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if IsValidBall(obj) then
+                local t = obj:FindFirstChild("Manic_BallTrail")
+                if t then pcall(function() t.Color = ColorSequence.new(c) end) end
+            end
+        end
+    end,
+})
+
+BallTab:Slider({
+    Title = "ʟᴀʀɢᴜʀᴀ ᴅᴏ ᴛʀᴀɪʟ",
+    Value = {Min = 1, Max = 50, Default = 10},
+    Callback = function(v) TrailWidth = v / 10 end,
+})
+
+BallTab:Slider({
+    Title = "ᴅᴜʀᴀᴄᴀᴏ ᴅᴏ ᴛʀᴀɪʟ",
+    Value = {Min = 1, Max = 50, Default = 10},
+    Callback = function(v) TrailLifetime = v / 10 end,
+})
+
 BallTab:Button({
     Title = "ʀᴇsᴛᴀᴜʀᴀʀ ʙᴀʟʟ ᴏʀɪɢɪɴᴀʟ",
     Callback = function()
         RestaurarBall()
+        TrailEnabled = false
         WindUI:Notify({Title = "ʙᴀʟʟ", Content = "ʀᴇsᴛᴀᴜʀᴀᴅᴀ", Duration = 2})
     end,
 })
 
+-- LOOP Fire + Trail
 spawn(function()
     while true do
-        task.wait(0.5)
+        task.wait(0.25)
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if IsValidBall(obj) then
                 if State.BallColor and obj.Color ~= State.BallColor then
                     pcall(function() obj.Color = State.BallColor end)
                 end
-                if State.BallFire and not obj:FindFirstChild("Manic_BallFire") then
-                    local f = Instance.new("Fire")
-                    f.Name = "Manic_BallFire"
-                    f.Size = 15; f.Heat = 25
-                    f.Color = Color3.fromRGB(255, 100, 0)
-                    f.SecondaryColor = Color3.fromRGB(255, 200, 0)
-                    f.Parent = obj
+                if State.BallFire then
+                    local f = obj:FindFirstChild("Manic_BallFire")
+                    if not f then
+                        f = Instance.new("Fire")
+                        f.Name = "Manic_BallFire"
+                        f.Size = FireSize
+                        f.Heat = FireHeat
+                        f.Color = FireColor1
+                        f.SecondaryColor = FireColor2
+                        f.Parent = obj
+                    else
+                        if f.Size ~= FireSize then f.Size = FireSize end
+                        if f.Heat ~= FireHeat then f.Heat = FireHeat end
+                        if f.Color ~= FireColor1 then f.Color = FireColor1 end
+                        if f.SecondaryColor ~= FireColor2 then f.SecondaryColor = FireColor2 end
+                    end
+                else
+                    local f = obj:FindFirstChild("Manic_BallFire")
+                    if f then f:Destroy() end
+                end
+                if TrailEnabled then
+                    local t = obj:FindFirstChild("Manic_BallTrail")
+                    if not t then
+                        local a0 = Instance.new("Attachment", obj)
+                        a0.Name = "Manic_TrailA0"
+                        a0.Position = Vector3.new(-0.5, 0, 0)
+                        local a1 = Instance.new("Attachment", obj)
+                        a1.Name = "Manic_TrailA1"
+                        a1.Position = Vector3.new(0.5, 0, 0)
+                        t = Instance.new("Trail")
+                        t.Name = "Manic_BallTrail"
+                        t.Attachment0 = a0
+                        t.Attachment1 = a1
+                        t.Color = ColorSequence.new(TrailColor)
+                        t.WidthScale = NumberSequence.new(TrailWidth)
+                        t.Lifetime = TrailLifetime
+                        t.MinLength = 0.1
+                        t.Parent = obj
+                    else
+                        if t.Color ~= ColorSequence.new(TrailColor) then
+                            t.Color = ColorSequence.new(TrailColor)
+                        end
+                        if t.Lifetime ~= TrailLifetime then
+                            t.Lifetime = TrailLifetime
+                        end
+                        if t.WidthScale ~= NumberSequence.new(TrailWidth) then
+                            t.WidthScale = NumberSequence.new(TrailWidth)
+                        end
+                    end
+                else
+                    local t = obj:FindFirstChild("Manic_BallTrail")
+                    if t then t:Destroy() end
+                    for _, a in ipairs(obj:GetChildren()) do
+                        if a.Name == "Manic_TrailA0" or a.Name == "Manic_TrailA1" then a:Destroy() end
+                    end
                 end
             end
         end
@@ -673,136 +849,33 @@ spawn(function()
 end)
 
 -- ============================================
--- CURVA BALL
+-- CURVA BALL (loadstring externo)
 -- ============================================
 BallTab:Section({ Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ" })
 
-local CurvaConn = nil
-local CurvaKickEnd = 0
-local CurvaKickDuration = 0.5
-local CurvaOnKick = true
-
-local function AplicarCurva(ball, dt)
-    if not ball or not ball.Parent then return end
-    local vel = ball.AssemblyLinearVelocity
-    local velH = Vector3.new(vel.X, 0, vel.Z)
-    if velH.Magnitude < 5 then return end
-
-    local forward = velH.Unit
-    local force = Vector3.zero
-
-    if State.CurvaMode == "ᴅɪʀᴇɪᴛᴀ" then
-        force = Vector3.new(forward.Z, 0, -forward.X)
-    elseif State.CurvaMode == "ᴇsǫᴜᴇʀᴅᴀ" then
-        force = Vector3.new(-forward.Z, 0, forward.X)
-    elseif State.CurvaMode == "ᴄɪᴍᴀ" then
-        force = Vector3.new(0, 1, 0)
-    else
-        return
-    end
-
-    local curveForce = force * State.CurvaForce * dt * 60
-    local finalVel = vel + curveForce
-    local velHFinal = Vector3.new(finalVel.X, 0, finalVel.Z)
-    if velHFinal.Magnitude > 0.1 then
-        local forwardDot = velHFinal.Unit:Dot(forward)
-        if forwardDot < 0.5 then
-            local correctedH = (forward * velH.Magnitude * 0.9) + Vector3.new(curveForce.X, 0, curveForce.Z)
-            finalVel = Vector3.new(correctedH.X, finalVel.Y, correctedH.Z)
+BallTab:Button({
+    Title = "ᴀʙʀɪʀ ᴄᴜʀᴠᴀ ʙᴀʟʟ",
+    Desc = "ᴇxᴇᴄᴜᴛᴀ ᴏ sᴄʀɪᴘᴛ ᴅᴇ ᴄᴜʀᴠᴀ ᴇxᴛᴇʀɴᴏ",
+    Callback = function()
+        local ok, err = pcall(function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/7ixqsxx7"))()
+        end)
+        if ok then
+            WindUI:Notify({Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ", Content = "sᴄʀɪᴘᴛ ᴇxᴇᴄᴜᴛᴀᴅᴏ", Duration = 3, Icon = "check-circle"})
+        else
+            WindUI:Notify({Title = "ᴄᴜʀᴠᴀ ʙᴀʟʟ", Content = "ᴇʀʀᴏ: " .. tostring(err), Duration = 5, Icon = "x-circle"})
         end
-    end
-    ball.AssemblyLinearVelocity = finalVel
-end
-
-local function StartCurva()
-    if CurvaConn then return end
-    CurvaConn = RunService.Heartbeat:Connect(function(dt)
-        if State.CurvaMode == "ᴅᴇsᴀᴛɪᴠᴀʀ" then return end
-        if CurvaOnKick and tick() > CurvaKickEnd then return end
-        for _, ball in ipairs(Workspace:GetDescendants()) do
-            if IsValidBall(ball) then
-                AplicarCurva(ball, dt)
-            end
-        end
-    end)
-end
-
-local function StopCurva()
-    if CurvaConn then
-        CurvaConn:Disconnect()
-        CurvaConn = nil
-    end
-end
-
-local function UpdateCurva()
-    if State.CurvaMode == "ᴅᴇsᴀᴛɪᴠᴀʀ" then StopCurva()
-    elseif not CurvaConn then StartCurva() end
-end
-
-BallTab:Dropdown({
-    Title = "ᴅɪʀᴇᴄᴀᴏ ᴅᴀ ᴄᴜʀᴠᴀ",
-    Values = {"ᴅᴇsᴀᴛɪᴠᴀʀ", "ᴅɪʀᴇɪᴛᴀ", "ᴇsǫᴜᴇʀᴅᴀ", "ᴄɪᴍᴀ"},
-    Value = "ᴅᴇsᴀᴛɪᴠᴀʀ",
-    Callback = function(v)
-        State.CurvaMode = v
-        UpdateCurva()
     end,
 })
 
-BallTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴀ ᴄᴜʀᴠᴀ",
-    Value = {Min = 5, Max = 100, Default = 30},
-    Callback = function(v) State.CurvaForce = v end,
-})
-
-BallTab:Toggle({
-    Title = "ᴄᴜʀᴠᴀʀ ᴀᴘᴇɴᴀs ɴᴏ ᴄʜᴜᴛᴇ",
-    Value = true,
-    Callback = function(v) CurvaOnKick = v end,
-})
-
-BallTab:Slider({
-    Title = "ᴅᴜʀᴀᴄᴀᴏ ᴘᴏs ᴄʜᴜᴛᴇ",
-    Value = {Min = 1, Max = 30, Default = 5, Suffix = "x0.1s"},
-    Callback = function(v) CurvaKickDuration = v / 10 end,
-})
-
--- Detectar chute (tools + remote)
-spawn(function()
-    local function marcarChute() CurvaKickEnd = tick() + CurvaKickDuration end
-    local function hookTool(tool)
-        if not tool:IsA("Tool") then return end
-        local n = tool.Name:lower()
-        if n:find("chutar") or n:find("chute") or n:find("kick")
-        or n:find("shoot") or n:find("bater") or n:find("toque") then
-            tool.Activated:Connect(marcarChute)
-            tool.Unequipped:Connect(marcarChute)
-        end
-    end
-    local function hookContainer(c)
-        if not c then return end
-        for _, o in ipairs(c:GetChildren()) do hookTool(o) end
-        c.ChildAdded:Connect(function(ch) task.wait(0.1); hookTool(ch) end)
-    end
-    hookContainer(LocalPlayer:FindFirstChild("Backpack"))
-    hookContainer(Character)
-    LocalPlayer.CharacterAdded:Connect(function(c)
-        task.wait(1)
-        hookContainer(LocalPlayer:FindFirstChild("Backpack"))
-        hookContainer(c)
-    end)
-    -- Remote fallback
-    pcall(function()
-        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
-            if v:IsA("RemoteEvent") then
-                local n = v.Name:lower()
-                if n:find("chutar") or n:find("chute") or n:find("kick") or n:find("shoot") then
-                    v.OnClientEvent:Connect(marcarChute)
-                end
-            end
-        end
-    end)
-end)--[[ MANIC HUB | PARTE 5/7 — ᴘʟᴀʏᴇʀ + ᴄʜᴀʀs ]]
+BallTab:Button({
+    Title = "ʀᴇᴄᴀʀʀᴇɢᴀʀ ᴄᴜʀᴠᴀ",
+    Callback = function()
+        pcall(function()
+            loadstring(game:HttpGet("https://pastebin.com/raw/7ixqsxx7"))()
+        end)
+    end,
+})--[[ MANIC HUB | PARTE 5/8 — ᴘʟᴀʏᴇʀ + ᴄʜᴀʀs ]]
 
 local PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ", Icon = "user" })
 PlayerTab:Section({ Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ" })
@@ -948,11 +1021,8 @@ for _, char in ipairs(CharsList) do
             WindUI:Notify({Title = "ᴄʜᴀʀ", Content = char, Duration = 2})
         end,
     })
-end--[[ MANIC HUB | PARTE 6/7 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
+end--[[ MANIC HUB | PARTE 6/8 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
 
--- ============================================
--- AC (Auto Catch)
--- ============================================
 local ACTab = Window:Tab({ Title = "ᴀᴄ", Icon = "shield" })
 ACTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ" })
 
@@ -1041,7 +1111,7 @@ ReachTab:Slider({
 })
 
 -- ============================================
--- AUTO DRIVE (Botões GK via firesignal)
+-- AUTO DRIVE (Botões GK)
 -- ============================================
 local DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ (ɢᴋ)" })
@@ -1052,7 +1122,6 @@ local AutoDiveRange = 15
 local AutoDiveCooldown = 0.8
 local AutoDiveConn = nil
 local AutoDiveMode = "ᴀᴜᴛᴏ"
-local GKBloquearSeIntelAtivo = true
 
 local GK_BUTTON_TEXTS = {
     ["ᴇsǫᴜᴇʀᴅᴀ ᴀʟᴛᴏ"] = "High Dive Left",
@@ -1084,7 +1153,7 @@ local function EscanearBotoesGK()
             end
         end
     end)
-    print("[ᴀᴜᴛᴏ ᴅʀɪᴠᴇ] ʙᴏᴛᴏᴇs ᴇɴᴄᴏɴᴛʀᴀᴅᴏs:", #GKBotoes)
+    print("[ᴀᴜᴛᴏ ᴅʀɪᴠᴇ] ʙᴏᴛᴏᴇs:", #GKBotoes)
 end
 
 EscanearBotoesGK()
@@ -1127,11 +1196,7 @@ local function AnalisarBola()
         tempo = math.clamp(tempo, 0, 0.6)
     end
     local posFutura = ball.Position + (vel * tempo)
-    local camLook = Camera.CFrame.LookVector
     local camRight = Camera.CFrame.RightVector
-    local frenteH = Vector3.new(camLook.X, 0, camLook.Z)
-    if frenteH.Magnitude < 0.1 then frenteH = Vector3.new(0, 0, -1) end
-    frenteH = frenteH.Unit
     local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
     if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
     direitaH = direitaH.Unit
@@ -1148,7 +1213,6 @@ local function ExecutarDive()
     local lado = info.lado
     local altura = info.altura
     local textoAlvo
-
     if AutoDiveMode ~= "ᴀᴜᴛᴏ" then
         textoAlvo = GK_BUTTON_TEXTS[AutoDiveMode]
     else
@@ -1158,7 +1222,6 @@ local function ExecutarDive()
             textoAlvo = lado > 0 and "Dive Right" or "Dive Left"
         end
     end
-
     if not textoAlvo then return end
     local botao = EncontrarBotaoPorTexto(textoAlvo)
     if botao then
@@ -1225,7 +1288,7 @@ DriveTab:Slider({
 
 DriveTab:Slider({
     Title = "ᴄᴏᴏʟᴅᴏᴡɴ ᴅᴏ ᴅɪᴠᴇ",
-    Value = {Min = 3, Max = 50, Default = 8, Suffix = "x0.1s"},
+    Value = {Min = 3, Max = 50, Default = 8},
     Callback = function(v) AutoDiveCooldown = v / 10 end,
 })
 
@@ -1235,9 +1298,8 @@ DriveTab:Button({
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 7/7 — Loops + Finalização ]]
+})--[[ MANIC HUB | PARTE 7/8 — Loops + Finalização ]]
 
--- Loop Auto Catch + Hitbox
 RunService.Heartbeat:Connect(function()
     if State.AutoCatch then
         local ball = CurrentBall or FindClosestBall()
@@ -1266,7 +1328,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Loop Reach
 RunService.Heartbeat:Connect(function()
     if not State.Reach then return end
     if not Character or not RootPart then return end
@@ -1284,7 +1345,6 @@ RunService.Heartbeat:Connect(function()
     ReachLast = os.clock() + 0.05
 end)
 
--- Notificação final
 WindUI:Notify({
     Title = "Manic Hub",
     Content = "Carregado! Use LeftShift para abrir/fechar.",
@@ -1292,7 +1352,257 @@ WindUI:Notify({
     Icon = "check-circle",
 })
 
-print("[MANIC HUB] Carregado com WindUI!")
+print("[MANIC HUB] Carregado!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
-print("[MANIC HUB] Botões GK encontrados:", #GKBotoes)
+print("[MANIC HUB] Botões GK:", #GKBotoes)--[[ MANIC HUB | PARTE 8/8 — ᴀʙᴀ sᴄʀɪᴘᴛ + ᴄʀᴇᴅɪᴛᴏs ]]
+
+local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
+
+ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
+
+local BackgroundAtual = "rbxassetid://11717400651"
+
+local function ProcurarBackgroundImage(gui)
+    for _, v in ipairs(gui:GetDescendants()) do
+        if v:IsA("ImageLabel") then
+            local sz = v.AbsoluteSize
+            local par = v.Parent
+            if par then
+                local parSize = par.AbsoluteSize
+                if sz.X >= parSize.X * 0.9 and sz.Y >= parSize.Y * 0.9 then
+                    return v
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function AplicarBackground(assetId)
+    local bg = ProcurarBackgroundImage(Window.GUI)
+    if bg then
+        pcall(function()
+            bg.Image = "rbxassetid://" .. assetId
+        end)
+        BackgroundAtual = "rbxassetid://" .. assetId
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!", Duration = 2, Icon = "check-circle"})
+    else
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴇɪ ᴀ ɪᴍᴀɢᴇᴍ", Duration = 3, Icon = "x-circle"})
+    end
+end
+
+ScriptTab:Input({
+    Title = "ɪᴅ ᴍᴀɴᴜᴀʟ",
+    Placeholder = "sᴏᴍᴇɴᴛᴇ ᴏ ɪᴅ (ᴇx: 11717400651)",
+    Callback = function(text)
+        if text and text ~= "" then
+            BackgroundAtual = "rbxassetid://" .. text:gsub("rbxassetid://", "")
+        end
+    end,
+})
+
+ScriptTab:Slider({
+    Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ɪᴍᴀɢᴇᴍ",
+    Value = {Min = 0, Max = 100, Default = 35},
+    Callback = function(v)
+        local alpha = v / 100
+        local bg = ProcurarBackgroundImage(Window.GUI)
+        if bg then pcall(function() bg.ImageTransparency = alpha end) end
+    end,
+})
+
+ScriptTab:Button({
+    Title = "ᴀᴘʟɪᴄᴀʀ ɪᴅ ᴍᴀɴᴜᴀʟ",
+    Callback = function()
+        AplicarBackground(BackgroundAtual:gsub("rbxassetid://", ""))
+    end,
+})
+
+ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
+
+local ASSETS_PRESET = {
+    {Nome = "ᴀssᴇᴛ 1", ID = "86503454003964"},
+    {Nome = "ᴀssᴇᴛ 2", ID = "17228542848"},
+    {Nome = "ᴀssᴇᴛ 3 (ᴘᴀᴅʀᴀᴏ)", ID = "11717400651"},
+    {Nome = "ᴀssᴇᴛ 4", ID = "111996173475442"},
+    {Nome = "ᴀssᴇᴛ 5", ID = "15423397129"},
+}
+
+for _, asset in ipairs(ASSETS_PRESET) do
+    ScriptTab:Button({
+        Title = asset.Nome,
+        Callback = function() AplicarBackground(asset.ID) end,
+    })
+end
+
+ScriptTab:Section({ Title = "ʀᴇsᴛᴀᴜʀᴀʀ" })
+
+ScriptTab:Button({
+    Title = "ʀᴇsᴛᴀᴜʀᴀʀ ɪᴍᴀɢᴇᴍ ᴘᴀᴅʀᴀᴏ",
+    Callback = function()
+        AplicarBackground("11717400651")
+        local bg = ProcurarBackgroundImage(Window.GUI)
+        if bg then pcall(function() bg.ImageTransparency = 0.35 end) end
+    end,
+})
+
+-- ============================================
+-- PERSONALIZAR TÍTULO
+-- ============================================
+ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴛɪᴛᴜʟᴏ" })
+
+ScriptTab:Input({
+    Title = "ɴᴏᴠᴏ ᴛɪᴛᴜʟᴏ",
+    Placeholder = "ᴍᴀɴɪᴄ ʜᴜʙ",
+    Callback = function(text)
+        if text and text ~= "" then
+            pcall(function()
+                for _, v in ipairs(Window.GUI:GetDescendants()) do
+                    if v:IsA("TextLabel") and (v.Text == "Manic Hub" or v.Text == "ᴍᴀɴɪᴄ ʜᴜʙ") then
+                        v.Text = text
+                        break
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+ScriptTab:Input({
+    Title = "ɴᴏᴠᴏ ᴀᴜᴛᴏʀ",
+    Placeholder = "ᴛʜᴇᴀɴɢᴇʟʟᴀɴᴅxꜱ",
+    Callback = function(text)
+        if text and text ~= "" then
+            pcall(function()
+                for _, v in ipairs(Window.GUI:GetDescendants()) do
+                    if v:IsA("TextLabel") and (v.Text == "Manic Hub | TCS" or v.Text:find("TCS")) then
+                        v.Text = text
+                        break
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+-- ============================================
+-- CORES DO TEMA
+-- ============================================
+ScriptTab:Section({ Title = "ᴄᴏʀᴇs ᴅᴏ ᴛᴇᴍᴀ" })
+
+ScriptTab:Colorpicker({
+    Title = "ᴄᴏʀ ᴘʀɪɴᴄɪᴘᴀʟ",
+    Default = Color3.fromRGB(120, 90, 240),
+    Callback = function(c)
+        pcall(function()
+            if Window.SetTheme then Window:SetTheme({ Accent = c }) end
+        end)
+    end,
+})
+
+-- ============================================
+-- INFO
+-- ============================================
+ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
+
+ScriptTab:Button({
+    Title = "ᴠᴇʀsᴀᴏ: ᴠ2.0",
+    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛᴄs ᴇᴅɪᴛɪᴏɴ",
+    Callback = function() end,
+})
+
+ScriptTab:Button({
+    Title = "ᴀᴛᴀʟʜᴏ: ʟᴇꜰᴛsʜɪꜰᴛ",
+    Desc = "ᴀʙʀᴇ/ꜰᴇᴄʜᴀ ᴏ ᴍᴇɴᴜ",
+    Callback = function() end,
+})
+
+-- ============================================
+-- CRÉDITOS
+-- ============================================
+ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
+
+local CreditsFrame = Instance.new("Frame")
+CreditsFrame.Size = UDim2.new(1, -10, 0, 100)
+CreditsFrame.BackgroundColor3 = Color3.fromRGB(25, 22, 40)
+CreditsFrame.BackgroundTransparency = 0.3
+CreditsFrame.BorderSizePixel = 0
+CreditsFrame.Parent = ScriptTab.Container or ScriptTab.Page or ScriptTab
+
+local CFCorner = Instance.new("UICorner")
+CFCorner.CornerRadius = UDim.new(0, 10)
+CFCorner.Parent = CreditsFrame
+
+local CFStroke = Instance.new("UIStroke")
+CFStroke.Color = Color3.fromRGB(120, 90, 240)
+CFStroke.Thickness = 1.5
+CFStroke.Transparency = 0.4
+CFStroke.Parent = CreditsFrame
+
+local CFGradient = Instance.new("UIGradient")
+CFGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 90, 240)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 180, 255)),
+})
+CFGradient.Rotation = 45
+CFGradient.Parent = CreditsFrame
+
+local CreditsTitle = Instance.new("TextLabel")
+CreditsTitle.Size = UDim2.new(1, -20, 0, 30)
+CreditsTitle.Position = UDim2.new(0, 10, 0, 5)
+CreditsTitle.BackgroundTransparency = 1
+CreditsTitle.Text = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ"
+CreditsTitle.TextColor3 = Color3.fromRGB(180, 180, 200)
+CreditsTitle.TextSize = 12
+CreditsTitle.Font = Enum.Font.GothamBold
+CreditsTitle.TextXAlignment = Enum.TextXAlignment.Center
+CreditsTitle.Parent = CreditsFrame
+
+local CreditsName = Instance.new("TextLabel")
+CreditsName.Size = UDim2.new(1, -20, 0, 40)
+CreditsName.Position = UDim2.new(0, 10, 0, 35)
+CreditsName.BackgroundTransparency = 1
+CreditsName.Text = "𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘"
+CreditsName.TextColor3 = Color3.fromRGB(255, 255, 255)
+CreditsName.TextSize = 22
+CreditsName.Font = Enum.Font.GothamBlack
+CreditsName.TextXAlignment = Enum.TextXAlignment.Center
+CreditsName.Parent = CreditsFrame
+
+local CreditsSub = Instance.new("TextLabel")
+CreditsSub.Size = UDim2.new(1, -20, 0, 20)
+CreditsSub.Position = UDim2.new(0, 10, 0, 75)
+CreditsSub.BackgroundTransparency = 1
+CreditsSub.Text = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛʜᴇ ᴄʟᴀssɪᴄ sᴏᴄᴄᴇʀ"
+CreditsSub.TextColor3 = Color3.fromRGB(150, 150, 170)
+CreditsSub.TextSize = 11
+CreditsSub.Font = Enum.Font.Gotham
+CreditsSub.TextXAlignment = Enum.TextXAlignment.Center
+CreditsSub.Parent = CreditsFrame
+
+ScriptTab:Button({
+    Title = "ᴄᴏᴘɪᴀʀ ɴᴏᴍᴇ ᴅᴏ ᴄʀɪᴀᴅᴏʀ",
+    Callback = function()
+        pcall(function()
+            if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘") end
+        end)
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɴᴏᴍᴇ ᴄᴏᴘɪᴀᴅᴏ!", Duration = 2, Icon = "copy"})
+    end,
+})
+
+ScriptTab:Section({ Title = "ᴀɢʀᴀᴅᴇᴄɪᴍᴇɴᴛᴏs" })
+
+local ThanksLabel = Instance.new("TextLabel")
+ThanksLabel.Size = UDim2.new(1, -10, 0, 60)
+ThanksLabel.BackgroundTransparency = 1
+ThanksLabel.Text = "ᴏʙʀɪɢᴀᴅᴏ ᴘᴏʀ ᴜsᴀʀ ᴏ ᴍᴀɴɪᴄ ʜᴜʙ!\nsᴇ ᴄᴜʀᴛɪᴜ, ᴄᴏᴍᴘᴀʀᴛɪʟʜᴀ ᴄᴏᴍ ᴏs ᴀᴍɪɢᴏs."
+ThanksLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+ThanksLabel.TextSize = 12
+ThanksLabel.Font = Enum.Font.Gotham
+ThanksLabel.TextWrapped = true
+ThanksLabel.TextXAlignment = Enum.TextXAlignment.Center
+ThanksLabel.Parent = ScriptTab.Container or ScriptTab.Page or ScriptTab
+
+print("[MANIC HUB] ᴀʙᴀ sᴄʀɪᴘᴛ ᴀᴅɪᴄɪᴏɴᴀᴅᴀ!")
+print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")
