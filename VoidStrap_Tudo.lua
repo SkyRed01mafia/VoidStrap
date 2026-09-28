@@ -1,723 +1,200 @@
---[[ MANIC HUB v2.0 - TCS Edition | PARTE 1/5 ]]
+--[[ MANIC HUB v2.0 | TCS Edition | PARTE 1/7 — Base + Rayfield ]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 getgenv().ManicHub = getgenv().ManicHub or {}
 local Flags = getgenv().ManicHub
-local DarkFont = Enum.Font.GothamBold
-local ManicAssetId = "rbxassetid://80947706998238"
 
-pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "MANIC HUB - TCS Edition",
-        Text = "Olá, " .. LocalPlayer.DisplayName .. "!",
-        Duration = 5
-    })
+-- Personagem
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+LocalPlayer.CharacterAdded:Connect(function(c)
+    Character = c
+    Humanoid = c:WaitForChild("Humanoid")
+    RootPart = c:WaitForChild("HumanoidRootPart")
 end)
 
-if CoreGui:FindFirstChild("ManicHub") then CoreGui.ManicHub:Destroy() end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = CoreGui
-ScreenGui.Name = "ManicHub"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-
--- ============================================
--- DRAG
--- ============================================
-local function makeDraggable(g)
-    local dragging, dragInput, dragStart, startPos
-    g.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = g.Position
-            input.Changed:Connect(function(s)
-                if s.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    g.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            g.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
--- ============================================
--- FPS COUNTER
--- ============================================
-local FpsBox = Instance.new("TextLabel")
-FpsBox.Parent = ScreenGui
-FpsBox.Size = UDim2.new(0, 90, 0, 34)
-FpsBox.Position = UDim2.new(0, 12, 0, 110)
-FpsBox.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-FpsBox.BackgroundTransparency = 0.3
-FpsBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-FpsBox.TextSize = 13
-FpsBox.Font = Enum.Font.GothamBold
-FpsBox.Text = "FPS 0"
-FpsBox.BorderSizePixel = 0
-FpsBox.ZIndex = 10
-local FpsC = Instance.new("UICorner"); FpsC.CornerRadius = UDim.new(0, 6); FpsC.Parent = FpsBox
-makeDraggable(FpsBox)
-
-local fpsCount, fpsTime = 0, tick()
-
--- ============================================
--- BOTÕES FLUTUANTES
--- ============================================
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Parent = ScreenGui
-ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
-ToggleBtn.Position = UDim2.new(0.02, 0, 0.3, 0)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-ToggleBtn.Text = "☰"
-ToggleBtn.TextSize = 26
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.BorderSizePixel = 0
-ToggleBtn.ZIndex = 20
-local TBc = Instance.new("UICorner"); TBc.CornerRadius = UDim.new(1, 0); TBc.Parent = ToggleBtn
-makeDraggable(ToggleBtn)
-
-local AutoBallBtn = Instance.new("TextButton")
-AutoBallBtn.Parent = ScreenGui
-AutoBallBtn.Size = UDim2.new(0, 55, 0, 55)
-AutoBallBtn.Position = UDim2.new(0.02, 0, 0.42, 0)
-AutoBallBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-AutoBallBtn.Text = "⚽"
-AutoBallBtn.TextSize = 28
-AutoBallBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoBallBtn.BorderSizePixel = 0
-AutoBallBtn.ZIndex = 20
-local ABc = Instance.new("UICorner"); ABc.CornerRadius = UDim.new(1, 0); ABc.Parent = AutoBallBtn
-makeDraggable(AutoBallBtn)
-
--- ============================================
--- MAIN FRAME
--- ============================================
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 620, 0, 400)
-MainFrame.Position = UDim2.new(0.2, 0, 0.2, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
-MainFrame.Active = true
-MainFrame.Visible = false
-MainFrame.BorderSizePixel = 0
-local Mfc = Instance.new("UICorner"); Mfc.CornerRadius = UDim.new(0, 10); Mfc.Parent = MainFrame
-makeDraggable(MainFrame)
-
--- TopBar
-local TopBar = Instance.new("Frame")
-TopBar.Parent = MainFrame
-TopBar.Size = UDim2.new(1, 0, 0, 38)
-TopBar.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-TopBar.BorderSizePixel = 0
-local TBc2 = Instance.new("UICorner"); TBc2.CornerRadius = UDim.new(0, 10); TBc2.Parent = TopBar
-
-local TitleLbl = Instance.new("TextLabel")
-TitleLbl.Parent = TopBar
-TitleLbl.Size = UDim2.new(1, -140, 1, 0)
-TitleLbl.Position = UDim2.new(0, 12, 0, 0)
-TitleLbl.BackgroundTransparency = 1
-TitleLbl.Text = "Manic - The Classic"
-TitleLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLbl.TextSize = 15
-TitleLbl.Font = Enum.Font.GothamBold
-TitleLbl.TextXAlignment = Enum.TextXAlignment.Left
-
-local SubTitle = Instance.new("TextLabel")
-SubTitle.Parent = TopBar
-SubTitle.Size = UDim2.new(0, 200, 0, 14)
-SubTitle.Position = UDim2.new(0, 12, 0, 20)
-SubTitle.BackgroundTransparency = 1
-SubTitle.Text = "manichub.qyz"
-SubTitle.TextColor3 = Color3.fromRGB(130, 130, 140)
-SubTitle.TextSize = 11
-SubTitle.Font = Enum.Font.Gotham
-SubTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local function createTopBtn(text, xPos, color, callback)
-    local b = Instance.new("TextButton")
-    b.Parent = TopBar
-    b.Size = UDim2.new(0, 26, 0, 26)
-    b.Position = UDim2.new(1, xPos, 0.5, -13)
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.TextSize = 14
-    b.Font = Enum.Font.GothamBold
-    b.BorderSizePixel = 0
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 5); c.Parent = b
-    b.MouseButton1Click:Connect(callback)
-    return b
-end
-
-local MinBtn = createTopBtn("—", -70, Color3.fromRGB(35, 40, 55), function()
-    MainFrame.Size = UDim2.new(0, 620, 0, 38)
-end)
-local MaxBtn = createTopBtn("□", -40, Color3.fromRGB(35, 40, 55), function()
-    MainFrame.Size = UDim2.new(0, 620, 0, 400)
-end)
-local CloseBtn = createTopBtn("X", -10, Color3.fromRGB(35, 40, 55), function()
-    MainFrame.Visible = false
-end)
-
--- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Parent = MainFrame
-Sidebar.Size = UDim2.new(0, 155, 1, -38)
-Sidebar.Position = UDim2.new(0, 0, 0, 38)
-Sidebar.BackgroundColor3 = Color3.fromRGB(15, 17, 24)
-Sidebar.BorderSizePixel = 0
-local Sbc = Instance.new("UICorner"); Sbc.CornerRadius = UDim.new(0, 10); Sbc.Parent = Sidebar
-
-local TabList = Instance.new("UIListLayout")
-TabList.Parent = Sidebar
-TabList.Padding = UDim.new(0, 4)
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local TabPad = Instance.new("UIPadding")
-TabPad.Parent = Sidebar
-TabPad.PaddingTop = UDim.new(0, 10)
-
--- ContentFrame
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Parent = MainFrame
-ContentFrame.Size = UDim2.new(1, -165, 1, -48)
-ContentFrame.Position = UDim2.new(0, 160, 0, 42)
-ContentFrame.BackgroundTransparency = 1
-
--- ============================================
--- SISTEMA DE ABAS
--- ============================================
-local Pages = {}
-local TabButtons = {}
-
-local function createTab(name, icon)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -12, 0, 32)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-    btn.BackgroundTransparency = 1
-    btn.Text = "   " .. (icon or "●") .. "  " .. name
-    btn.TextColor3 = Color3.fromRGB(180, 180, 190)
-    btn.TextSize = 13
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.BorderSizePixel = 0
-    btn.Parent = Sidebar
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = btn
-
-    local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.BorderSizePixel = 0
-    page.ScrollBarThickness = 4
-    page.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 200)
-    page.CanvasSize = UDim2.new(0, 0, 0, 0)
-    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    page.Visible = false
-    page.Parent = ContentFrame
-    local layout = Instance.new("UIListLayout")
-    layout.Parent = page
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 6)
-
-    Pages[name] = page
-    TabButtons[name] = btn
-
-    btn.MouseButton1Click:Connect(function()
-        for n, p in pairs(Pages) do
-            p.Visible = (n == name)
-            TabButtons[n].BackgroundTransparency = (n == name) and 0 or 1
-            TabButtons[n].BackgroundColor3 = (n == name) and Color3.fromRGB(35, 40, 55) or Color3.fromRGB(25, 28, 38)
-            TabButtons[n].TextColor3 = (n == name) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 190)
-        end
-    end)
-    return page
-end
-
-local function createSection(parent, titleText)
-    local s = Instance.new("TextLabel")
-    s.Size = UDim2.new(1, 0, 0, 22)
-    s.BackgroundTransparency = 1
-    s.Text = titleText
-    s.TextColor3 = Color3.fromRGB(140, 140, 160)
-    s.TextSize = 11
-    s.Font = Enum.Font.GothamBold
-    s.TextXAlignment = Enum.TextXAlignment.Left
-    s.Parent = parent
-    return s
-end--[[ MANIC HUB | PARTE 2/5 ]]
-
--- ============================================
--- TOGGLE
--- ============================================
-local function createToggle(parent, title, default, callback)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 38)
-    row.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-    row.BackgroundTransparency = 0.3
-    row.BorderSizePixel = 0
-    row.Parent = parent
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = row
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = row
-    lbl.Size = UDim2.new(0.7, 0, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = title
-    lbl.TextColor3 = Color3.fromRGB(230, 230, 240)
-    lbl.TextSize = 13
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local sw = Instance.new("TextButton")
-    sw.Parent = row
-    sw.Size = UDim2.new(0, 42, 0, 22)
-    sw.Position = UDim2.new(1, -52, 0.5, -11)
-    sw.BackgroundColor3 = default and Color3.fromRGB(90, 60, 200) or Color3.fromRGB(50, 50, 65)
-    sw.Text = ""
-    sw.BorderSizePixel = 0
-    local sc = Instance.new("UICorner"); sc.CornerRadius = UDim.new(1, 0); sc.Parent = sw
-
-    local dot = Instance.new("Frame")
-    dot.Parent = sw
-    dot.Size = UDim2.new(0, 16, 0, 16)
-    dot.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-    dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    dot.BorderSizePixel = 0
-    local dc = Instance.new("UICorner"); dc.CornerRadius = UDim.new(1, 0); dc.Parent = dot
-
-    local state = default
-    sw.MouseButton1Click:Connect(function()
-        state = not state
-        sw.BackgroundColor3 = state and Color3.fromRGB(90, 60, 200) or Color3.fromRGB(50, 50, 65)
-        dot.Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-        callback(state)
-    end)
-    return row
-end
-
--- ============================================
--- SLIDER
--- ============================================
-local function createSlider(parent, title, min, max, default, callback)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 52)
-    row.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-    row.BackgroundTransparency = 0.3
-    row.BorderSizePixel = 0
-    row.Parent = parent
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = row
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = row
-    lbl.Size = UDim2.new(0.6, 0, 0, 20)
-    lbl.Position = UDim2.new(0, 12, 0, 4)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = title
-    lbl.TextColor3 = Color3.fromRGB(230, 230, 240)
-    lbl.TextSize = 12
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local vLbl = Instance.new("TextLabel")
-    vLbl.Parent = row
-    vLbl.Size = UDim2.new(0.3, 0, 0, 20)
-    vLbl.Position = UDim2.new(0.65, 0, 0, 4)
-    vLbl.BackgroundTransparency = 1
-    vLbl.Text = tostring(default)
-    vLbl.TextColor3 = Color3.fromRGB(150, 120, 255)
-    vLbl.TextSize = 12
-    vLbl.Font = Enum.Font.GothamBold
-    vLbl.TextXAlignment = Enum.TextXAlignment.Right
-
-    local bar = Instance.new("Frame")
-    bar.Parent = row
-    bar.Size = UDim2.new(1, -24, 0, 6)
-    bar.Position = UDim2.new(0, 12, 1, -16)
-    bar.BackgroundColor3 = Color3.fromRGB(45, 48, 60)
-    bar.BorderSizePixel = 0
-    local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(1, 0); bc.Parent = bar
-
-    local fill = Instance.new("Frame")
-    fill.Parent = bar
-    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(120, 90, 220)
-    fill.BorderSizePixel = 0
-    local fc = Instance.new("UICorner"); fc.CornerRadius = UDim.new(1, 0); fc.Parent = fill
-
-    local dragging = false
-    bar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true end
-    end)
-    bar.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end
-    end)
-    UserInputService.InputChanged:Connect(function(i)
-        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local pos = math.clamp((i.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-            local val = math.floor(min + (max - min) * pos)
-            fill.Size = UDim2.new(pos, 0, 1, 0)
-            vLbl.Text = tostring(val)
-            callback(val)
-        end
-    end)
-    return row
-end
-
--- ============================================
--- COLOR PICKER AVANÇADO
--- ============================================
-local function createColorPicker(parent, title, defaultColor, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 38)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-    btn.BackgroundTransparency = 0.3
-    btn.Text = ""
-    btn.BorderSizePixel = 0
-    btn.Parent = parent
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = btn
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = btn
-    lbl.Size = UDim2.new(0.7, 0, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = title
-    lbl.TextColor3 = Color3.fromRGB(230, 230, 240)
-    lbl.TextSize = 13
-    lbl.Font = Enum.Font.GothamMedium
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-    local prev = Instance.new("Frame")
-    prev.Parent = btn
-    prev.Size = UDim2.new(0, 24, 0, 24)
-    prev.Position = UDim2.new(1, -34, 0.5, -12)
-    prev.BackgroundColor3 = defaultColor
-    prev.BorderSizePixel = 0
-    local pc = Instance.new("UICorner"); pc.CornerRadius = UDim.new(0, 5); pc.Parent = prev
-
-    btn.MouseButton1Click:Connect(function()
-        local pop = Instance.new("Frame")
-        pop.Size = UDim2.new(0, 500, 0, 280)
-        pop.Position = UDim2.new(0.5, -250, 0.5, -140)
-        pop.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
-        pop.BorderSizePixel = 0
-        pop.ZIndex = 200
-        pop.Parent = ScreenGui
-        local ppc = Instance.new("UICorner"); ppc.CornerRadius = UDim.new(0, 12); ppc.Parent = pop
-        makeDraggable(pop)
-
-        local title2 = Instance.new("TextLabel")
-        title2.Parent = pop
-        title2.Size = UDim2.new(1, -20, 0, 26)
-        title2.Position = UDim2.new(0, 15, 0, 10)
-        title2.BackgroundTransparency = 1
-        title2.Text = "Map Color"
-        title2.TextColor3 = Color3.fromRGB(255, 255, 255)
-        title2.TextSize = 15
-        title2.Font = Enum.Font.GothamBold
-        title2.TextXAlignment = Enum.TextXAlignment.Left
-
-        -- HSV Square
-        local sv = Instance.new("ImageLabel")
-        sv.Parent = pop
-        sv.Size = UDim2.new(0, 260, 0, 180)
-        sv.Position = UDim2.new(0, 15, 0, 45)
-        sv.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        sv.Image = "rbxassetid://4155801252"
-        sv.BorderSizePixel = 0
-        sv.ZIndex = 201
-        local svc = Instance.new("UICorner"); svc.CornerRadius = UDim.new(0, 4); svc.Parent = sv
-
-        local cursor = Instance.new("Frame")
-        cursor.Parent = sv
-        cursor.Size = UDim2.new(0, 10, 0, 10)
-        cursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        cursor.BorderSizePixel = 2
-        cursor.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        cursor.ZIndex = 202
-        local cc = Instance.new("UICorner"); cc.CornerRadius = UDim.new(1, 0); cc.Parent = cursor
-
-        -- Hue bar
-        local hueBar = Instance.new("ImageLabel")
-        hueBar.Parent = pop
-        hueBar.Size = UDim2.new(0, 18, 0, 180)
-        hueBar.Position = UDim2.new(0, 285, 0, 45)
-        hueBar.BackgroundTransparency = 1
-        hueBar.Image = "rbxassetid://6020205287"
-        hueBar.ZIndex = 201
-
-        local hCursor = Instance.new("Frame")
-        hCursor.Parent = hueBar
-        hCursor.Size = UDim2.new(1, 4, 0, 4)
-        hCursor.Position = UDim2.new(0, -2, 0, -2)
-        hCursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        hCursor.BorderSizePixel = 2
-        hCursor.BorderColor3 = Color3.fromRGB(0, 0, 0)
-        hCursor.ZIndex = 202
-
-        local previewBox = Instance.new("Frame")
-        previewBox.Parent = pop
-        previewBox.Size = UDim2.new(0, 40, 0, 40)
-        previewBox.Position = UDim2.new(0, 430, 0, 230)
-        previewBox.BackgroundColor3 = defaultColor
-        previewBox.BorderSizePixel = 0
-        previewBox.ZIndex = 201
-        local pbc = Instance.new("UICorner"); pbc.CornerRadius = UDim.new(0, 6); pbc.Parent = previewBox
-
-        -- Inputs
-        local inputs = {}
-        local labels = {"Hex", "Red", "Green", "Blue"}
-        local yPos = 45
-        for i, lab in ipairs(labels) do
-            local box = Instance.new("TextBox")
-            box.Parent = pop
-            box.Size = UDim2.new(0, 130, 0, 28)
-            box.Position = UDim2.new(0, 315, 0, yPos)
-            box.BackgroundColor3 = Color3.fromRGB(30, 33, 42)
-            box.TextColor3 = Color3.fromRGB(255, 255, 255)
-            box.TextSize = 13
-            box.Font = Enum.Font.GothamBold
-            box.Text = (i == 1) and "#ffffff" or "255"
-            box.BorderSizePixel = 0
-            box.TextXAlignment = Enum.TextXAlignment.Left
-            box.ZIndex = 201
-            local boxc = Instance.new("UICorner"); boxc.CornerRadius = UDim.new(0, 5); boxc.Parent = box
-            local pad = Instance.new("UIPadding"); pad.Parent = box; pad.PaddingLeft = UDim.new(0, 10)
-
-            local labL = Instance.new("TextLabel")
-            labL.Parent = pop
-            labL.Size = UDim2.new(0, 80, 0, 28)
-            labL.Position = UDim2.new(0, 455, 0, yPos)
-            labL.BackgroundTransparency = 1
-            labL.Text = lab
-            labL.TextColor3 = Color3.fromRGB(140, 140, 160)
-            labL.TextSize = 12
-            labL.Font = Enum.Font.Gotham
-            labL.TextXAlignment = Enum.TextXAlignment.Left
-            labL.ZIndex = 201
-
-            inputs[lab] = box
-            yPos = yPos + 34
-        end
-
-        -- Botões
-        local cancelBtn = Instance.new("TextButton")
-        cancelBtn.Parent = pop
-        cancelBtn.Size = UDim2.new(0, 200, 0, 36)
-        cancelBtn.Position = UDim2.new(0, 15, 1, -50)
-        cancelBtn.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
-        cancelBtn.Text = "Cancel"
-        cancelBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        cancelBtn.TextSize = 13
-        cancelBtn.Font = Enum.Font.GothamBold
-        cancelBtn.BorderSizePixel = 0
-        cancelBtn.ZIndex = 201
-        local cbc = Instance.new("UICorner"); cbc.CornerRadius = UDim.new(0, 6); cbc.Parent = cancelBtn
-
-        local applyBtn = Instance.new("TextButton")
-        applyBtn.Parent = pop
-        applyBtn.Size = UDim2.new(0, 260, 0, 36)
-        applyBtn.Position = UDim2.new(1, -275, 1, -50)
-        applyBtn.BackgroundColor3 = Color3.fromRGB(80, 60, 160)
-        applyBtn.Text = "Apply"
-        applyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        applyBtn.TextSize = 13
-        applyBtn.Font = Enum.Font.GothamBold
-        applyBtn.BorderSizePixel = 0
-        applyBtn.ZIndex = 201
-        local abc = Instance.new("UICorner"); abc.CornerRadius = UDim.new(0, 6); abc.Parent = applyBtn
-
-        -- Estado HSV
-        local h, s, v = 0, 1, 1
-        local currentColor = defaultColor
-        if defaultColor.R > 0 or defaultColor.G > 0 or defaultColor.B > 0 then
-            h, s, v = Color3.toHSV(defaultColor)
-        end
-
-        local function updateFromHSV()
-            currentColor = Color3.fromHSV(h, s, v)
-            sv.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-            previewBox.BackgroundColor3 = currentColor
-            inputs["Hex"].Text = "#" .. string.format("%02x%02x%02x",
-                math.floor(currentColor.R*255),
-                math.floor(currentColor.G*255),
-                math.floor(currentColor.B*255))
-            inputs["Red"].Text = tostring(math.floor(currentColor.R*255))
-            inputs["Green"].Text = tostring(math.floor(currentColor.G*255))
-            inputs["Blue"].Text = tostring(math.floor(currentColor.B*255))
-            cursor.Position = UDim2.new(s, -5, 1 - v, -5)
-            hCursor.Position = UDim2.new(0, -2, h, -2)
-        end
-        updateFromHSV()
-
-        -- Drag square
-        local svDrag = false
-        sv.InputBegan:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then svDrag = true end
-        end)
-        UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then svDrag = false end
-        end)
-        UserInputService.InputChanged:Connect(function(i)
-            if svDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                s = math.clamp((i.Position.X - sv.AbsolutePosition.X) / sv.AbsoluteSize.X, 0, 1)
-                v = 1 - math.clamp((i.Position.Y - sv.AbsolutePosition.Y) / sv.AbsoluteSize.Y, 0, 1)
-                updateFromHSV()
-            end
-        end)
-
-        -- Drag hue
-        local hDrag = false
-        hueBar.InputBegan:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then hDrag = true end
-        end)
-        UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then hDrag = false end
-        end)
-        UserInputService.InputChanged:Connect(function(i)
-            if hDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                h = math.clamp((i.Position.Y - hueBar.AbsolutePosition.Y) / hueBar.AbsoluteSize.Y, 0, 1)
-                updateFromHSV()
-            end
-        end)
-
-        -- Inputs handlers
-        inputs["Hex"].FocusLost:Connect(function()
-            local hex = inputs["Hex"].Text:gsub("#", "")
-            local r = tonumber(hex:sub(1,2), 16) or 255
-            local g = tonumber(hex:sub(3,4), 16) or 255
-            local b = tonumber(hex:sub(5,6), 16) or 255
-            currentColor = Color3.fromRGB(r, g, b)
-            h, s, v = Color3.toHSV(currentColor)
-            updateFromHSV()
-        end)
-        for _, lab in ipairs({"Red", "Green", "Blue"}) do
-            inputs[lab].FocusLost:Connect(function()
-                local r = tonumber(inputs["Red"].Text) or 255
-                local g = tonumber(inputs["Green"].Text) or 255
-                local b = tonumber(inputs["Blue"].Text) or 255
-                currentColor = Color3.fromRGB(r, g, b)
-                h, s, v = Color3.toHSV(currentColor)
-                updateFromHSV()
-            end)
-        end
-
-        cancelBtn.MouseButton1Click:Connect(function() pop:Destroy() end)
-        applyBtn.MouseButton1Click:Connect(function()
-            prev.BackgroundColor3 = currentColor
-            callback(currentColor)
-            pop:Destroy()
-        end)
-    end)
-    return btn
-    end--[[ MANIC HUB | PARTE 3/5 - TCS Assets ]]
-
--- ============================================
--- DETECÇÃO DE BOLA (TCS)
--- ============================================
-local function getBall()
-    -- Busca direta
-    local ball = Workspace:FindFirstChild("Ball")
-    if ball and ball:IsA("BasePart") then return ball end
-
-    ball = Workspace:FindFirstChild("Bola")
-    if ball and ball:IsA("BasePart") then return ball end
-
-    -- Busca em pastas
-    for _, folder in ipairs(Workspace:GetChildren()) do
-        if folder:IsA("Folder") or folder:IsA("Model") then
-            local b = folder:FindFirstChild("Ball") or folder:FindFirstChild("Bola")
-            if b and b:IsA("BasePart") then return b end
-        end
-    end
-
-    -- Fallback
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name:lower():find("ball") then
-            return obj
-        end
-    end
-    return nil
-end
-
--- ============================================
--- DETECÇÃO DE GOL ADVERSÁRIO (TCS)
--- ============================================
-local function getOpponentGoal()
-    local Character = LocalPlayer.Character
-    local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
-    if not RootPart then return nil end
-
-    local goals = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        local n = obj.Name:lower()
-        if n:find("goal") or n:find("gol") then
-            if obj:IsA("BasePart") then
-                table.insert(goals, obj)
-            elseif obj:IsA("Model") and obj.PrimaryPart then
-                table.insert(goals, obj.PrimaryPart)
-            end
-        end
-    end
-
-    if #goals == 0 then return nil end
-
-    -- Gol mais distante = gol adversário
-    local myPos = RootPart.Position
-    local far = goals[1]
-    local maxDist = 0
-    for _, g in ipairs(goals) do
-        local d = (g.Position - myPos).Magnitude
-        if d > maxDist then
-            maxDist = d
-            far = g
-        end
-    end
-    return far
-end
-
--- ============================================
--- ABA SKYBOX
--- ============================================
-local SkyPage = createTab("Skybox", "☁")
-createSection(SkyPage, "SKYBOXES DISPONÍVEIS")
-
-local SkyIDs = {
-    {name = "Cinematic", id = "8808550143"},
-    {name = "Night",     id = "13107361022"},
-    {name = "Blue Sky",  id = "570557337"},
-    {name = "Sky 4",     id = "570559352"},
-    {name = "Galaxy",    id = "8735253332"},
-    {name = "Nebula",    id = "10256505900"},
-    {name = "Tropical",  id = "566612745"},
-    {name = "Aurora",    id = "87779981190120"},
-    {name = "Dark",      id = "138907351102721"},
-    {name = "Fantasy",   id = "92363876322534"},
-    {name = "Desert",    id = "5952679029"},
+-- Backups
+local Backups = {
+    Grass = {},
+    Lighting = {
+        Ambient = Lighting.Ambient,
+        OutdoorAmbient = Lighting.OutdoorAmbient,
+        ColorShift_Top = Lighting.ColorShift_Top,
+        ColorShift_Bottom = Lighting.ColorShift_Bottom,
+        Brightness = Lighting.Brightness,
+        ClockTime = Lighting.ClockTime,
+        FogEnd = Lighting.FogEnd,
+        FogColor = Lighting.FogColor,
+    }
 }
 
-local function applySkybox(assetId)
+-- Estado global
+local State = {
+    AutoBall = false, AutoDrive = false, AutoCatch = false, Reach = false,
+    ReachDistance = 10, PlayerSpeed = 16, Trail = false,
+    StretchH = false, StretchV = false,
+    BallColor = nil, BallFire = false,
+    GrassColor = nil, Skybox = nil, GraphicPreset = nil, BoomBoxSound = nil,
+}
+
+-- FTI
+local FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
+print("[MANIC HUB] firetouchinterest:", FTI ~= nil)
+
+-- Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Manic Hub",
+    Icon = 0,
+    LoadingTitle = "Manic Hub",
+    LoadingSubtitle = "TCS Edition",
+    Theme = "Default",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ManicHub",
+        FileName = "ManicConfig"
+    },
+    Discord = { Enabled = false },
+    KeySystem = false,
+})
+
+Rayfield:Notify({
+    Title = "Manic Hub",
+    Content = "Carregado com sucesso!",
+    Duration = 5,
+    Image = 4483362458,
+})
+
+UserInputService.InputBegan:Connect(function(i, gp)
+    if gp then return end
+    if i.KeyCode == Enum.KeyCode.LeftShift then
+        Rayfield:ToggleWindow()
+    end
+end)--[[ MANIC HUB | PARTE 2/7 — MAPA ]]
+
+local MapTab = Window:CreateTab("ᴍᴀᴘᴀ", 4483362458)
+MapTab:CreateSection("🎨 Cor do Gramado")
+
+local function EhGrama(obj)
+    if not obj:IsA("BasePart") then return false end
+    if obj.Material == Enum.Material.Grass then return true end
+    local n = string.lower(obj.Name)
+    return (string.find(n, "grass") or string.find(n, "grama")
+        or string.find(n, "gramado") or string.find(n, "campo")
+        or string.find(n, "field") or string.find(n, "pitch")
+        or string.find(n, "turf")) ~= nil
+end
+
+local function SalvarGrama()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and EhGrama(obj) then
+            if not Backups.Grass[obj] then
+                Backups.Grass[obj] = {Color = obj.Color, Material = obj.Material}
+            end
+        end
+    end
+end
+
+local function AplicarCorGrama(cor)
+    SalvarGrama()
+    State.GrassColor = cor
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and EhGrama(obj) then
+            pcall(function()
+                obj.Color = cor
+                if obj:IsA("MeshPart") then obj.TextureID = "" end
+                for _, c in ipairs(obj:GetChildren()) do
+                    if c:IsA("Texture") or c:IsA("Decal") then c.Transparency = 1 end
+                end
+            end)
+        end
+    end
+end
+
+local function RestaurarGrama()
+    for obj, data in pairs(Backups.Grass) do
+        if obj and obj.Parent then
+            pcall(function()
+                obj.Color = data.Color
+                obj.Material = data.Material
+                for _, c in ipairs(obj:GetChildren()) do
+                    if c:IsA("Texture") or c:IsA("Decal") then c.Transparency = 0 end
+                end
+            end)
+        end
+    end
+    State.GrassColor = nil
+end
+
+MapTab:CreateColorPicker({
+    Name = "Map Color",
+    Color = Color3.fromRGB(60, 145, 60),
+    Flag = "GrassColor",
+    Callback = function(color) AplicarCorGrama(color) end,
+})
+
+MapTab:CreateButton({
+    Name = "↩ Restaurar Grama Original",
+    Callback = function()
+        RestaurarGrama()
+        Rayfield:Notify({Title = "Mapa", Content = "Grama restaurada!", Duration = 2})
+    end,
+})
+
+spawn(function()
+    while true do
+        task.wait(1)
+        if State.GrassColor then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and EhGrama(obj) and obj.Color ~= State.GrassColor then
+                    pcall(function() obj.Color = State.GrassColor end)
+                end
+            end
+        end
+    end
+end)
+
+-- ============================================
+-- SKYBOX
+-- ============================================
+MapTab:CreateSection("☁ Skybox")
+
+local SkyboxIDs = {
+    {Name = "Cinematic", ID = "8202961731"},
+    {Name = "Sunset", ID = "2758029221"},
+    {Name = "Night", ID = "13107361022"},
+    {Name = "Nebula", ID = "7108851308"},
+    {Name = "Tropical", ID = "339406852"},
+    {Name = "Aurora", ID = "15502592084"},
+    {Name = "Galaxy", ID = "15359965253"},
+    {Name = "Fantasy", ID = "15470370280"},
+    {Name = "Blue Sky", ID = "8808550143"},
+    {Name = "Dark", ID = "10594723714"},
+}
+
+local function AplicarSkybox(assetId)
     pcall(function()
-        for _, v in ipairs(Lighting:GetChildren()) do
+        for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("Sky") then v:Destroy() end
+        end
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Atmosphere") then v:Destroy() end
         end
         local sky = Instance.new("Sky")
         sky.Name = "Manic_Sky"
@@ -728,551 +205,965 @@ local function applySkybox(assetId)
         sky.SkyboxRt = "rbxassetid://" .. assetId
         sky.SkyboxUp = "rbxassetid://" .. assetId
         sky.Parent = Lighting
+        State.Skybox = assetId
     end)
 end
 
-for _, s in ipairs(SkyIDs) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 32)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 30, 42)
-    btn.BackgroundTransparency = 0.2
-    btn.Text = "  " .. s.name
-    btn.TextColor3 = Color3.fromRGB(230, 230, 240)
-    btn.TextSize = 13
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.BorderSizePixel = 0
-    btn.Parent = SkyPage
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = btn
-
-    btn.MouseButton1Click:Connect(function()
-        applySkybox(s.id)
-        Flags.Skybox = s.name
-    end)
+for _, sky in ipairs(SkyboxIDs) do
+    MapTab:CreateButton({
+        Name = "☁ " .. sky.Name,
+        Callback = function()
+            AplicarSkybox(sky.ID)
+            Rayfield:Notify({Title = "Skybox", Content = sky.Name .. " aplicada!", Duration = 2})
+        end,
+    })
 end
 
-createSection(SkyPage, "REMOVER")
-local removeSky = Instance.new("TextButton")
-removeSky.Size = UDim2.new(1, 0, 0, 32)
-removeSky.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-removeSky.Text = "  ❌ Remover Skybox"
-removeSky.TextColor3 = Color3.fromRGB(255, 255, 255)
-removeSky.TextSize = 13
-removeSky.Font = Enum.Font.GothamBold
-removeSky.TextXAlignment = Enum.TextXAlignment.Left
-removeSky.BorderSizePixel = 0
-removeSky.Parent = SkyPage
-local rsc = Instance.new("UICorner"); rsc.CornerRadius = UDim.new(0, 6); rsc.Parent = removeSky
-removeSky.MouseButton1Click:Connect(function()
+MapTab:CreateButton({
+    Name = "↩ Remover Skybox Customizada",
+    Callback = function()
+        pcall(function()
+            for _, v in ipairs(Lighting:GetDescendants()) do
+                if v:IsA("Sky") then v:Destroy() end
+            end
+        end)
+        State.Skybox = nil
+    end,
+})
+
+spawn(function()
+    while true do
+        task.wait(2)
+        if State.Skybox and not Lighting:FindFirstChild("Manic_Sky") then
+            AplicarSkybox(State.Skybox)
+        end
+    end
+end)
+
+-- ============================================
+-- GRÁFICOS
+-- ============================================
+MapTab:CreateSection("🌅 Gráficos")
+
+local function ResetarLighting()
     pcall(function()
-        for _, v in ipairs(Lighting:GetChildren()) do
-            if v:IsA("Sky") then v:Destroy() end
+        Lighting.Ambient = Backups.Lighting.Ambient
+        Lighting.OutdoorAmbient = Backups.Lighting.OutdoorAmbient
+        Lighting.ColorShift_Top = Backups.Lighting.ColorShift_Top
+        Lighting.ColorShift_Bottom = Backups.Lighting.ColorShift_Bottom
+        Lighting.Brightness = Backups.Lighting.Brightness
+        Lighting.ClockTime = Backups.Lighting.ClockTime
+        Lighting.FogEnd = Backups.Lighting.FogEnd
+        Lighting.FogColor = Backups.Lighting.FogColor
+        Lighting.GlobalShadows = true
+    end)
+end
+
+local function AplicarFlorido()
+    ResetarLighting()
+    pcall(function()
+        Lighting.Ambient = Color3.fromRGB(255, 200, 230)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 220)
+        Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 200)
+        Lighting.ColorShift_Bottom = Color3.fromRGB(255, 100, 180)
+        Lighting.Brightness = 2.5
+        Lighting.ClockTime = 14
+        Lighting.FogColor = Color3.fromRGB(255, 200, 230)
+    end)
+end
+
+local function AplicarBonito()
+    ResetarLighting()
+    pcall(function()
+        Lighting.Ambient = Color3.fromRGB(90, 90, 90)
+        Lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = true
+    end)
+end
+
+local function AplicarSol()
+    ResetarLighting()
+    pcall(function()
+        Lighting.Ambient = Color3.fromRGB(255, 200, 150)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 180, 120)
+        Lighting.ColorShift_Top = Color3.fromRGB(255, 150, 60)
+        Lighting.ColorShift_Bottom = Color3.fromRGB(255, 120, 40)
+        Lighting.Brightness = 3
+        Lighting.ClockTime = 17
+        Lighting.FogColor = Color3.fromRGB(255, 200, 150)
+    end)
+end
+
+local function AplicarRecomendado()
+    ResetarLighting()
+    pcall(function()
+        Lighting.Ambient = Color3.fromRGB(80, 80, 80)
+        Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 120)
+        Lighting.ColorShift_Top = Color3.fromRGB(200, 200, 200)
+        Lighting.ColorShift_Bottom = Color3.fromRGB(50, 50, 50)
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = true
+    end)
+end
+
+MapTab:CreateButton({Name = "🌸 Florido (Gradiente Rosa)",
+    Callback = function() AplicarFlorido(); State.GraphicPreset = "Florido" end})
+MapTab:CreateButton({Name = "🎬 Bonito (Realista)",
+    Callback = function() AplicarBonito(); State.GraphicPreset = "Bonito" end})
+MapTab:CreateButton({Name = "🌞 Sol (Realista Laranja)",
+    Callback = function() AplicarSol(); State.GraphicPreset = "Sol" end})
+MapTab:CreateButton({Name = "⭐ Recomendado (Branco e Preto)",
+    Callback = function() AplicarRecomendado(); State.GraphicPreset = "Recomendado" end})
+MapTab:CreateButton({Name = "↩ Resetar Gráficos",
+    Callback = function() ResetarLighting(); State.GraphicPreset = nil end})--[[ MANIC HUB | PARTE 3/7 — Boom Box + Auto Follow ]]
+
+local BoomTab = Window:CreateTab("ʙᴏᴏᴍ ʙᴏx", 4483362458)
+BoomTab:CreateSection("🎵 Músicas")
+
+local function TocarMusica(id)
+    pcall(function()
+        if State.BoomBoxSound then State.BoomBoxSound:Destroy() end
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://" .. id
+        sound.Volume = 2
+        sound.Looped = false
+        sound.Parent = Character:FindFirstChild("HumanoidRootPart") or Workspace
+        sound:Play()
+        State.BoomBoxSound = sound
+    end)
+end
+
+local Musicas = {
+    {Nome = "🎵 Meant To Be", ID = "84321228471359"},
+    {Nome = "🎵 Misery", ID = "128715303988843"},
+    {Nome = "🎵 Blodlyn Bloodpop", ID = "96414211708215"},
+}
+
+for _, m in ipairs(Musicas) do
+    BoomTab:CreateButton({
+        Name = m.Nome,
+        Callback = function()
+            TocarMusica(m.ID)
+            Rayfield:Notify({Title = "Boom Box", Content = "Tocando: " .. m.Nome, Duration = 2})
+        end,
+    })
+end
+
+BoomTab:CreateSection("🎵 Custom")
+BoomTab:CreateInput({
+    Name = "ID da Música",
+    PlaceholderText = "Digite o ID...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        if text and text ~= "" then TocarMusica(text) end
+    end,
+})
+
+BoomTab:CreateButton({
+    Name = "⏹ Parar Música",
+    Callback = function()
+        if State.BoomBoxSound then
+            pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
+            State.BoomBoxSound = nil
+        end
+    end,
+})
+
+-- ============================================
+-- BALL: Auto Follow
+-- ============================================
+local BallTab = Window:CreateTab("ʙᴀʟʟ", 4483362458)
+BallTab:CreateSection("⚽ Auto Follow")
+
+local AutoFollowConnection = nil
+local CurrentBall = nil
+local ScanTimer = 0
+local StopDistance = 0.2
+local SteerStrength = 1.25
+local PlayerControls = nil
+
+pcall(function()
+    local PM = require(LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+    PlayerControls = PM:GetControls()
+end)
+
+local function GetChar()
+    local c = LocalPlayer.Character
+    if not c then return nil, nil, nil end
+    return c, c:FindFirstChildOfClass("Humanoid"), c:FindFirstChild("HumanoidRootPart")
+end
+
+local function IsValidBall(part)
+    if not part or not part.Parent or not part:IsA("BasePart") then return false end
+    if part:IsDescendantOf(LocalPlayer.Character) then return false end
+    if part.Anchored then return false end
+    local n = string.lower(part.Name)
+    if n ~= "tps" and n ~= "ball" and n ~= "bola" then return false end
+    local b = math.max(part.Size.X, part.Size.Y, part.Size.Z)
+    local s = math.min(part.Size.X, part.Size.Y, part.Size.Z)
+    if b < 0.5 or b > 8 then return false end
+    if s / b < 0.55 then return false end
+    return true
+end
+
+local function FindClosestBall()
+    local _, _, root = GetChar()
+    if not root then return nil end
+    local closest, cd = nil, math.huge
+    for _, p in ipairs(Workspace:GetDescendants()) do
+        if IsValidBall(p) then
+            local off = Vector3.new(p.Position.X - root.Position.X, 0, p.Position.Z - root.Position.Z)
+            if off.Magnitude < cd then cd = off.Magnitude; closest = p end
+        end
+    end
+    return closest
+end
+
+local function GetManualDir()
+    local cam = Workspace.CurrentCamera
+    if not cam then return Vector3.zero end
+    local fwd = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z)
+    local rgt = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z)
+    if fwd.Magnitude > 0 then fwd = fwd.Unit end
+    if rgt.Magnitude > 0 then rgt = rgt.Unit end
+    if PlayerControls then
+        local ok, mv = pcall(function() return PlayerControls:GetMoveVector() end)
+        if ok and mv then
+            local d = rgt * mv.X + fwd * -mv.Z
+            if d.Magnitude > 1 then d = d.Unit end
+            if d.Magnitude > 0.01 then return d end
+        end
+    end
+    local d = Vector3.zero
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then d += fwd end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then d -= fwd end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then d += rgt end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then d -= rgt end
+    if d.Magnitude > 1 then d = d.Unit end
+    return d
+end
+
+local function StartAutoBall()
+    if AutoFollowConnection then AutoFollowConnection:Disconnect() end
+    State.AutoBall = true
+    CurrentBall = nil
+    ScanTimer = 1
+
+    AutoFollowConnection = RunService.RenderStepped:Connect(function(dt)
+        if not State.AutoBall then return end
+        local _, hum, root = GetChar()
+        if not hum or not root or hum.Health <= 0 then return end
+        hum.AutoRotate = true
+        ScanTimer += dt
+
+        local inv = not CurrentBall or not CurrentBall.Parent
+        if CurrentBall and CurrentBall.Parent and not IsValidBall(CurrentBall) then inv = true end
+
+        if inv or ScanTimer >= 0.25 then
+            ScanTimer = 0
+            CurrentBall = FindClosestBall()
+        end
+
+        local ball = CurrentBall
+        if not ball or not ball.Parent then return end
+
+        local toBall = Vector3.new(ball.Position.X - root.Position.X, 0, ball.Position.Z - root.Position.Z)
+        local dist = toBall.Magnitude
+        local manual = GetManualDir()
+
+        if dist > StopDistance then
+            local fl = toBall.Unit
+            local fin = fl
+            if manual.Magnitude > 0.01 then
+                local amt = math.clamp(manual.Magnitude, 0, 1)
+                fin = fl * (1 - amt * 0.45) + manual * SteerStrength
+                if fin.Magnitude > 0 then fin = fin.Unit end
+            end
+            hum:Move(fin, false)
+        elseif manual.Magnitude > 0.01 then
+            hum:Move(manual, false)
         end
     end)
-end)
+end
 
--- ============================================
--- ABA BOLA
--- ============================================
-local BallPage = createTab("Ball", "●")
-createSection(BallPage, "APARÊNCIA")
-
-local BallColor = Color3.fromRGB(255, 255, 255)
-createToggle(BallPage, "Mudar Cor da Bola", false, function(a)
-    Flags.BallColorActive = a
-end)
-createColorPicker(BallPage, "Cor da Bola", BallColor, function(c)
-    BallColor = c
-    Flags.BallColor = c
-end)
-createToggle(BallPage, "Fogo na Bola", false, function(a)
-    Flags.BallFire = a
-end)
-
-createSection(BallPage, "TRAIL")
-local TrailEnabled, TrailColor, TrailWidth = false, Color3.fromRGB(120, 90, 220), 2
-
-local function updateTrail()
-    local ball = getBall(); if not ball then return end
-    local t = ball:FindFirstChild("Manic_BallTrail")
-    if TrailEnabled then
-        if not t then
-            t = Instance.new("Trail")
-            t.Name = "Manic_BallTrail"
-            local a0 = Instance.new("Attachment", ball); a0.Name = "Manic_A0"
-            local a1 = Instance.new("Attachment", ball); a1.Name = "Manic_A1"
-            a1.Position = Vector3.new(0, 0, 0.1)
-            t.Attachment0 = a0; t.Attachment1 = a1
-            t.Lifetime = 0.5
-            t.Parent = ball
-        end
-        t.Color = ColorSequence.new(TrailColor)
-        t.WidthScale = NumberSequence.new(TrailWidth / 10)
-    elseif t then
-        t:Destroy()
+local function StopAutoBall()
+    State.AutoBall = false
+    CurrentBall = nil
+    if AutoFollowConnection then
+        AutoFollowConnection:Disconnect()
+        AutoFollowConnection = nil
     end
 end
 
-createToggle(BallPage, "Trail na Bola", false, function(a) TrailEnabled = a; updateTrail() end)
-createColorPicker(BallPage, "Cor do Trail", TrailColor, function(c) TrailColor = c; updateTrail() end)
-createSlider(BallPage, "Largura do Trail", 1, 10, 2, function(v) TrailWidth = v; updateTrail() end)
+BallTab:CreateToggle({
+    Name = "Auto Follow (Seguir Bola)",
+    CurrentValue = false,
+    Flag = "AutoFollow",
+    Callback = function(v)
+        if v then StartAutoBall() else StopAutoBall() end
+    end,
+})
 
--- ============================================
--- ABA MAPA
--- ============================================
-local MapPage = createTab("Map Color", "🎨")
-createSection(MapPage, "COR DO MAPA")
+BallTab:CreateSlider({
+    Name = "Distância de Parada",
+    Range = {1, 50}, Increment = 1, Suffix = "x10",
+    CurrentValue = 2, Flag = "StopDistance",
+    Callback = function(v) StopDistance = v / 10 end,
+})
 
-local MapColor = Color3.fromRGB(80, 180, 80)
-local function applyMapColor(c)
-    MapColor = c
+BallTab:CreateSlider({
+    Name = "Força do Steering",
+    Range = {1, 30}, Increment = 1, Suffix = "x10",
+    CurrentValue = 13, Flag = "SteerStrength",
+    Callback = function(v) SteerStrength = v / 10 end,
+})--[[ MANIC HUB | PARTE 4/7 — Ball: Cor + Fogo + Curva ]]
+
+BallTab:CreateSection("🎨 Aparência da Ball")
+
+local BallTextureBackup = {}
+
+local function SalvarTexturasBall(ball)
+    if BallTextureBackup[ball] then return end
+    local data = {Decals = {}, MeshTexId = nil, Mesh = nil, Cor = ball.Color, Material = ball.Material}
     pcall(function()
-        local terrain = Workspace:FindFirstChildOfClass("Terrain")
-        if terrain then
-            terrain:SetMaterialColor(Enum.Material.Grass, c)
+        if ball:IsA("MeshPart") then data.TextureID = ball.TextureID end
+    end)
+    local mesh = ball:FindFirstChildWhichIsA("SpecialMesh")
+    if mesh then
+        data.MeshTexId = mesh.TextureId
+        data.Mesh = mesh
+    end
+    for _, c in ipairs(ball:GetChildren()) do
+        if c:IsA("Texture") or c:IsA("Decal") then
+            table.insert(data.Decals, {Obj = c, Trans = c.Transparency})
         end
+    end
+    BallTextureBackup[ball] = data
+end
+
+local function RemoverTexturasBall(ball)
+    pcall(function()
+        if ball:IsA("MeshPart") then ball.TextureID = "" end
+    end)
+    local mesh = ball:FindFirstChildWhichIsA("SpecialMesh")
+    if mesh then pcall(function() mesh.TextureId = "" end) end
+    for _, c in ipairs(ball:GetChildren()) do
+        if c:IsA("Texture") or c:IsA("Decal") then c.Transparency = 1 end
+    end
+end
+
+local function AplicarCorBall(cor)
+    State.BallColor = cor
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if IsValidBall(obj) then
+            SalvarTexturasBall(obj)
+            RemoverTexturasBall(obj)
+            pcall(function()
+                obj.Color = cor
+                obj.Material = Enum.Material.Neon
+            end)
+        end
+    end
+end
+
+local function RestaurarBall()
+    for ball, data in pairs(BallTextureBackup) do
+        if ball and ball.Parent then
+            pcall(function()
+                if data.TextureID then ball.TextureID = data.TextureID end
+                if data.MeshTexId and data.Mesh then data.Mesh.TextureId = data.MeshTexId end
+                for _, d in ipairs(data.Decals) do
+                    if d.Obj and d.Obj.Parent then d.Obj.Transparency = d.Trans end
+                end
+                ball.Color = data.Cor
+                ball.Material = data.Material
+            end)
+        end
+    end
+    State.BallColor = nil
+    State.BallFire = false
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if IsValidBall(obj) then
+            local f = obj:FindFirstChild("Manic_BallFire")
+            if f then f:Destroy() end
+        end
+    end
+end
+
+BallTab:CreateColorPicker({
+    Name = "Cor da Ball",
+    Color = Color3.fromRGB(89, 247, 255),
+    Flag = "BallColor",
+    Callback = function(c) AplicarCorBall(c) end,
+})
+
+BallTab:CreateToggle({
+    Name = "🔥 Fogo na Ball",
+    CurrentValue = false,
+    Flag = "BallFire",
+    Callback = function(v)
+        State.BallFire = v
+        if not v then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if IsValidBall(obj) then
+                    local f = obj:FindFirstChild("Manic_BallFire")
+                    if f then f:Destroy() end
+                end
+            end
+        end
+    end,
+})
+
+BallTab:CreateButton({
+    Name = "↩ Restaurar Ball Original",
+    Callback = function()
+        RestaurarBall()
+        Rayfield:Notify({Title = "Ball", Content = "Restaurada!", Duration = 2})
+    end,
+})
+
+spawn(function()
+    while true do
+        task.wait(0.5)
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if IsValidBall(obj) then
+                if State.BallColor and obj.Color ~= State.BallColor then
+                    pcall(function() obj.Color = State.BallColor end)
+                end
+                if State.BallFire and not obj:FindFirstChild("Manic_BallFire") then
+                    local f = Instance.new("Fire")
+                    f.Name = "Manic_BallFire"
+                    f.Size = 15; f.Heat = 25
+                    f.Color = Color3.fromRGB(255, 100, 0)
+                    f.SecondaryColor = Color3.fromRGB(255, 200, 0)
+                    f.Parent = obj
+                end
+            end
+        end
+    end
+end)
+
+-- ============================================
+-- CURVA UI
+-- ============================================
+BallTab:CreateSection("🌀 Curva / Skills")
+
+local CurvaGui = nil
+
+local function SendChat(msg)
+    pcall(function()
+        local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if ch then ch:SendAsync(msg) end
+    end)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
+            :WaitForChild("SayMessageRequest"):FireServer(msg, "All")
     end)
 end
-createColorPicker(MapPage, "Map Color (Grama)", MapColor, applyMapColor)
 
-createSection(MapPage, "RESETAR")
-local resetMap = Instance.new("TextButton")
-resetMap.Size = UDim2.new(1, 0, 0, 32)
-resetMap.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
-resetMap.Text = "  🔄 Restaurar cor padrão"
-resetMap.TextColor3 = Color3.fromRGB(255, 255, 255)
-resetMap.TextSize = 13
-resetMap.Font = Enum.Font.GothamBold
-resetMap.TextXAlignment = Enum.TextXAlignment.Left
-resetMap.BorderSizePixel = 0
-resetMap.Parent = MapPage
-local rmc = Instance.new("UICorner"); rmc.CornerRadius = UDim.new(0, 6); rmc.Parent = resetMap
-resetMap.MouseButton1Click:Connect(function()
-    pcall(function()
-        local terrain = Workspace:FindFirstChildOfClass("Terrain")
-        if terrain then
-            terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(80, 180, 80))
+local function CriarCurvaUI()
+    if CurvaGui then CurvaGui:Destroy() end
+    CurvaGui = Instance.new("ScreenGui")
+    CurvaGui.Name = "ManicCurvaUI"
+    CurvaGui.ResetOnSpawn = false
+    CurvaGui.IgnoreGuiInset = true
+    CurvaGui.Parent = CoreGui
+
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 500, 0, 500)
+    main.Position = UDim2.new(0.5, -250, 0.5, -250)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+    main.BorderSizePixel = 0
+    main.Active = true
+    main.Parent = CurvaGui
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(120, 90, 240)
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
+    stroke.Parent = main
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 20, 45)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 12, 20)),
+    })
+    gradient.Rotation = 135
+    gradient.Parent = main
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 45)
+    title.BackgroundTransparency = 1
+    title.Text = "🌀 MANIC CURVA"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 20
+    title.Font = Enum.Font.GothamBold
+    title.Parent = main
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 32, 0, 32)
+    closeBtn.Position = UDim2.new(1, -40, 0, 8)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 100)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 16
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = main
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
+    closeBtn.MouseButton1Click:Connect(function() CurvaGui:Destroy(); CurvaGui = nil end)
+
+    local dragging, dragInput, dragStart, startPos
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = main.Position
         end
     end)
-end)--[[ MANIC HUB | PARTE 4/5 - TCS Gameplay ]]
+    title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    title.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 
-local GamePage = createTab("GK / Jogabilidade", "🛡")
+    local grid = Instance.new("Frame")
+    grid.Size = UDim2.new(1, -30, 1, -60)
+    grid.Position = UDim2.new(0, 15, 0, 55)
+    grid.BackgroundTransparency = 1
+    grid.Parent = main
 
--- ============================================
--- CHARACTER
--- ============================================
-local Character, Humanoid, RootPart
-local function updateChar()
-    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
+    local gridLayout = Instance.new("UIGridLayout")
+    gridLayout.CellSize = UDim2.new(0.5, -8, 0, 42)
+    gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+    gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    gridLayout.Parent = grid
+
+    local Skills = {
+        {Nome="Dominar", C=":dominar"}, {Nome="Esquerda", C=":esquerda"},
+        {Nome="Direita", C=":direita"}, {Nome="Alto", C=":alto"},
+        {Nome="Chute Baixo", C=":chutebaixo"}, {Nome="Lambreta", C=":lambreta"},
+        {Nome="Chapéu", C=":chapeu"}, {Nome="Calcanhar", C=":calcanhar"},
+        {Nome="Voleio", C=":voleio"}, {Nome="Direita Atrás", C=":direitaatras"},
+        {Nome="Esquerda Atrás", C=":esquerdaatras"}, {Nome="Conduzir", C=":conduzir"},
+        {Nome="Chute Falso", C=":chutefalso"}, {Nome="Arraste Para Trás", C=":arraste"},
+        {Nome="Cabeceio", C=":cabeceio"}, {Nome="Bicicleta", C=":bicicleta"},
+    }
+
+    for _, skill in ipairs(Skills) do
+        local btn = Instance.new("TextButton")
+        btn.BackgroundColor3 = Color3.fromRGB(28, 32, 48)
+        btn.Text = skill.Nome
+        btn.TextColor3 = Color3.fromRGB(230, 230, 240)
+        btn.TextSize = 14
+        btn.Font = Enum.Font.GothamBold
+        btn.BorderSizePixel = 0
+        btn.AutoButtonColor = false
+        btn.Parent = grid
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+        local s = Instance.new("UIStroke")
+        s.Color = Color3.fromRGB(80, 70, 140)
+        s.Thickness = 1.5; s.Transparency = 0.5
+        s.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(120, 90, 240)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(28, 32, 48)}):Play()
+        end)
+        btn.MouseButton1Click:Connect(function()
+            SendChat(skill.C)
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {Title="Curva", Text=skill.Nome, Duration=1})
+            end)
+        end)
+    end
 end
-updateChar()
-LocalPlayer.CharacterAdded:Connect(updateChar)
+
+BallTab:CreateButton({
+    Name = "🌀 Abrir Curva UI",
+    Callback = function() CriarCurvaUI() end,
+})--[[ MANIC HUB | PARTE 5/7 — Player + Chars ]]
+
+local PlayerTab = Window:CreateTab("ᴘʟᴀʏᴇʀ", 4483362458)
+PlayerTab:CreateSection("🏃 Velocidade")
+
+local TrailObj = nil
+local TrailColor = Color3.fromRGB(120, 90, 240)
+
+local function CriarTrail()
+    if TrailObj then TrailObj:Destroy() end
+    if not Character then return end
+    local hrp = Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local a0 = Instance.new("Attachment", hrp); a0.Name = "ManicTrailA0"; a0.Position = Vector3.new(0, 1, 0)
+    local a1 = Instance.new("Attachment", hrp); a1.Name = "ManicTrailA1"; a1.Position = Vector3.new(0, -1, 0)
+    TrailObj = Instance.new("Trail")
+    TrailObj.Name = "ManicTrail"
+    TrailObj.Attachment0 = a0
+    TrailObj.Attachment1 = a1
+    TrailObj.Color = ColorSequence.new(TrailColor)
+    TrailObj.Lifetime = 1
+    TrailObj.MinLength = 0.1
+    TrailObj.WidthScale = NumberSequence.new(0.5)
+    TrailObj.Parent = hrp
+end
+
+PlayerTab:CreateSlider({
+    Name = "Velocidade do Jogador",
+    Range = {16, 200}, Increment = 1, Suffix = "studs/s",
+    CurrentValue = 16, Flag = "PlayerSpeed",
+    Callback = function(v)
+        State.PlayerSpeed = v
+        if Humanoid then Humanoid.WalkSpeed = v end
+    end,
+})
+
+PlayerTab:CreateSection("✨ Trail")
+PlayerTab:CreateToggle({
+    Name = "Trail no Jogador",
+    CurrentValue = false, Flag = "TrailEnabled",
+    Callback = function(v)
+        State.Trail = v
+        if v then CriarTrail()
+        elseif TrailObj then TrailObj:Destroy(); TrailObj = nil end
+    end,
+})
+
+PlayerTab:CreateColorPicker({
+    Name = "Cor do Trail",
+    Color = TrailColor, Flag = "TrailColor",
+    Callback = function(c)
+        TrailColor = c
+        if TrailObj then TrailObj.Color = ColorSequence.new(c) end
+    end,
+})
+
+LocalPlayer.CharacterAdded:Connect(function(c)
+    task.wait(1)
+    if State.Trail then CriarTrail() end
+    if Humanoid then Humanoid.WalkSpeed = State.PlayerSpeed end
+end)
 
 -- ============================================
--- AUTO DRIVE (GOLEIRO)
+-- TELA ESTICADA
 -- ============================================
-createSection(GamePage, "AUTO DRIVE / GOLEIRO")
-local AutoDiveEnabled = false
-local AutoDiveCooldown = 0
-local OriginalWalkSpeed = 16
+PlayerTab:CreateSection("📺 Tela Esticada")
 
-local function DoAutoDive(ball)
-    if not AutoDiveEnabled or not ball or not Character or not Humanoid or not RootPart then return end
-    if os.clock() < AutoDiveCooldown then return end
+local StretchHConn = nil
+local StretchVConn = nil
+
+PlayerTab:CreateToggle({
+    Name = "Esticar Horizontal (Lados)",
+    CurrentValue = false, Flag = "StretchH",
+    Callback = function(v)
+        State.StretchH = v
+        if v then
+            if StretchHConn then StretchHConn:Disconnect() end
+            local cam = Workspace.CurrentCamera
+            StretchHConn = RunService.RenderStepped:Connect(function()
+                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 0.75, 0, 0, 0, 1, 0, 0, 0, 1)
+            end)
+        elseif StretchHConn then
+            StretchHConn:Disconnect(); StretchHConn = nil
+        end
+    end,
+})
+
+PlayerTab:CreateToggle({
+    Name = "Esticar Vertical (Cima)",
+    CurrentValue = false, Flag = "StretchV",
+    Callback = function(v)
+        State.StretchV = v
+        if v then
+            if StretchVConn then StretchVConn:Disconnect() end
+            local cam = Workspace.CurrentCamera
+            StretchVConn = RunService.RenderStepped:Connect(function()
+                cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, 0.67, 0, 0, 0, 1)
+            end)
+        elseif StretchVConn then
+            StretchVConn:Disconnect(); StretchVConn = nil
+        end
+    end,
+})
+
+-- ============================================
+-- CHARS
+-- ============================================
+local CharsTab = Window:CreateTab("ᴄʜᴀʀs", 4483362458)
+CharsTab:CreateSection("🎭 Chars Disponíveis")
+
+local CharsList = {
+    "oxentepivetih77","RB9844","FearZakk","pachowillian","DavskCbm9",
+    "6unfire","mikaelfacada10","guto785662","orieehrjr","beastsxc",
+    "candyxzzz0","polarnyp","kayquealt1106","Skxgoat7","KingOfKitsunezx",
+    "slk_eosouzax","defantastico","hyago_mach","mica1203ely5","b_2020f",
+    "bernadow_w","ythek9on1","Samblox_Xd","3qu","021_KayqueJr",
+    "monalisopitango","a4rloo","Ilulict","m3mbers0nly","19_Nxx",
+    "Juninhojwve","ensixraa","keny_tcs","MSS10_ALT1",
+}
+
+local function SendChar(nome)
+    pcall(function()
+        local ch = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if ch then ch:SendAsync(":char " .. nome) end
+    end)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents")
+            :WaitForChild("SayMessageRequest"):FireServer(":char " .. nome, "All")
+    end)
+end
+
+for _, char in ipairs(CharsList) do
+    CharsTab:CreateButton({
+        Name = "🎭 " .. char,
+        Callback = function()
+            SendChar(char)
+            Rayfield:Notify({Title = "Char", Content = "Aplicando: " .. char, Duration = 2})
+        end,
+    })
+end--[[ MANIC HUB | PARTE 6/7 — AC + Reach + Auto Drive ]]
+
+local ACTab = Window:CreateTab("ᴀᴄ", 4483362458)
+ACTab:CreateSection("🧤 Auto Catch")
+
+local CatchRemote = nil
+pcall(function()
+    for _, name in ipairs({"CatchBall", "Catch", "AutoCatch", "Grab"}) do
+        local r = ReplicatedStorage:FindFirstChild(name, true)
+        if r then CatchRemote = r break end
+    end
+end)
+
+local AutoCatchLast = 0
+local AutoCatchRange = 8
+local AutoCatchDelay = 0.8
+local AC_Hitbox = false
+local AC_HitboxPart = nil
+
+local function DoAutoCatch(ball)
+    if not State.AutoCatch then return end
+    if os.clock() < AutoCatchLast then return end
+    if not ball or not ball.Parent then return end
+    local _, hum, root = GetChar()
+    if not hum or not root then return end
+    if (ball.Position - root.Position).Magnitude > AutoCatchRange then return end
+
+    if CatchRemote then
+        pcall(function()
+            if CatchRemote:IsA("RemoteEvent") then
+                CatchRemote:FireServer(ball)
+            elseif CatchRemote:IsA("RemoteFunction") then
+                CatchRemote:InvokeServer(ball)
+            end
+        end)
+    end
+
+    if FTI then
+        for _, n in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
+            local p = Character:FindFirstChild(n)
+            if p then
+                pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1)
+            end
+        end
+    end
+    AutoCatchLast = os.clock() + AutoCatchDelay
+end
+
+ACTab:CreateToggle({
+    Name = "Auto Catch",
+    CurrentValue = false, Flag = "AutoCatch",
+    Callback = function(v) State.AutoCatch = v end,
+})
+
+ACTab:CreateSlider({
+    Name = "Alcance", Range = {3, 30}, Increment = 1, Suffix = "studs",
+    CurrentValue = 8, Flag = "ACCatchRange",
+    Callback = function(v) AutoCatchRange = v end,
+})
+
+ACTab:CreateSlider({
+    Name = "Cooldown", Range = {2, 30}, Increment = 1, Suffix = "x100ms",
+    CurrentValue = 8, Flag = "ACCatchDelay",
+    Callback = function(v) AutoCatchDelay = v / 10 end,
+})
+
+ACTab:CreateToggle({
+    Name = "Mostrar Hitbox",
+    CurrentValue = false, Flag = "AC_Hitbox",
+    Callback = function(v) AC_Hitbox = v end,
+})
+
+-- ============================================
+-- REACH
+-- ============================================
+local ReachTab = Window:CreateTab("ʀᴇᴀᴄʜ", 4483362458)
+ReachTab:CreateSection("📏 Reach")
+
+local ReachLast = 0
+
+ReachTab:CreateToggle({
+    Name = "Ativar Reach",
+    CurrentValue = false, Flag = "ReachEnabled",
+    Callback = function(v) State.Reach = v end,
+})
+
+ReachTab:CreateSlider({
+    Name = "Distância", Range = {1, 50}, Increment = 1, Suffix = "studs",
+    CurrentValue = 10, Flag = "ReachDistance",
+    Callback = function(v) State.ReachDistance = v end,
+})
+
+-- ============================================
+-- AUTO DRIVE
+-- ============================================
+local DriveTab = Window:CreateTab("ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", 4483362458)
+DriveTab:CreateSection("🚀 Auto Drive")
+
+local AutoDriveLast = 0
+local AutoDriveRange = 35
+local AutoDriveCooldown = 0.7
+local AutoDriveSpeed = 32
+
+local function DoAutoDrive(ball)
+    if not State.AutoDrive then return end
+    if os.clock() < AutoDriveLast then return end
+    if not ball or not ball.Parent then return end
+    if not FTI then return end
+
+    local _, hum, root = GetChar()
+    if not hum or not root then return end
 
     local ballVel = ball.AssemblyLinearVelocity
     if ballVel.Magnitude < 10 then return end
 
-    local toMe = RootPart.Position - ball.Position
+    local toMe = root.Position - ball.Position
     if ballVel.Unit:Dot(toMe.Unit) <= 0.3 then return end
-
-    local distance = (ball.Position - RootPart.Position).Magnitude
-    if distance > 35 then return end
+    if (ball.Position - root.Position).Magnitude > AutoDriveRange then return end
 
     local predicted = ball.Position + ballVel * 0.35
-    local diff = predicted - RootPart.Position
+    local diff = predicted - root.Position
     local flat = Vector3.new(diff.X, 0, diff.Z)
 
     if flat.Magnitude > 0.5 and flat.Magnitude < 18 then
-        OriginalWalkSpeed = Humanoid.WalkSpeed
-        Humanoid:Move(flat.Unit, false)
-        Humanoid.WalkSpeed = 32
-
-        if firetouchinterest then
-            for _, name in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
-                local foot = Character:FindFirstChild(name)
-                if foot then
-                    firetouchinterest(foot, ball, 0)
-                    firetouchinterest(foot, ball, 1)
-                end
-            end
+        local orig = hum.WalkSpeed
+        hum:Move(flat.Unit, false)
+        hum.WalkSpeed = AutoDriveSpeed
+        for _, n in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
+            local p = Character:FindFirstChild(n)
+            if p then pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1) end
         end
-
-        if ball.Position.Y > RootPart.Position.Y + 3 and Humanoid.FloorMaterial ~= Enum.Material.Air then
-            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        if ball.Position.Y > root.Position.Y + 3 and hum.FloorMaterial ~= Enum.Material.Air then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
         end
-
-        AutoDiveCooldown = os.clock() + 0.7
-
+        AutoDriveLast = os.clock() + AutoDriveCooldown
         task.delay(0.5, function()
-            if Humanoid then Humanoid.WalkSpeed = OriginalWalkSpeed end
+            if hum and State.AutoDrive then hum.WalkSpeed = State.PlayerSpeed or orig end
         end)
     end
 end
 
-createToggle(GamePage, "Auto Drive (Goleiro)", false, function(a)
-    AutoDiveEnabled = a
-end)
+DriveTab:CreateToggle({
+    Name = "Ativar Auto Drive",
+    CurrentValue = false, Flag = "AutoDrive",
+    Callback = function(v) State.AutoDrive = v end,
+})
 
--- ============================================
--- HAMBOLO
--- ============================================
-createSection(GamePage, "HAMBOLO")
-local HamboloEnabled = false
-local HamboloPower = 55
+DriveTab:CreateSlider({
+    Name = "Alcance", Range = {10, 50}, Increment = 1, Suffix = "studs",
+    CurrentValue = 35, Flag = "ADRange",
+    Callback = function(v) AutoDriveRange = v end,
+})
 
-local function DoHambolo(ball)
-    if not HamboloEnabled or not ball or not Character or not Humanoid or not RootPart then return end
-    if not firetouchinterest then return end
+DriveTab:CreateSlider({
+    Name = "Velocidade ao Perseguir",
+    Range = {16, 60}, Increment = 1, Suffix = "studs",
+    CurrentValue = 32, Flag = "ADSpeed",
+    Callback = function(v) AutoDriveSpeed = v end,
+})
 
-    local head = Character:FindFirstChild("Head")
-    local torso = Character:FindFirstChild("UpperTorso") or Character:FindFirstChild("Torso")
-    if not head and not torso then return end
+DriveTab:CreateSlider({
+    Name = "Cooldown", Range = {2, 20}, Increment = 1, Suffix = "x100ms",
+    CurrentValue = 7, Flag = "ADCooldown",
+    Callback = function(v) AutoDriveCooldown = v / 10 end,
+})--[[ MANIC HUB | PARTE 7/7 — Loops + Finalização ]]
 
-    local headY = RootPart.Position.Y + 3.5
-    local v = ball.AssemblyLinearVelocity
-    local dist = (ball.Position - RootPart.Position).Magnitude
-
-    if v.Y < 2 and ball.Position.Y < headY and dist <= 6 then
-        local toMe = RootPart.Position - ball.Position
-        local flat = Vector3.new(toMe.X, 0, toMe.Z)
-        ball.AssemblyLinearVelocity = (flat.Magnitude > 0.1)
-            and (flat.Unit * 3 + Vector3.new(0, HamboloPower, 0))
-            or Vector3.new(0, HamboloPower, 0)
-        ball.AssemblyAngularVelocity = Vector3.new(0, 2, 0)
-    end
-
-    if ball.Position.Y >= RootPart.Position.Y + 2
-    and ball.Position.Y <= headY + 1.5
-    and dist <= 8 then
-        for _, p in ipairs({head, torso}) do
-            if p then
-                firetouchinterest(p, ball, 0)
-                firetouchinterest(p, ball, 1)
-            end
-        end
-        if v.Y < HamboloPower * 0.4 then
-            ball.AssemblyLinearVelocity = Vector3.new(v.X * 0.6, HamboloPower, v.Z * 0.6)
-        end
-        if Humanoid.MoveDirection.Magnitude == 0 then
-            Humanoid:Move(RootPart.CFrame.LookVector, false)
-        end
-    end
-end
-
-createToggle(GamePage, "Hambolo (Peito)", false, function(a)
-    HamboloEnabled = a
-end)
-createSlider(GamePage, "Força do Hambolo", 30, 90, 55, function(v)
-    HamboloPower = v
-end)
-
--- ============================================
--- AUTO BALL (TCS)
--- ============================================
-createSection(GamePage, "AUTO BALL / AUTO GOAL")
-local AutoBallEnabled = false
-local AutoBallCooldown = 0
-
-local function DoAutoBall()
-    if not AutoBallEnabled then return end
-    if os.clock() < AutoBallCooldown then return end
-    if not Character or not Humanoid or not RootPart then return end
-
-    local ball = getBall()
-    if not ball then return end
-
-    local dist = (ball.Position - RootPart.Position).Magnitude
-    if dist > 40 then return end
-
-    -- Simula toque com os pés
-    if firetouchinterest then
-        for _, name in ipairs({"RightFoot", "LeftFoot", "Right Leg", "Left Leg"}) do
-            local foot = Character:FindFirstChild(name)
-            if foot then
-                firetouchinterest(foot, ball, 0)
-                firetouchinterest(foot, ball, 1)
-            end
-        end
-    end
-
-    -- Chuta para o gol adversário
-    local goal = getOpponentGoal()
-    if goal then
-        local goalPos = goal.Position
-        local shootDir = (goalPos - ball.Position).Unit
-        pcall(function()
-            ball.AssemblyLinearVelocity = shootDir * 75 + Vector3.new(0, 18, 0)
-        end)
-        AutoBallCooldown = os.clock() + 0.5
-    end
-end
-
-createToggle(GamePage, "Auto Ball", false, function(a)
-    AutoBallEnabled = a
-    AutoBallBtn.BackgroundColor3 = a and Color3.fromRGB(90, 60, 200) or Color3.fromRGB(20, 20, 25)
-end)
-
--- ============================================
--- AUTO GOAL (TCS)
--- ============================================
-local AutoGoalEnabled = false
-local AutoGoalCooldown = 0
-
-local function DoAutoGoal()
-    if not AutoGoalEnabled then return end
-    if os.clock() < AutoGoalCooldown then return end
-    if not RootPart then return end
-
-    local ball = getBall()
-    if not ball then return end
-
-    if (ball.Position - RootPart.Position).Magnitude > 25 then return end
-
-    local goal = getOpponentGoal()
-    if not goal then return end
-
-    local goalPos = goal.Position
-    local ballPos = ball.Position
-    goalPos = goalPos - Vector3.new(0, 3, 0)
-
-    local shootDir = (goalPos - ballPos).Unit
-    pcall(function()
-        ball.AssemblyLinearVelocity = shootDir * 110 + Vector3.new(0, 20, 0)
-    end)
-
-    AutoGoalCooldown = os.clock() + 0.8
-end
-
-createToggle(GamePage, "Auto Goal", false, function(a)
-    AutoGoalEnabled = a
-end)
-
--- ============================================
--- REACH (TCS)
--- ============================================
-createSection(GamePage, "REACH / HITBOX")
-local ReachEnabled = false
-
-createToggle(GamePage, "Reach (Hitbox)", false, function(a)
-    ReachEnabled = a
-    if not Character then return end
-    for _, part in ipairs({"Head", "UpperTorso", "Torso", "RightFoot", "LeftFoot", "Right Leg", "Left Leg"}) do
-        local p = Character:FindFirstChild(part)
-        if p then
-            if a then
-                p.Size = Vector3.new(6, 6, 6)
-                p.Transparency = 0.6
-                p.CanCollide = false
-            else
-                p.Transparency = 0
-                p.CanCollide = true
-            end
-        end
-    end
-end)
-
--- ============================================
--- ANTI-CHEAT (AC)
--- ============================================
-createSection(GamePage, "ANTI-CHEAT")
-createToggle(GamePage, "Anti-Cheat (AC)", false, function(a)
-    Flags.AC = a
-    if a and Humanoid then
-        Flags.OriginalWalkSpeed = Flags.OriginalWalkSpeed or Humanoid.WalkSpeed
-        Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            if Flags.AC and Humanoid.WalkSpeed > 30 then
-                Humanoid.WalkSpeed = Flags.OriginalWalkSpeed
-            end
-        end)
-    end
-end)--[[ MANIC HUB | PARTE 5/5 - Visual, Config e Loops ]]
-
--- ============================================
--- ABA VISUAL
--- ============================================
-local VisualPage = createTab("Visual", "👁")
-createSection(VisualPage, "TELA / CÂMERA")
-
-local StretchConn = nil
-createToggle(VisualPage, "Tela Esticada", false, function(a)
-    if a and not StretchConn then
-        local cam = Workspace.CurrentCamera
-        StretchConn = RunService.RenderStepped:Connect(function()
-            cam.CFrame = cam.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, 0.67, 0, 0, 0, 1)
-        end)
-    elseif not a and StretchConn then
-        StretchConn:Disconnect()
-        StretchConn = nil
-    end
-end)
-
-createSection(VisualPage, "GRÁFICOS")
-createToggle(VisualPage, "Gráficos (FPS Boost)", false, function(a)
-    if a then
-        pcall(function()
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 100000
-            Lighting.Brightness = 1
-            if setfpscap then setfpscap(999) end
-        end)
-    else
-        pcall(function()
-            Lighting.GlobalShadows = true
-            Lighting.Brightness = 2
-            if setfpscap then setfpscap(60) end
-        end)
-    end
-end)
-
--- ============================================
--- ABA CONFIG
--- ============================================
-local ConfigPage = createTab("Settings", "⚙")
-createSection(ConfigPage, "PAINEL")
-
-local isMinimized = false
-createToggle(ConfigPage, "Minimizar Painel", false, function(a)
-    isMinimized = a
-    if a then
-        Sidebar.Visible = false
-        ContentFrame.Visible = false
-        MainFrame.Size = UDim2.new(0, 620, 0, 38)
-    else
-        Sidebar.Visible = true
-        ContentFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 620, 0, 400)
-    end
-end)
-
-createSection(ConfigPage, "KEYBIND")
-local keyLbl = Instance.new("TextLabel")
-keyLbl.Size = UDim2.new(1, 0, 0, 34)
-keyLbl.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
-keyLbl.BackgroundTransparency = 0.3
-keyLbl.Text = "UI Toggle Keybind:  LeftShift"
-keyLbl.TextColor3 = Color3.fromRGB(200, 200, 220)
-keyLbl.TextSize = 12
-keyLbl.Font = Enum.Font.GothamBold
-keyLbl.BorderSizePixel = 0
-keyLbl.Parent = ConfigPage
-local kc = Instance.new("UICorner"); kc.CornerRadius = UDim.new(0, 6); kc.Parent = keyLbl
-
-createSection(ConfigPage, "AÇÕES")
-local killBtn = Instance.new("TextButton")
-killBtn.Size = UDim2.new(1, 0, 0, 32)
-killBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
-killBtn.Text = "  ☠ Resetar Personagem"
-killBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-killBtn.TextSize = 13
-killBtn.Font = Enum.Font.GothamBold
-killBtn.TextXAlignment = Enum.TextXAlignment.Left
-killBtn.BorderSizePixel = 0
-killBtn.Parent = ConfigPage
-local kbc = Instance.new("UICorner"); kbc.CornerRadius = UDim.new(0, 6); kbc.Parent = killBtn
-killBtn.MouseButton1Click:Connect(function()
-    if Humanoid then Humanoid.Health = 0 end
-end)
-
--- ============================================
--- LOOP PRINCIPAL
--- ============================================
+-- Loop Auto Catch + Hitbox
 RunService.Heartbeat:Connect(function()
-    local ball = getBall()
-    if ball then
-        if AutoDiveEnabled then DoAutoDive(ball) end
-        if HamboloEnabled then DoHambolo(ball) end
-        if AutoBallEnabled then DoAutoBall() end
-        if AutoGoalEnabled then DoAutoGoal() end
-
-        -- Cor da bola
-        if Flags.BallColorActive and Flags.BallColor then
-            pcall(function() ball.Color = Flags.BallColor end)
+    if State.AutoCatch then
+        local ball = CurrentBall or FindClosestBall()
+        if ball then DoAutoCatch(ball) end
+    end
+    if AC_Hitbox and RootPart then
+        local d = AutoCatchRange * 2
+        if not AC_HitboxPart or not AC_HitboxPart.Parent then
+            AC_HitboxPart = Instance.new("Part")
+            AC_HitboxPart.Name = "ManicAC_Hitbox"
+            AC_HitboxPart.Shape = Enum.PartType.Ball
+            AC_HitboxPart.Material = Enum.Material.ForceField
+            AC_HitboxPart.Color = Color3.fromRGB(0, 200, 255)
+            AC_HitboxPart.Transparency = 0.65
+            AC_HitboxPart.CanCollide = false
+            AC_HitboxPart.CanQuery = false
+            AC_HitboxPart.CanTouch = false
+            AC_HitboxPart.Anchored = true
+            AC_HitboxPart.Parent = Workspace
         end
-
-        -- Fogo
-        if Flags.BallFire then
-            if not ball:FindFirstChild("Manic_BallFire") then
-                local f = Instance.new("Fire")
-                f.Name = "Manic_BallFire"
-                f.Size = 5
-                f.Heat = 10
-                f.Color = Color3.fromRGB(255, 100, 0)
-                f.SecondaryColor = Color3.fromRGB(255, 200, 0)
-                f.Parent = ball
-            end
-        else
-            local f = ball:FindFirstChild("Manic_BallFire")
-            if f then f:Destroy() end
-        end
-
-        -- Atualiza trail
-        if TrailEnabled and not ball:FindFirstChild("Manic_BallTrail") then
-            updateTrail()
-        end
+        AC_HitboxPart.Size = Vector3.new(d, d, d)
+        AC_HitboxPart.Position = RootPart.Position
+    elseif AC_HitboxPart and AC_HitboxPart.Parent then
+        AC_HitboxPart:Destroy()
+        AC_HitboxPart = nil
     end
 end)
 
--- ============================================
--- LOOP FPS
--- ============================================
-RunService.RenderStepped:Connect(function()
-    fpsCount = fpsCount + 1
-    local now = tick()
-    if now - fpsTime >= 1 then
-        FpsBox.Text = "FPS " .. fpsCount
-        fpsCount = 0
-        fpsTime = now
+-- Loop Reach
+RunService.Heartbeat:Connect(function()
+    if not State.Reach then return end
+    if not Character or not RootPart then return end
+    if os.clock() < ReachLast then return end
+    local ball = CurrentBall or FindClosestBall()
+    if not ball or not ball.Parent then return end
+    if (ball.Position - RootPart.Position).Magnitude > State.ReachDistance then return end
+    if FTI then
+        pcall(FTI, RootPart, ball, 0); pcall(FTI, RootPart, ball, 1)
+        for _, n in ipairs({"LeftFoot", "RightFoot", "Left Leg", "Right Leg"}) do
+            local p = Character:FindFirstChild(n)
+            if p then pcall(FTI, p, ball, 0); pcall(FTI, p, ball, 1) end
+        end
+    end
+    ReachLast = os.clock() + 0.05
+end)
+
+-- Loop Auto Drive
+RunService.Heartbeat:Connect(function()
+    if State.AutoDrive then
+        local ball = CurrentBall or FindClosestBall()
+        if ball then DoAutoDrive(ball) end
     end
 end)
 
--- ============================================
--- TOGGLE MENU (LeftShift)
--- ============================================
-UserInputService.InputBegan:Connect(function(i, gp)
-    if gp then return end
-    if i.KeyCode == Enum.KeyCode.LeftShift then
-        MainFrame.Visible = not MainFrame.Visible
-    end
-end)
+-- Notificação final
+Rayfield:Notify({
+    Title = "Manic Hub",
+    Content = "✅ Carregado! Use LeftShift para abrir/fechar.",
+    Duration = 5,
+})
 
--- ============================================
--- BOTÕES FLUTUANTES
--- ============================================
-ToggleBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
-AutoBallBtn.MouseButton1Click:Connect(function()
-    AutoBallEnabled = not AutoBallEnabled
-    AutoBallBtn.BackgroundColor3 = AutoBallEnabled and Color3.fromRGB(90, 60, 200) or Color3.fromRGB(20, 20, 25)
-    pcall(function()
-        StarterGui:SetCore("SendNotification", {
-            Title = "Auto Ball",
-            Text = AutoBallEnabled and "Ativado!" or "Desativado!",
-            Duration = 2
-        })
-    end)
-end)
-
--- ============================================
--- ABA PADRÃO
--- ============================================
-TabButtons["Skybox"].BackgroundTransparency = 0
-TabButtons["Skybox"].BackgroundColor3 = Color3.fromRGB(35, 40, 55)
-TabButtons["Skybox"].TextColor3 = Color3.fromRGB(255, 255, 255)
-Pages["Skybox"].Visible = true
-
-print("[MANIC HUB - TCS] Carregado com sucesso!")
+print("[MANIC HUB] ✅ Carregado!")
+print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
+print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
