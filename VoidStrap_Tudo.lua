@@ -168,34 +168,35 @@ spawn(function()
             end
         end
     end
-end)
-
--- ============================================
--- SKYBOX
+end)-- ============================================
+-- SKYBOX (CORRIGIDO - anti-reset)
 -- ============================================
 MapTab:CreateSection("☁ Skybox")
 
 local SkyboxIDs = {
-    {Name = "Cinematic", ID = "8202961731"},
-    {Name = "Sunset", ID = "2758029221"},
+    {Name = "Sky 1", ID = "8202961731"},
+    {Name = "Sky 2", ID = "2758029221"},
     {Name = "Night", ID = "13107361022"},
-    {Name = "Nebula", ID = "7108851308"},
-    {Name = "Tropical", ID = "339406852"},
-    {Name = "Aurora", ID = "15502592084"},
-    {Name = "Galaxy", ID = "15359965253"},
-    {Name = "Fantasy", ID = "15470370280"},
+    {Name = "Sky 4", ID = "7108851308"},
+    {Name = "Sky 5", ID = "339406852"},
+    {Name = "Sky 6", ID = "15502592084"},
+    {Name = "Sky 7", ID = "15359965253"},
+    {Name = "Sky 8", ID = "15470370280"},
     {Name = "Blue Sky", ID = "8808550143"},
-    {Name = "Dark", ID = "10594723714"},
+    {Name = "Sky 10", ID = "10594723714"},
 }
 
 local function AplicarSkybox(assetId)
     pcall(function()
+        -- 1. Destrói TODAS as Sky (inclusive dentro de pastas)
         for _, v in ipairs(Lighting:GetDescendants()) do
             if v:IsA("Sky") then v:Destroy() end
         end
+        -- 2. Destrói Atmosphere (pode escurecer a sky)
         for _, v in ipairs(Lighting:GetChildren()) do
             if v:IsA("Atmosphere") then v:Destroy() end
         end
+        -- 3. Cria a nova Sky
         local sky = Instance.new("Sky")
         sky.Name = "Manic_Sky"
         sky.SkyboxBk = "rbxassetid://" .. assetId
@@ -204,17 +205,34 @@ local function AplicarSkybox(assetId)
         sky.SkyboxLf = "rbxassetid://" .. assetId
         sky.SkyboxRt = "rbxassetid://" .. assetId
         sky.SkyboxUp = "rbxassetid://" .. assetId
+        sky.SunAngularSize = 0
+        sky.MoonAngularSize = 0
+        sky.StarCount = 0
         sky.Parent = Lighting
         State.Skybox = assetId
     end)
 end
 
+local function RemoverSkybox()
+    pcall(function()
+        for _, v in ipairs(Lighting:GetDescendants()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+    end)
+    State.Skybox = nil
+end
+
+-- Botões das skyboxes
 for _, sky in ipairs(SkyboxIDs) do
     MapTab:CreateButton({
         Name = "☁ " .. sky.Name,
         Callback = function()
             AplicarSkybox(sky.ID)
-            Rayfield:Notify({Title = "Skybox", Content = sky.Name .. " aplicada!", Duration = 2})
+            Rayfield:Notify({
+                Title = "Skybox",
+                Content = sky.Name .. " aplicada!",
+                Duration = 2
+            })
         end,
     })
 end
@@ -222,25 +240,35 @@ end
 MapTab:CreateButton({
     Name = "↩ Remover Skybox Customizada",
     Callback = function()
-        pcall(function()
-            for _, v in ipairs(Lighting:GetDescendants()) do
-                if v:IsA("Sky") then v:Destroy() end
-            end
-        end)
-        State.Skybox = nil
+        RemoverSkybox()
+        Rayfield:Notify({Title = "Skybox", Content = "Removida!", Duration = 2})
     end,
 })
 
-spawn(function()
-    while true do
-        task.wait(2)
-        if State.Skybox and not Lighting:FindFirstChild("Manic_Sky") then
-            AplicarSkybox(State.Skybox)
+-- 🔥 LOOP ANTI-RESET: re-aplica se o TCS sobrescrever
+RunService.RenderStepped:Connect(function()
+    if not State.Skybox then return end
+
+    -- Se a nossa sky sumiu, recria
+    if not Lighting:FindFirstChild("Manic_Sky") then
+        AplicarSkybox(State.Skybox)
+        return
+    end
+
+    -- Remove qualquer Sky que NÃO seja a nossa
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("Sky") and v.Name ~= "Manic_Sky" then
+            v:Destroy()
         end
     end
-end)
 
--- ============================================
+    -- Remove Atmosphere se aparecer
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("Atmosphere") then
+            v:Destroy()
+        end
+    end
+end)-- ============================================
 -- GRÁFICOS
 -- ============================================
 MapTab:CreateSection("🌅 Gráficos")
