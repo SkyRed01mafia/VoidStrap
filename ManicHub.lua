@@ -1454,7 +1454,7 @@ DriveTab:Button({
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops (FIX Assets REAL) ]]
+})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Assets + Loops ]]
 
 -- ============================================
 -- LOOPS
@@ -1513,39 +1513,36 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
 local BackgroundAtual = "11717400651"
 
--- Encontra o MainFrame do WindUI (janela principal)
+-- ============================================
+-- ENCONTRA O MAINFRAME DO WINDUI
+-- ============================================
 local function EncontrarMainFrame()
-    local gui = nil
-    -- Procura em todas as ScreenGuis do CoreGui
+    -- 1. Procura em ScreenGuis com "wind" no nome
     for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") and sg.Name:lower():find("wind") then
-            gui = sg
-            break
-        end
-    end
-    -- Fallback: pega qualquer ScreenGui com "Window" dentro
-    if not gui then
-        for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") then
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj:IsA("Frame") and obj.Name == "Window" then
-                        return obj
-                    end
+        if sg:IsA("ScreenGui") and string.lower(sg.Name):find("wind") then
+            for _, obj in ipairs(sg:GetDescendants()) do
+                if obj:IsA("Frame") and obj.Name == "Window" then
+                    return obj
                 end
             end
         end
     end
-    if gui then
-        for _, obj in ipairs(gui:GetDescendants()) do
-            if obj:IsA("Frame") and obj.Name == "Window" then
-                return obj
+    -- 2. Fallback: qualquer ScreenGui com Frame "Window"
+    for _, sg in ipairs(CoreGui:GetChildren()) do
+        if sg:IsA("ScreenGui") then
+            for _, obj in ipairs(sg:GetDescendants()) do
+                if obj:IsA("Frame") and obj.Name == "Window" then
+                    return obj
+                end
             end
         end
     end
     return nil
 end
 
--- Aplica imagem de fundo no MainFrame (cria/atualiza ImageLabel)
+-- ============================================
+-- APLICA IMAGEM DE FUNDO
+-- ============================================
 local function AplicarBackground(assetId)
     local main = EncontrarMainFrame()
     if not main then
@@ -1560,11 +1557,10 @@ local function AplicarBackground(assetId)
 
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
-    -- Procura ImageLabel existente de fundo
+    -- Procura/cria o ImageLabel de fundo
     local bg = main:FindFirstChild("ManicBackground")
 
     if not bg then
-        -- Cria um novo ImageLabel
         bg = Instance.new("ImageLabel")
         bg.Name = "ManicBackground"
         bg.Size = UDim2.new(1, 0, 1, 0)
@@ -1574,7 +1570,6 @@ local function AplicarBackground(assetId)
         bg.ZIndex = 0
         bg.Parent = main
 
-        -- Canto arredondado igual a janela
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 14)
         corner.Parent = bg
@@ -1593,6 +1588,22 @@ local function AplicarBackground(assetId)
     })
 end
 
+-- ============================================
+-- ATUALIZA TRANSPARÊNCIA EM TEMPO REAL
+-- ============================================
+local function AtualizarTransparencia(valor)
+    local main = EncontrarMainFrame()
+    if main then
+        local bg = main:FindFirstChild("ManicBackground")
+        if bg then
+            bg.ImageTransparency = valor / 100
+        end
+    end
+end
+
+-- ============================================
+-- CONTROLES DA UI
+-- ============================================
 ScriptTab:Input({
     Title = "ɪᴅ ᴍᴀɴᴜᴀʟ",
     Placeholder = "sᴏᴍᴇɴᴛᴇ ᴏ ɪᴅ",
@@ -1611,17 +1622,12 @@ ScriptTab:Button({
 ScriptTab:Slider({
     Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ɪᴍᴀɢᴇᴍ",
     Value = {Min = 0, Max = 100, Default = 35},
-    Callback = function(v)
-        local main = EncontrarMainFrame()
-        if main then
-            local bg = main:FindFirstChild("ManicBackground")
-            if bg then
-                bg.ImageTransparency = v / 100
-            end
-        end
-    end,
+    Callback = function(v) AtualizarTransparencia(v) end,
 })
 
+-- ============================================
+-- ASSETS PRESET (5 IDs)
+-- ============================================
 ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
 
 local ASSETS_PRESET = {
@@ -1651,6 +1657,9 @@ ScriptTab:Button({
     end,
 })
 
+-- ============================================
+-- INFORMAÇÕES
+-- ============================================
 ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
 
 ScriptTab:Button({
@@ -1665,6 +1674,9 @@ ScriptTab:Button({
     Callback = function() end,
 })
 
+-- ============================================
+-- CRÉDITOS
+-- ============================================
 ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
 
 ScriptTab:Button({
