@@ -1454,7 +1454,7 @@ DriveTab:Button({
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Assets + Loops ]]
+        })--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Assets + Loops ]]
 
 -- ============================================
 -- LOOPS
@@ -1514,29 +1514,45 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "11717400651"
 
 -- ============================================
--- ENCONTRA O MAINFRAME DO WINDUI
+-- ENCONTRA O MAINFRAME DO WINDUI (busca robusta)
 -- ============================================
 local function EncontrarMainFrame()
-    -- 1. Procura em ScreenGuis com "wind" no nome
+    -- 1. Procura ScreenGuis com "wind" no nome
     for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") and string.lower(sg.Name):find("wind") then
-            for _, obj in ipairs(sg:GetDescendants()) do
-                if obj:IsA("Frame") and obj.Name == "Window" then
-                    return obj
+        if sg:IsA("ScreenGui") then
+            local n = string.lower(sg.Name)
+            if n:find("wind") then
+                local maior, maiorArea = nil, 0
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj:IsA("Frame") then
+                        local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+                        if area > maiorArea then
+                            maiorArea = area
+                            maior = obj
+                        end
+                    end
+                end
+                if maior and maiorArea > 100000 then
+                    return maior
                 end
             end
         end
     end
-    -- 2. Fallback: qualquer ScreenGui com Frame "Window"
+
+    -- 2. Fallback: qualquer Frame grande
     for _, sg in ipairs(CoreGui:GetChildren()) do
         if sg:IsA("ScreenGui") then
             for _, obj in ipairs(sg:GetDescendants()) do
-                if obj:IsA("Frame") and obj.Name == "Window" then
-                    return obj
+                if obj:IsA("Frame") then
+                    local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+                    if area > 200000 then
+                        return obj
+                    end
                 end
             end
         end
     end
+
     return nil
 end
 
@@ -1557,9 +1573,7 @@ local function AplicarBackground(assetId)
 
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
-    -- Procura/cria o ImageLabel de fundo
     local bg = main:FindFirstChild("ManicBackground")
-
     if not bg then
         bg = Instance.new("ImageLabel")
         bg.Name = "ManicBackground"
@@ -1588,21 +1602,16 @@ local function AplicarBackground(assetId)
     })
 end
 
--- ============================================
--- ATUALIZA TRANSPARÊNCIA EM TEMPO REAL
--- ============================================
 local function AtualizarTransparencia(valor)
     local main = EncontrarMainFrame()
     if main then
         local bg = main:FindFirstChild("ManicBackground")
-        if bg then
-            bg.ImageTransparency = valor / 100
-        end
+        if bg then bg.ImageTransparency = valor / 100 end
     end
 end
 
 -- ============================================
--- CONTROLES DA UI
+-- CONTROLES
 -- ============================================
 ScriptTab:Input({
     Title = "ɪᴅ ᴍᴀɴᴜᴀʟ",
@@ -1625,8 +1634,20 @@ ScriptTab:Slider({
     Callback = function(v) AtualizarTransparencia(v) end,
 })
 
+ScriptTab:Button({
+    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ᴊᴀɴᴇʟᴀ",
+    Callback = function()
+        local main = EncontrarMainFrame()
+        if main then
+            WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ᴊᴀɴᴇʟᴀ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ!", Duration = 2, Icon = "success"})
+        else
+            WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ᴊᴀɴᴇʟᴀ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ", Duration = 3, Icon = "x-circle"})
+        end
+    end,
+})
+
 -- ============================================
--- ASSETS PRESET (5 IDs)
+-- ASSETS PRESET
 -- ============================================
 ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
 
