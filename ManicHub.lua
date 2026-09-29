@@ -1514,14 +1514,25 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "11717400651"
 
 -- ============================================
--- ENCONTRA O MAINFRAME DO WINDUI (busca robusta)
+-- ENCONTRA O FUNDO DO WINDUI
 -- ============================================
-local function EncontrarMainFrame()
-    -- 1. Procura ScreenGuis com "wind" no nome
+local function EncontrarFundo()
+    -- 1. Procura em todas as ScreenGuis ativas
     for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") then
-            local n = string.lower(sg.Name)
-            if n:find("wind") then
+        if sg:IsA("ScreenGui") and sg.Enabled then
+            -- Prioridade: ScreenGui do WindUI
+            local isWind = string.lower(sg.Name):find("wind")
+            for _, obj in ipairs(sg:GetDescendants()) do
+                if obj:IsA("ImageLabel") then
+                    local size = obj.AbsoluteSize
+                    -- Se for grande o suficiente pra ser fundo (>= 400x300)
+                    if size.X >= 400 and size.Y >= 300 then
+                        return obj
+                    end
+                end
+            end
+            -- Fallback dentro do WindUI: pega o maior Frame
+            if isWind then
                 local maior, maiorArea = nil, 0
                 for _, obj in ipairs(sg:GetDescendants()) do
                     if obj:IsA("Frame") then
@@ -1532,27 +1543,10 @@ local function EncontrarMainFrame()
                         end
                     end
                 end
-                if maior and maiorArea > 100000 then
-                    return maior
-                end
+                if maior then return maior end
             end
         end
     end
-
-    -- 2. Fallback: qualquer Frame grande
-    for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") then
-            for _, obj in ipairs(sg:GetDescendants()) do
-                if obj:IsA("Frame") then
-                    local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
-                    if area > 200000 then
-                        return obj
-                    end
-                end
-            end
-        end
-    end
-
     return nil
 end
 
@@ -1560,8 +1554,32 @@ end
 -- APLICA IMAGEM DE FUNDO
 -- ============================================
 local function AplicarBackground(assetId)
-    local main = EncontrarMainFrame()
-    if not main then
+    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
+
+    -- 1. Tenta o método nativo do WindUI
+    local sucesso = false
+    pcall(function()
+        if Window.SetBackground then
+            Window:SetBackground(url, 0.35)
+            sucesso = true
+        end
+    end)
+
+    if sucesso then
+        BackgroundAtual = assetId
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
+            Duration = 2,
+            Icon = "check-circle"
+        })
+        return
+    end
+
+    -- 2. Fallback: encontra o ImageLabel existente
+    local fundo = EncontrarFundo()
+
+    if not fundo then
         WindUI:Notify({
             Title = "sᴄʀɪᴘᴛ",
             Content = "ᴊᴀɴᴇʟᴀ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ",
@@ -1571,42 +1589,68 @@ local function AplicarBackground(assetId)
         return
     end
 
-    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
-
-    local bg = main:FindFirstChild("ManicBackground")
-    if not bg then
-        bg = Instance.new("ImageLabel")
-        bg.Name = "ManicBackground"
-        bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.Position = UDim2.new(0, 0, 0, 0)
-        bg.BackgroundTransparency = 1
-        bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 0
-        bg.Parent = main
-
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 14)
-        corner.Parent = bg
+    -- Se achou um ImageLabel, só troca a imagem
+    if fundo:IsA("ImageLabel") then
+        fundo.Image = url
+        fundo.ImageTransparency = 0.35
+        fundo.Visible = true
+        BackgroundAtual = assetId
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
+            Duration = 2,
+            Icon = "check-circle"
+        })
+        return
     end
 
-    bg.Image = url
-    bg.ImageTransparency = 0.35
-    bg.Visible = true
-    BackgroundAtual = assetId
+    -- Se achou um Frame, cria um ImageLabel filho
+    if fundo:IsA("Frame") then
+        local bg = fundo:FindFirstChild("ManicBackground")
+        if not bg then
+            bg = Instance.new("ImageLabel")
+            bg.Name = "ManicBackground"
+            bg.Size = UDim2.new(1, 0, 1, 0)
+            bg.Position = UDim2.new(0, 0, 0, 0)
+            bg.BackgroundTransparency = 1
+            bg.ScaleType = Enum.ScaleType.Crop
+            bg.ZIndex = 0
+            bg.Parent = fundo
 
-    WindUI:Notify({
-        Title = "sᴄʀɪᴘᴛ",
-        Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
-        Duration = 2,
-        Icon = "check-circle"
-    })
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 14)
+            corner.Parent = bg
+        end
+
+        bg.Image = url
+        bg.ImageTransparency = 0.35
+        BackgroundAtual = assetId
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
+            Duration = 2,
+            Icon = "check-circle"
+        })
+    end
 end
 
+-- ============================================
+-- ATUALIZA TRANSPARÊNCIA
+-- ============================================
 local function AtualizarTransparencia(valor)
-    local main = EncontrarMainFrame()
-    if main then
-        local bg = main:FindFirstChild("ManicBackground")
-        if bg then bg.ImageTransparency = valor / 100 end
+    local fundo = EncontrarFundo()
+    if fundo and fundo:IsA("ImageLabel") then
+        fundo.ImageTransparency = valor / 100
+    end
+    -- Procura pelo ManicBackground se o fundo for Frame
+    for _, sg in ipairs(CoreGui:GetChildren()) do
+        if sg:IsA("ScreenGui") then
+            for _, obj in ipairs(sg:GetDescendants()) do
+                if obj.Name == "ManicBackground" then
+                    obj.ImageTransparency = valor / 100
+                end
+            end
+        end
     end
 end
 
@@ -1634,18 +1678,6 @@ ScriptTab:Slider({
     Callback = function(v) AtualizarTransparencia(v) end,
 })
 
-ScriptTab:Button({
-    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ᴊᴀɴᴇʟᴀ",
-    Callback = function()
-        local main = EncontrarMainFrame()
-        if main then
-            WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ᴊᴀɴᴇʟᴀ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ!", Duration = 2, Icon = "success"})
-        else
-            WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ᴊᴀɴᴇʟᴀ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ", Duration = 3, Icon = "x-circle"})
-        end
-    end,
-})
-
 -- ============================================
 -- ASSETS PRESET
 -- ============================================
@@ -1669,10 +1701,14 @@ end
 ScriptTab:Button({
     Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
     Callback = function()
-        local main = EncontrarMainFrame()
-        if main then
-            local bg = main:FindFirstChild("ManicBackground")
-            if bg then bg:Destroy() end
+        for _, sg in ipairs(CoreGui:GetChildren()) do
+            if sg:IsA("ScreenGui") then
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj.Name == "ManicBackground" then
+                        obj:Destroy()
+                    end
+                end
+            end
         end
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ʀᴇᴍᴏᴠɪᴅᴀ", Duration = 2, Icon = "success"})
     end,
