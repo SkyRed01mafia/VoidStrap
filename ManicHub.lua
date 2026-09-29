@@ -1454,7 +1454,7 @@ DriveTab:Button({
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops ]]
+})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops (FIX Assets) ]]
 
 -- ============================================
 -- LOOPS
@@ -1512,24 +1512,71 @@ local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
 ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
 local BackgroundAtual = "11717400651"
+local BackgroundTargets = {}
+
+-- Busca robusta: pega qualquer ImageLabel grande do WindUI
+local function EscanearBackgrounds()
+    BackgroundTargets = {}
+    local gui = Window.GUI or CoreGui:FindFirstChild("WindUI")
+    if not gui then
+        -- fallback: procura em todas as ScreenGuis
+        for _, sg in ipairs(CoreGui:GetChildren()) do
+            if sg:IsA("ScreenGui") then gui = sg break end
+        end
+    end
+    if not gui then
+        print("[sᴄʀɪᴘᴛ] Nenhuma ScreenGui encontrada")
+        return
+    end
+
+    for _, v in ipairs(gui:GetDescendants()) do
+        if v:IsA("ImageLabel") then
+            pcall(function()
+                local abs = v.AbsoluteSize
+                if abs.X >= 300 and abs.Y >= 200 then
+                    table.insert(BackgroundTargets, v)
+                end
+            end)
+        end
+    end
+    print("[sᴄʀɪᴘᴛ] ɪᴍᴀɢᴇɴs ᴅᴇ ꜰᴜɴᴅᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀs:", #BackgroundTargets)
+end
+
+-- Escaneia ao carregar e re-escaneia depois (WindUI pode criar tardio)
+EscanearBackgrounds()
+task.delay(1, EscanearBackgrounds)
+task.delay(3, EscanearBackgrounds)
 
 local function AplicarBackground(assetId)
+    EscanearBackgrounds()
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
-    local bg = nil
-    pcall(function()
-        for _, v in ipairs(CoreGui:GetDescendants()) do
-            if v:IsA("ImageLabel") and v.Name == "BackgroundImage" then
-                bg = v
-                break
-            end
+    local count = 0
+    for _, bg in ipairs(BackgroundTargets) do
+        if bg and bg.Parent then
+            pcall(function()
+                bg.Image = url
+                bg.ImageTransparency = 0.35
+                bg.Visible = true
+                count = count + 1
+            end)
         end
-    end)
-    if bg then
-        bg.Image = url
-        BackgroundAtual = assetId
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ", Duration = 2, Icon = "check-circle"})
+    end
+    BackgroundAtual = assetId
+
+    if count > 0 then
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ ᴇᴍ " .. count .. " ᴇʟᴇᴍᴇɴᴛᴏs",
+            Duration = 2,
+            Icon = "check-circle"
+        })
     else
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ", Duration = 3, Icon = "x-circle"})
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴇɪ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
+            Duration = 3,
+            Icon = "x-circle"
+        })
     end
 end
 
@@ -1546,6 +1593,32 @@ ScriptTab:Input({
 ScriptTab:Button({
     Title = "ᴀᴘʟɪᴄᴀʀ ɪᴅ ᴍᴀɴᴜᴀʟ",
     Callback = function() AplicarBackground(BackgroundAtual) end,
+})
+
+ScriptTab:Button({
+    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ɪᴍᴀɢᴇɴs",
+    Callback = function()
+        EscanearBackgrounds()
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = #BackgroundTargets .. " ᴇɴᴄᴏɴᴛʀᴀᴅᴀs",
+            Duration = 2,
+            Icon = "success"
+        })
+    end,
+})
+
+ScriptTab:Slider({
+    Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ɪᴍᴀɢᴇᴍ",
+    Value = {Min = 0, Max = 100, Default = 35},
+    Callback = function(v)
+        local alpha = v / 100
+        for _, bg in ipairs(BackgroundTargets) do
+            if bg and bg.Parent then
+                pcall(function() bg.ImageTransparency = alpha end)
+            end
+        end
+    end,
 })
 
 ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
@@ -1583,7 +1656,7 @@ ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
 
 ScriptTab:Button({
     Title = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘",
-    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛʜᴇ ᴄʟᴀssɪᴄ sᴏᴄᴄᴇʀ",
+    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛʜᴇ ᴄʟᴀꜱꜱɪᴄ ꜱᴏᴄᴄᴇʀ",
     Callback = function()
         pcall(function()
             if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘") end
@@ -1594,7 +1667,7 @@ ScriptTab:Button({
 
 ScriptTab:Button({
     Title = "ᴏʙʀɪɢᴀᴅᴏ ᴘᴏʀ ᴜsᴀʀ!",
-    Desc = "sᴇ ᴄᴜʀᴛɪᴜ, ᴄᴏᴍᴘᴀʀᴛɪʟʜᴀ ᴄᴏᴍ ᴏs ᴀᴍɪɢᴏs.",
+    Desc = "ꜱᴇ ᴄᴜʀᴛɪᴜ, ᴄᴏᴍᴘᴀʀᴛɪʟʜᴀ ᴄᴏᴍ ᴏꜱ ᴀᴍɪɢᴏꜱ.",
     Callback = function()
         WindUI:Notify({Title = "ᴍᴀɴɪᴄ ʜᴜʙ", Content = "ᴠᴀʟᴇᴜ ᴘᴇʟᴏ ᴀᴘᴏɪᴏ!", Duration = 3, Icon = "success"})
     end,
