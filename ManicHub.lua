@@ -1806,67 +1806,61 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "11717400651"
 
 -- ============================================
--- ENCONTRA SCREENGUI + MAINFRAME
+-- APLICA IMAGEM DE FUNDO (fix definitivo v3)
 -- ============================================
-local function EncontrarWindUI()
-    -- 1. Procura ScreenGui com "wind" no nome
+local function AplicarBackground(assetId)
+    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
+
+    -- Encontra a ScreenGui do WindUI (a que NÃO é do Roblox)
+    local windGui = nil
     for _, sg in ipairs(CoreGui:GetChildren()) do
         if sg:IsA("ScreenGui") and sg.Enabled then
-            if string.lower(sg.Name):find("wind") then
-                return sg
-            end
-        end
-    end
-    -- 2. Fallback: qualquer ScreenGui com Frame grande
-    for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") and sg.Enabled then
-            for _, obj in ipairs(sg:GetDescendants()) do
-                if obj:IsA("Frame") and obj.AbsoluteSize.X > 400 then
-                    return sg
+            local n = string.lower(sg.Name)
+            if n ~= "robloxgui" and n ~= "manicfps"
+            and n ~= "manicfloat" and n ~= "manicnotify"
+            and n ~= "promptguis" and n ~= "chatgui"
+            and n ~= "screenshots" and n ~= "capturemanager" then
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 500 then
+                        windGui = sg
+                        break
+                    end
                 end
             end
+            if windGui then break end
         end
     end
-    return nil
-end
 
-local function EncontrarMainFrame(screenGui)
-    local maior, maiorArea = nil, 0
-    for _, obj in ipairs(screenGui:GetDescendants()) do
+    if not windGui then
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "WindUI nao encontrada", Duration = 3, Icon = "x-circle"})
+        return
+    end
+
+    -- Encontra o Frame principal (maior Frame dentro da WindUI)
+    local mainFrame = nil
+    local maiorArea = 0
+    for _, obj in ipairs(windGui:GetDescendants()) do
         if obj:IsA("Frame") then
             local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
             if area > maiorArea and area > 100000 then
                 maiorArea = area
-                maior = obj
+                mainFrame = obj
             end
         end
     end
-    return maior
-end
 
--- ============================================
--- APLICA IMAGEM DE FUNDO
--- ============================================
-local function AplicarBackground(assetId)
-    local windGui = EncontrarWindUI()
-    if not windGui then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ScreenGui nao encontrada", Duration = 3, Icon = "x-circle"})
-        return
-    end
-
-    local mainFrame = EncontrarMainFrame(windGui)
     if not mainFrame then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "MainFrame nao encontrado", Duration = 3, Icon = "x-circle"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Frame principal nao encontrado", Duration = 3, Icon = "x-circle"})
         return
     end
-
-    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
     -- Remove fundo antigo
     local oldBg = mainFrame:FindFirstChild("ManicBackground")
     if oldBg then oldBg:Destroy() end
 
-    -- Cria novo ImageLabel de fundo
+    -- ============================================
+    -- Cria o ImageLabel de fundo
+    -- ============================================
     local bg = Instance.new("ImageLabel")
     bg.Name = "ManicBackground"
     bg.Size = UDim2.new(1, 0, 1, 0)
@@ -1883,17 +1877,17 @@ local function AplicarBackground(assetId)
     corner.CornerRadius = UDim.new(0, 14)
     corner.Parent = bg
 
-    -- Deixa transparente Frames que cobrem o fundo todo
+    -- Deixa transparente Frames pretos que estão cobrindo a janela
     for _, obj in ipairs(mainFrame:GetChildren()) do
         if obj:IsA("Frame") and obj ~= bg then
             local sz = obj.AbsoluteSize
-            if sz.X > 500 and sz.Y > 300 and obj.BackgroundTransparency < 0.5 then
-                obj.BackgroundTransparency = 0.65
+            if sz.X > 500 and sz.Y > 300 and obj.BackgroundTransparency < 0.7 then
+                obj.BackgroundTransparency = 0.85
             end
         end
     end
 
-    -- Força renderização do bg (ordem)
+    -- Força o bg a ser renderizado primeiro
     bg.Parent = nil
     bg.Parent = mainFrame
 
@@ -1902,9 +1896,34 @@ local function AplicarBackground(assetId)
 end
 
 local function AtualizarTransparencia(valor)
-    local windGui = EncontrarWindUI()
+    local windGui = nil
+    for _, sg in ipairs(CoreGui:GetChildren()) do
+        if sg:IsA("ScreenGui") and sg.Enabled then
+            local n = string.lower(sg.Name)
+            if n ~= "robloxgui" and n ~= "manicfps"
+            and n ~= "manicfloat" and n ~= "manicnotify" then
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 500 then
+                        windGui = sg
+                        break
+                    end
+                end
+            end
+            if windGui then break end
+        end
+    end
     if not windGui then return end
-    local mainFrame = EncontrarMainFrame(windGui)
+    local mainFrame = nil
+    local maiorArea = 0
+    for _, obj in ipairs(windGui:GetDescendants()) do
+        if obj:IsA("Frame") then
+            local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+            if area > maiorArea and area > 100000 then
+                maiorArea = area
+                mainFrame = obj
+            end
+        end
+    end
     if not mainFrame then return end
     local bg = mainFrame:FindFirstChild("ManicBackground")
     if bg then bg.ImageTransparency = valor / 100 end
@@ -1980,12 +1999,13 @@ end
 ScriptTab:Button({
     Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
     Callback = function()
-        local sg = EncontrarWindUI()
-        if sg then
-            local mf = EncontrarMainFrame(sg)
-            if mf then
-                local bg = mf:FindFirstChild("ManicBackground")
-                if bg then bg:Destroy() end
+        for _, sg in ipairs(CoreGui:GetChildren()) do
+            if sg:IsA("ScreenGui") then
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj.Name == "ManicBackground" then
+                        obj:Destroy()
+                    end
+                end
             end
         end
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem removida", Duration = 2})
