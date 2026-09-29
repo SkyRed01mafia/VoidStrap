@@ -66,7 +66,7 @@ local Window = WindUI:CreateWindow({
     Theme = "Dark",
     SideBarWidth = 180,
     HasOutline = true,
-    Background = "rbxassetid://11717400651",
+    Background = "rbxassetid://92048348535477",
     BackgroundImageTransparency = 0.35,
 })
 
@@ -207,7 +207,7 @@ spawn(function()
     end
 end)
 
--- SKYBOX (Mecânica ScarHub)
+-- SKYBOX
 MapTab:Section({ Title = "sᴋʏʙᴏx" })
 
 local function ForceSkyTCS(assetId)
@@ -920,9 +920,7 @@ BallTab:Button({
     end,
 })
 
--- ============================================
 -- BOTÃO FLUTUANTE "SEGUIR"
--- ============================================
 BallTab:Section({ Title = "ʙᴏᴛᴀᴏ ꜰʟᴜᴛᴀɴᴛᴇ" })
 
 local FloatGui = nil
@@ -1022,19 +1020,11 @@ local function CriarFloatBtn()
         State.AutoBall = not State.AutoBall
         if State.AutoBall then StartAutoBall() else StopAutoBall() end
         AtualizarTextoBotao()
-        pcall(function()
-            StarterGui:SetCore("SendNotification", {
-                Title = "ᴀᴜᴛᴏ ʙᴀʟʟ",
-                Text = State.AutoBall and "ᴀᴛɪᴠᴀᴅᴏ" or "ᴅᴇsᴀᴛɪᴠᴀᴅᴏ",
-                Duration = 2
-            })
-        end)
     end)
 end
 
 BallTab:Toggle({
     Title = "ᴍᴏsᴛʀᴀʀ ʙᴏᴛᴀᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ",
-    Desc = "ʙᴏᴛᴀᴏ ǫᴜᴀᴅʀᴀᴅᴏ ᴘᴀʀᴀ ᴛᴏɢɢʟᴀʀ ᴀᴜᴛᴏ ʙᴀʟʟ",
     Value = false,
     Callback = function(v)
         FloatVisible = v
@@ -1050,7 +1040,6 @@ BallTab:Toggle({
 
 BallTab:Toggle({
     Title = "ᴛʀᴀᴠᴀʀ ʙᴏᴛᴀᴏ (ʟᴏᴄᴋ)",
-    Desc = "ɪᴍᴘᴇᴅᴇ ᴅᴇ ᴀʀʀᴀsᴛᴀʀ ᴏ ʙᴏᴛᴀᴏ",
     Value = false,
     Callback = function(v) FloatLocked = v end,
 })
@@ -1209,7 +1198,6 @@ for _, char in ipairs(CharsList) do
     })
 end--[[ MANIC HUB | PARTE 7/11 — ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ]]
 
--- ABA ᴀᴄ
 local ACTab = Window:Tab({ Title = "ᴀᴄ", Icon = "shield" })
 ACTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ" })
 
@@ -1257,7 +1245,6 @@ ACTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 3, Max = 30, Default
 ACTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ (x100ᴍs)", Value = {Min = 2, Max = 30, Default = 8}, Callback = function(v) AutoCatchDelay = v / 10 end})
 ACTab:Toggle({Title = "ᴍᴏsᴛʀᴀʀ ʜɪᴛʙᴏx", Value = false, Callback = function(v) AC_Hitbox = v end})
 
--- ABA ʀᴇᴀᴄʜ
 local ReachTab = Window:Tab({ Title = "ʀᴇᴀᴄʜ", Icon = "ruler" })
 ReachTab:Section({ Title = "ʀᴇᴀᴄʜ" })
 
@@ -1266,7 +1253,6 @@ local ReachLast = 0
 ReachTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ʀᴇᴀᴄʜ", Value = false, Callback = function(v) State.Reach = v end})
 ReachTab:Slider({Title = "ᴅɪsᴛᴀɴᴄɪᴀ", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) State.ReachDistance = v end})
 
--- ABA ᴀᴜᴛᴏ ᴅʀɪᴠᴇ
 local DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
 local GKBotoes = {}
@@ -1485,31 +1471,18 @@ local function StopAutoDive()
 end
 
 DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟɪɢᴇɴᴛᴇ" })
-
-DriveTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟɪɢᴇɴᴛᴇ",
-    Value = false,
-    Callback = function(Value)
-        AutoCatchIntelEnabled = Value
-        if Value then StartAutoCatchIntel() else StopAutoCatchIntel() end
-    end,
-})
-
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟɪɢᴇɴᴛᴇ", Value = false, Callback = function(Value)
+    AutoCatchIntelEnabled = Value
+    if Value then StartAutoCatchIntel() else StopAutoCatchIntel() end
+end})
 DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 35, Default = 16}, Callback = function(v) AutoCatchIntelRange = v end})
 DriveTab:Slider({Title = "ᴀʟᴛᴜʀᴀ ᴍɪɴɪᴍᴀ", Value = {Min = 1, Max = 10, Default = 3.5, Decimal = 1}, Callback = function(v) AutoCatchIntelHeight = v end})
 DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 20, Default = 3, Suffix = "x0.1s"}, Callback = function(v) AutoCatchIntelCooldown = v / 10 end})
 
 DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅɪᴠᴇ" })
-
-DriveTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅɪᴠᴇ",
-    Value = false,
-    Callback = function(Value)
-        State.AutoDrive = Value
-        if Value then StartAutoDive() else StopAutoDive() end
-    end,
-})
-
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅɪᴠᴇ", Value = false, Callback = function(Value)
+    State.AutoDrive = Value    if Value then StartAutoDive() else StopAutoDive() end
+end})
 DriveTab:Dropdown({
     Title = "ᴍᴏᴅᴏ ᴅᴏ ᴅɪᴠᴇ",
     Values = {"ᴀᴜᴛᴏ", "ᴇsǫᴜᴇʀᴅᴀ ᴀʟᴛᴏ", "ᴅɪʀᴇɪᴛᴀ ᴀʟᴛᴏ", "ᴇsǫᴜᴇʀᴅᴀ ʙᴀɪxᴏ", "ᴅɪʀᴇɪᴛᴀ ʙᴀɪxᴏ",
@@ -1517,20 +1490,11 @@ DriveTab:Dropdown({
     Value = "ᴀᴜᴛᴏ",
     Callback = function(v) AutoDiveMode = v end,
 })
-
 DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴅɪᴠᴇ", Value = {Min = 5, Max = 30, Default = 15}, Callback = function(v) AutoDiveRange = v end})
 DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ ᴅᴏ ᴅɪᴠᴇ", Value = {Min = 3, Max = 50, Default = 8, Suffix = "x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
-
-DriveTab:Toggle({
-    Title = "ᴅɪᴠᴇ ᴘᴀᴜsᴀ ǫᴜᴀɴᴅᴏ ɪɴᴛᴇʟ ᴏɴ",
-    Desc = "Evita conflito entre Auto Dive e Auto Catch Intel",
-    Value = true,
-    Callback = function(v) AutoDiveBloquearSeIntelAtivo = v end,
-})
-
+DriveTab:Toggle({Title = "ᴅɪᴠᴇ ᴘᴀᴜsᴀ ǫᴜᴀɴᴅᴏ ɪɴᴛᴇʟ ᴏɴ", Value = true, Callback = function(v) AutoDiveBloquearSeIntelAtivo = v end})
 DriveTab:Button({
     Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ʙᴏᴛᴏᴇs ɢᴋ",
-    Desc = "Use se entrar como goleiro depois",
     Callback = function()
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛᴏᴇs", Duration = 3})
@@ -1538,12 +1502,8 @@ DriveTab:Button({
 })--[[ MANIC HUB | PARTE 8/11 — ꜰʟᴀɢ ]]
 
 local FlagTab = Window:Tab({ Title = "ꜰʟᴀɢ", Icon = "zap" })
-
 FlagTab:Section({ Title = "ᴏᴛɪᴍɪᴢᴀᴄᴀᴏ" })
 
--- ============================================
--- UNLOCK FPS
--- ============================================
 local FpsUnlocked = false
 
 FlagTab:Toggle({
@@ -1555,17 +1515,10 @@ FlagTab:Toggle({
         pcall(function()
             if setfpscap then setfpscap(v and 999 or 60) end
         end)
-        WindUI:Notify({
-            Title = "ꜰʟᴀɢ",
-            Content = v and "ꜰᴘs ᴜɴʟᴏᴄᴋᴇᴅ (999)" or "ꜰᴘs ɴᴏʀᴍᴀʟ (60)",
-            Duration = 2
-        })
+        WindUI:Notify({Title = "ꜰʟᴀɢ", Content = v and "ꜰᴘs ᴜɴʟᴏᴄᴋᴇᴅ" or "ꜰᴘs ɴᴏʀᴍᴀʟ", Duration = 2})
     end,
 })
 
--- ============================================
--- ANTI LAG
--- ============================================
 local AntiLagEnabled = false
 local AntiLagBackup = {}
 
@@ -1577,53 +1530,37 @@ FlagTab:Toggle({
         AntiLagEnabled = v
         pcall(function()
             if v then
-                -- Salva valores originais
                 AntiLagBackup.Brightness = Lighting.Brightness
                 AntiLagBackup.GlobalShadows = Lighting.GlobalShadows
                 AntiLagBackup.FogEnd = Lighting.FogEnd
                 AntiLagBackup.OutdoorAmbient = Lighting.OutdoorAmbient
                 AntiLagBackup.QualityLevel = settings().Rendering.QualityLevel
 
-                -- Aplica otimização
                 Lighting.GlobalShadows = false
                 Lighting.FogEnd = 100000
                 Lighting.Brightness = 1
                 Lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
                 settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 
-                -- Desativa efeitos pós-processamento
                 for _, obj in ipairs(Lighting:GetChildren()) do
-                    if obj:IsA("PostEffect") or obj:IsA("ColorCorrectionEffect")
-                    or obj:IsA("BloomEffect") or obj:IsA("BlurEffect")
-                    or obj:IsA("SunRaysEffect") or obj:IsA("DepthOfFieldEffect") then
-                        obj.Enabled = false
-                    end
+                    if obj:IsA("PostEffect") then obj.Enabled = false end
                 end
-
                 WindUI:Notify({Title = "ꜰʟᴀɢ", Content = "ᴀɴᴛɪ ʟᴀɢ ᴀᴛɪᴠᴀᴅᴏ", Duration = 2})
             else
-                -- Restaura
                 if AntiLagBackup.Brightness then Lighting.Brightness = AntiLagBackup.Brightness end
                 if AntiLagBackup.GlobalShadows ~= nil then Lighting.GlobalShadows = AntiLagBackup.GlobalShadows end
                 if AntiLagBackup.FogEnd then Lighting.FogEnd = AntiLagBackup.FogEnd end
                 if AntiLagBackup.OutdoorAmbient then Lighting.OutdoorAmbient = AntiLagBackup.OutdoorAmbient end
                 if AntiLagBackup.QualityLevel then settings().Rendering.QualityLevel = AntiLagBackup.QualityLevel end
-
                 for _, obj in ipairs(Lighting:GetChildren()) do
-                    if obj:IsA("PostEffect") then
-                        obj.Enabled = true
-                    end
+                    if obj:IsA("PostEffect") then obj.Enabled = true end
                 end
-
                 WindUI:Notify({Title = "ꜰʟᴀɢ", Content = "ᴀɴᴛɪ ʟᴀɢ ᴅᴇsᴀᴛɪᴠᴀᴅᴏ", Duration = 2})
             end
         end)
     end,
 })
 
--- ============================================
--- ANTI FREEZE
--- ============================================
 local AntiFreezeEnabled = false
 local AntiFreezeConn = nil
 
@@ -1637,12 +1574,9 @@ FlagTab:Toggle({
             if AntiFreezeConn then AntiFreezeConn:Disconnect() end
             AntiFreezeConn = RunService.Heartbeat:Connect(function()
                 if not AntiFreezeEnabled then return end
-                -- Força o Roblox a priorizar o personagem local
                 pcall(function()
                     for _, obj in ipairs(Workspace:GetChildren()) do
-                        if obj:IsA("BasePart") then
-                            obj.CanQuery = true
-                        end
+                        if obj:IsA("BasePart") then obj.CanQuery = true end
                     end
                 end)
             end)
@@ -1657,9 +1591,6 @@ FlagTab:Toggle({
     end,
 })
 
--- ============================================
--- CONTAINER (limpa texturas desnecessárias)
--- ============================================
 local ContainerEnabled = false
 local ContainerBackup = {}
 local ContainerConn = nil
@@ -1676,7 +1607,6 @@ FlagTab:Toggle({
                 if not ContainerEnabled then return end
                 pcall(function()
                     for _, obj in ipairs(Workspace:GetDescendants()) do
-                        -- Remove texturas de parts distantes
                         if obj:IsA("Texture") or obj:IsA("Decal") then
                             if obj.Parent and obj.Parent:IsA("BasePart") then
                                 local dist = (obj.Parent.Position - RootPart.Position).Magnitude
@@ -1688,7 +1618,6 @@ FlagTab:Toggle({
                                 end
                             end
                         end
-                        -- Desativa partículas e efeitos distantes
                         if obj:IsA("ParticleEmitter") or obj:IsA("Trail")
                         or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
                             if obj.Parent and obj.Parent:IsA("BasePart") then
@@ -1710,7 +1639,6 @@ FlagTab:Toggle({
                 ContainerConn:Disconnect()
                 ContainerConn = nil
             end
-            -- Restaura tudo
             for obj, val in pairs(ContainerBackup) do
                 if obj and obj.Parent then
                     pcall(function() obj.Transparency = val end)
@@ -1723,11 +1651,7 @@ FlagTab:Toggle({
     end,
 })
 
--- ============================================
--- BOTÃO RESTAURAR TUDO
--- ============================================
 FlagTab:Section({ Title = "ᴀᴄᴏᴇs" })
-
 FlagTab:Button({
     Title = "ʀᴇsᴛᴀᴜʀᴀʀ ᴛᴜᴅᴏ",
     Desc = "ᴅᴇsᴀᴛɪᴠᴀ ᴛᴏᴅᴀs ᴀs ꜰʟᴀɢs ᴇ ᴠᴏʟᴛᴀ ᴀᴏ ɴᴏʀᴍᴀʟ",
@@ -1746,11 +1670,8 @@ FlagTab:Button({
     end,
 })
 
-print("[MANIC HUB] ᴀʙᴀ ꜰʟᴀɢ ᴄᴀʀʀᴇɢᴀᴅᴀ!")--[[ MANIC HUB | PARTE 10/11 — sᴄʀɪᴘᴛ + Assets + Loops ]]
+print("[MANIC HUB] ᴀʙᴀ ꜰʟᴀɢ ᴄᴀʀʀᴇɢᴀᴅᴀ!")--[[ MANIC HUB | PARTE 10/11 — sᴄʀɪᴘᴛ + Assets ]]
 
--- ============================================
--- LOOPS FINAIS
--- ============================================
 RunService.Heartbeat:Connect(function()
     if State.AutoCatch then
         local ball = CurrentFollowBall or FindClosestBall()
@@ -1796,142 +1717,69 @@ RunService.Heartbeat:Connect(function()
     ReachLast = os.clock() + 0.05
 end)
 
--- ============================================
--- ABA sᴄʀɪᴘᴛ
--- ============================================
 local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
-
 ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
-local BackgroundAtual = "11717400651"
+local BackgroundAtual = "92048348535477"
 
--- ============================================
--- APLICA IMAGEM DE FUNDO (fix definitivo v3)
--- ============================================
 local function AplicarBackground(assetId)
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
-    -- Encontra a ScreenGui do WindUI (a que NÃO é do Roblox)
-    local windGui = nil
+    -- Tenta API nativa primeiro
+    local sucessoNativo = false
+    pcall(function()
+        if Window.SetBackground then
+            Window:SetBackground(url, 0.35)
+            sucessoNativo = true
+        end
+    end)
+
+    if sucessoNativo then
+        BackgroundAtual = assetId
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
+        return
+    end
+
+    -- Fallback: procura ImageLabel grande do WindUI
     for _, sg in ipairs(CoreGui:GetChildren()) do
         if sg:IsA("ScreenGui") and sg.Enabled then
-            local n = string.lower(sg.Name)
-            if n ~= "robloxgui" and n ~= "manicfps"
-            and n ~= "manicfloat" and n ~= "manicnotify"
-            and n ~= "promptguis" and n ~= "chatgui"
-            and n ~= "screenshots" and n ~= "capturemanager" then
+            local nome = string.lower(sg.Name)
+            if nome ~= "robloxgui" and nome ~= "manicfps"
+            and nome ~= "manicfloat" and nome ~= "manicnotify" then
                 for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 500 then
-                        windGui = sg
-                        break
+                    if obj:IsA("ImageLabel") and obj.AbsoluteSize.X > 400 and obj.AbsoluteSize.Y > 300 then
+                        pcall(function()
+                            obj.Image = url
+                            obj.ImageTransparency = 0.35
+                        end)
+                        BackgroundAtual = assetId
+                        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
+                        return
                     end
                 end
             end
-            if windGui then break end
         end
     end
 
-    if not windGui then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "WindUI nao encontrada", Duration = 3, Icon = "x-circle"})
-        return
-    end
-
-    -- Encontra o Frame principal (maior Frame dentro da WindUI)
-    local mainFrame = nil
-    local maiorArea = 0
-    for _, obj in ipairs(windGui:GetDescendants()) do
-        if obj:IsA("Frame") then
-            local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
-            if area > maiorArea and area > 100000 then
-                maiorArea = area
-                mainFrame = obj
-            end
-        end
-    end
-
-    if not mainFrame then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Frame principal nao encontrado", Duration = 3, Icon = "x-circle"})
-        return
-    end
-
-    -- Remove fundo antigo
-    local oldBg = mainFrame:FindFirstChild("ManicBackground")
-    if oldBg then oldBg:Destroy() end
-
-    -- ============================================
-    -- Cria o ImageLabel de fundo
-    -- ============================================
-    local bg = Instance.new("ImageLabel")
-    bg.Name = "ManicBackground"
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.Position = UDim2.new(0, 0, 0, 0)
-    bg.BackgroundTransparency = 1
-    bg.ScaleType = Enum.ScaleType.Crop
-    bg.ZIndex = 0
-    bg.Image = url
-    bg.ImageTransparency = 0.35
-    bg.Visible = true
-    bg.Parent = mainFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 14)
-    corner.Parent = bg
-
-    -- Deixa transparente Frames pretos que estão cobrindo a janela
-    for _, obj in ipairs(mainFrame:GetChildren()) do
-        if obj:IsA("Frame") and obj ~= bg then
-            local sz = obj.AbsoluteSize
-            if sz.X > 500 and sz.Y > 300 and obj.BackgroundTransparency < 0.7 then
-                obj.BackgroundTransparency = 0.85
-            end
-        end
-    end
-
-    -- Força o bg a ser renderizado primeiro
-    bg.Parent = nil
-    bg.Parent = mainFrame
-
-    BackgroundAtual = assetId
-    WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
+    WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Fundo nao encontrado", Duration = 3, Icon = "x-circle"})
 end
 
 local function AtualizarTransparencia(valor)
-    local windGui = nil
     for _, sg in ipairs(CoreGui:GetChildren()) do
         if sg:IsA("ScreenGui") and sg.Enabled then
-            local n = string.lower(sg.Name)
-            if n ~= "robloxgui" and n ~= "manicfps"
-            and n ~= "manicfloat" and n ~= "manicnotify" then
+            local nome = string.lower(sg.Name)
+            if nome ~= "robloxgui" and nome ~= "manicfps"
+            and nome ~= "manicfloat" and nome ~= "manicnotify" then
                 for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 500 then
-                        windGui = sg
-                        break
+                    if obj.Name == "ManicBackground" or (obj:IsA("ImageLabel") and obj.AbsoluteSize.X > 400) then
+                        pcall(function() obj.ImageTransparency = valor / 100 end)
                     end
                 end
             end
-            if windGui then break end
         end
     end
-    if not windGui then return end
-    local mainFrame = nil
-    local maiorArea = 0
-    for _, obj in ipairs(windGui:GetDescendants()) do
-        if obj:IsA("Frame") then
-            local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
-            if area > maiorArea and area > 100000 then
-                maiorArea = area
-                mainFrame = obj
-            end
-        end
-    end
-    if not mainFrame then return end
-    local bg = mainFrame:FindFirstChild("ManicBackground")
-    if bg then bg.ImageTransparency = valor / 100 end
 end
 
--- ============================================
--- CONTROLES
--- ============================================
 ScriptTab:Input({
     Title = "ɪᴅ ᴍᴀɴᴜᴀʟ",
     Placeholder = "sᴏᴍᴇɴᴛᴇ ᴏ ɪᴅ",
@@ -1942,10 +1790,7 @@ ScriptTab:Input({
     end,
 })
 
-ScriptTab:Button({
-    Title = "ᴀᴘʟɪᴄᴀʀ ɪᴅ ᴍᴀɴᴜᴀʟ",
-    Callback = function() AplicarBackground(BackgroundAtual) end,
-})
+ScriptTab:Button({Title = "ᴀᴘʟɪᴄᴀʀ ɪᴅ ᴍᴀɴᴜᴀʟ", Callback = function() AplicarBackground(BackgroundAtual) end})
 
 ScriptTab:Slider({
     Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ɪᴍᴀɢᴇᴍ",
@@ -1953,87 +1798,25 @@ ScriptTab:Slider({
     Callback = function(v) AtualizarTransparencia(v) end,
 })
 
-ScriptTab:Button({
-    Title = "🔍 ᴅᴇʙᴜɢ ᴊᴀɴᴇʟᴀ",
-    Desc = "Mostra a estrutura do WindUI no console",
-    Callback = function()
-        print("=== DEBUG WINDUI ===")
-        for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") and sg.Enabled then
-                print("ScreenGui:", sg.Name)
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 300 then
-                        print("  Frame:", obj.Name, "| Size:", obj.AbsoluteSize, "| ZIndex:", obj.ZIndex)
-                    end
-                    if obj:IsA("ImageLabel") and obj.AbsoluteSize.X > 200 then
-                        print("  Img:", obj.Name, "| Size:", obj.AbsoluteSize, "| ZIndex:", obj.ZIndex)
-                    end
-                end
-            end
-        end
-        print("=== FIM DEBUG ===")
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Veja o console (F9)", Duration = 3})
-    end,
-})
-
--- ============================================
--- ASSETS PRESET
--- ============================================
 ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
 
 local ASSETS_PRESET = {
     {Nome = "ᴀssᴇᴛ 1", ID = "86503454003964"},
     {Nome = "ᴀssᴇᴛ 2", ID = "17228542848"},
-    {Nome = "ᴀssᴇᴛ 3 (ᴘᴀᴅʀᴀᴏ)", ID = "11717400651"},
+    {Nome = "ᴀssᴇᴛ 3 (ᴘᴀᴅʀᴀᴏ)", ID = "92048348535477"},
     {Nome = "ᴀssᴇᴛ 4", ID = "111996173475442"},
     {Nome = "ᴀssᴇᴛ 5", ID = "15423397129"},
 }
 
 for _, asset in ipairs(ASSETS_PRESET) do
-    ScriptTab:Button({
-        Title = asset.Nome,
-        Callback = function() AplicarBackground(asset.ID) end,
-    })
+    ScriptTab:Button({Title = asset.Nome, Callback = function() AplicarBackground(asset.ID) end})
 end
 
-ScriptTab:Button({
-    Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
-    Callback = function()
-        for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") then
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj.Name == "ManicBackground" then
-                        obj:Destroy()
-                    end
-                end
-            end
-        end
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem removida", Duration = 2})
-    end,
-})
-
--- ============================================
--- INFORMAÇÕES
--- ============================================
 ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
+ScriptTab:Button({Title = "ᴠᴇʀsᴀᴏ: ᴠ3.0", Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛᴄs ᴇᴅɪᴛɪᴏɴ", Callback = function() end})
+ScriptTab:Button({Title = "ᴀᴛᴀʟʜᴏ: ʟᴇꜰᴛsʜɪꜰᴛ", Desc = "ᴀʙʀᴇ/ꜰᴇᴄʜᴀ ᴏ ᴍᴇɴᴜ", Callback = function() end})
 
-ScriptTab:Button({
-    Title = "ᴠᴇʀsᴀᴏ: ᴠ3.0",
-    Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛᴄs ᴇᴅɪᴛɪᴏɴ",
-    Callback = function() end,
-})
-
-ScriptTab:Button({
-    Title = "ᴀᴛᴀʟʜᴏ: ʟᴇꜰᴛsʜɪꜰᴛ",
-    Desc = "ᴀʙʀᴇ/ꜰᴇᴄʜᴀ ᴏ ᴍᴇɴᴜ",
-    Callback = function() end,
-})
-
--- ============================================
--- CRÉDITOS
--- ============================================
 ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
-
 ScriptTab:Button({
     Title = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘",
     Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛʜᴇ ᴄʟᴀꜱꜱɪᴄ ꜱᴏᴄᴄᴇʀ",
@@ -2053,9 +1836,6 @@ ScriptTab:Button({
     end,
 })
 
--- ============================================
--- FINAL
--- ============================================
 WindUI:Notify({
     Title = "Manic Hub",
     Content = "Carregado! Use LeftShift para abrir/fechar.",
@@ -2063,14 +1843,10 @@ WindUI:Notify({
     Icon = "check-circle",
 })
 
-print("[MANIC HUB] Carregado com WindUI!")
-print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
-print("[MANIC HUB] Botões GK:", #GKBotoes)
-print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")--[[ MANIC HUB | PARTE 11/11 — ᴛʀᴏʟʟ + ᴀᴜᴛᴏ ꜰᴀʀᴍ ]]
+print("[MANIC HUB] Carregado!")
+print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕃𝖆𝖓𝖉𝖝𝖘")--[[ MANIC HUB | PARTE 11/11 — ᴛʀᴏʟʟ + ᴀᴜᴛᴏ ꜰᴀʀᴍ ]]
 
--- ============================================
 -- ABA ᴛʀᴏʟʟ
--- ============================================
 local TrollTab = Window:Tab({ Title = "ᴛʀᴏʟʟ", Icon = "zap" })
 
 local FlingBallForce = 300
@@ -2091,9 +1867,6 @@ local ImaBallConn = nil
 local ImaBallForce = 60
 local ImaBallRange = 40
 
--- ============================================
--- LOOP BALL
--- ============================================
 TrollTab:Section({ Title = "ʟᴏᴏᴘ ʙᴀʟʟ" })
 
 local function StartLoopBall()
@@ -2128,31 +1901,13 @@ local function StopLoopBall()
     end
 end
 
-TrollTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ʟᴏᴏᴘ ʙᴀʟʟ",
-    Desc = "Teleporta na bola em loop toda vez que ela estiver em movimento",
-    Value = false,
-    Callback = function(Value)
-        LoopBallEnabled = Value
-        if Value then StartLoopBall() else StopLoopBall() end
-    end,
-})
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ʟᴏᴏᴘ ʙᴀʟʟ", Value = false, Callback = function(Value)
+    LoopBallEnabled = Value
+    if Value then StartLoopBall() else StopLoopBall() end
+end})
+TrollTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴍɪɴɪᴍᴀ ᴅᴀ ʙᴏʟᴀ", Value = {Min = 1, Max = 30, Default = 5}, Callback = function(v) LoopBallMinSpeed = v end})
+TrollTab:Slider({Title = "ᴅɪsᴛᴀɴᴄɪᴀ ᴅᴀ ʙᴏʟᴀ", Value = {Min = 1, Max = 8, Default = 2.5, Decimal = 1}, Callback = function(v) LoopBallDistance = v end})
 
-TrollTab:Slider({
-    Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴍɪɴɪᴍᴀ ᴅᴀ ʙᴏʟᴀ",
-    Value = { Min = 1, Max = 30, Default = 5 },
-    Callback = function(v) LoopBallMinSpeed = v end,
-})
-
-TrollTab:Slider({
-    Title = "ᴅɪsᴛᴀɴᴄɪᴀ ᴅᴀ ʙᴏʟᴀ",
-    Value = { Min = 1, Max = 8, Default = 2.5, Decimal = 1 },
-    Callback = function(v) LoopBallDistance = v end,
-})
-
--- ============================================
--- ÍMÃ BALL
--- ============================================
 TrollTab:Section({ Title = "ɪᴍᴀ ʙᴀʟʟ" })
 
 local function StartImaBall()
@@ -2180,38 +1935,20 @@ local function StopImaBall()
     end
 end
 
-TrollTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ɪᴍᴀ ʙᴀʟʟ",
-    Desc = "A bola e atraida magneticamente para voce",
-    Value = false,
-    Callback = function(Value)
-        ImaBallEnabled = Value
-        if Value then StartImaBall() else StopImaBall() end
-    end,
-})
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ɪᴍᴀ ʙᴀʟʟ", Value = false, Callback = function(Value)
+    ImaBallEnabled = Value
+    if Value then StartImaBall() else StopImaBall() end
+end})
+TrollTab:Slider({Title = "ꜰᴏʀᴄᴀ ᴅᴏ ɪᴍᴀ", Value = {Min = 10, Max = 200, Default = 60}, Callback = function(v) ImaBallForce = v end})
+TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ɪᴍᴀ", Value = {Min = 5, Max = 100, Default = 40}, Callback = function(v) ImaBallRange = v end})
 
-TrollTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴏ ɪᴍᴀ",
-    Value = { Min = 10, Max = 200, Default = 60 },
-    Callback = function(v) ImaBallForce = v end,
-})
-
-TrollTab:Slider({
-    Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ɪᴍᴀ",
-    Value = { Min = 5, Max = 100, Default = 40 },
-    Callback = function(v) ImaBallRange = v end,
-})
-
--- ============================================
--- CONTROL BALL
--- ============================================
 TrollTab:Section({ Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ" })
 
 local function StartControlBall()
     if ControlBallConn then return end
     local ball = GetValidBall()
     if not ball or not ball.Parent then
-        WindUI:Notify({ Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ", Content = "Nenhuma bola encontrada", Duration = 2 })
+        WindUI:Notify({Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ", Content = "Nenhuma bola encontrada", Duration = 2})
         ControlBallEnabled = false
         return
     end
@@ -2219,8 +1956,6 @@ local function StartControlBall()
     OriginalCameraSubject = Camera.CameraSubject
     Camera.CameraType = Enum.CameraType.Custom
     Camera.CameraSubject = ball
-    WindUI:Notify({ Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ", Content = "Camera na bola! Gire para mover", Duration = 3 })
-
     ControlBallConn = RunService.Heartbeat:Connect(function(dt)
         if not ControlBallEnabled then return end
         ball = GetValidBall()
@@ -2254,31 +1989,18 @@ local function StopControlBall()
     OriginalCameraSubject = nil
 end
 
-TrollTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ",
-    Desc = "Camera na bola. Vire a camera pra mover",
-    Value = false,
-    Callback = function(Value)
-        ControlBallEnabled = Value
-        if Value then StartControlBall() else StopControlBall() end
-    end,
-})
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ", Value = false, Callback = function(Value)
+    ControlBallEnabled = Value
+    if Value then StartControlBall() else StopControlBall() end
+end})
+TrollTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴀ ʙᴏʟᴀ", Value = {Min = 20, Max = 300, Default = 80}, Callback = function(v) ControlBallSpeed = v end})
 
-TrollTab:Slider({
-    Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴀ ʙᴏʟᴀ",
-    Value = { Min = 20, Max = 300, Default = 80 },
-    Callback = function(v) ControlBallSpeed = v end,
-})
-
--- ============================================
--- FLING BALL
--- ============================================
 TrollTab:Section({ Title = "ꜰʟɪɴɢ ʙᴀʟʟ" })
 
 local function FlingBall()
     local ball = GetValidBall()
     if not ball or not ball.Parent then
-        WindUI:Notify({ Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Content = "Nenhuma bola encontrada", Duration = 2 })
+        WindUI:Notify({Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Content = "Nenhuma bola encontrada", Duration = 2})
         return
     end
     if not RootPart or not RootPart.Parent then return end
@@ -2302,25 +2024,13 @@ local function FlingBall()
             firetouchinterest(RootPart, ball, 0)
             firetouchinterest(RootPart, ball, 1)
         end)
-        WindUI:Notify({ Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Content = "Bola flingada!", Duration = 1.5 })
+        WindUI:Notify({Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Content = "Bola flingada!", Duration = 1.5})
     end
 end
 
-TrollTab:Button({
-    Title = "ꜰʟɪɴɢ ʙᴀʟʟ",
-    Desc = "Teleporta ate a bola e manda ela voando",
-    Callback = function() FlingBall() end,
-})
+TrollTab:Button({Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Desc = "Teleporta ate a bola e manda ela voando", Callback = function() FlingBall() end})
+TrollTab:Slider({Title = "ꜰᴏʀᴄᴀ ᴅᴏ ꜰʟɪɴɢ", Value = {Min = 100, Max = 800, Default = 300}, Callback = function(v) FlingBallForce = v end})
 
-TrollTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴏ ꜰʟɪɴɢ",
-    Value = { Min = 100, Max = 800, Default = 300 },
-    Callback = function(v) FlingBallForce = v end,
-})
-
--- ============================================
--- POWER SHOOT
--- ============================================
 TrollTab:Section({ Title = "ᴘᴏᴡᴇʀ sʜᴏᴏᴛ" })
 
 local function CheckPowerShoot()
@@ -2345,34 +2055,15 @@ local function CheckPowerShoot()
     end)
 end
 
-TrollTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ",
-    Desc = "Chega perto da bola e ela e lancada com forca",
-    Value = false,
-    Callback = function(Value) PowerShootEnabled = Value end,
-})
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ", Value = false, Callback = function(Value) PowerShootEnabled = Value end})
+TrollTab:Slider({Title = "ꜰᴏʀᴄᴀ ᴅᴏ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ", Value = {Min = 100, Max = 800, Default = 250}, Callback = function(v) PowerShootForce = v end})
+TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ", Value = {Min = 3, Max = 20, Default = 8}, Callback = function(v) PowerShootRange = v end})
 
-TrollTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴏ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ",
-    Value = { Min = 100, Max = 800, Default = 250 },
-    Callback = function(v) PowerShootForce = v end,
-})
-
-TrollTab:Slider({
-    Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴘᴏᴡᴇʀ sʜᴏᴏᴛ",
-    Value = { Min = 3, Max = 20, Default = 8 },
-    Callback = function(v) PowerShootRange = v end,
-})
-
-RunService.PreRender:Connect(function()
-    CheckPowerShoot()
-end)
+RunService.PreRender:Connect(function() CheckPowerShoot() end)
 
 print("[MANIC HUB] ᴀʙᴀ ᴛʀᴏʟʟ ᴄᴀʀʀᴇɢᴀᴅᴀ!")
 
--- ============================================
 -- ABA ᴀᴜᴛᴏ ꜰᴀʀᴍ
--- ============================================
 local FarmTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ꜰᴀʀᴍ", Icon = "repeat" })
 
 local AutoGolBlueEnabled = false
@@ -2382,9 +2073,7 @@ local AutoGolLast = 0
 local AutoGolForce = 180
 local AutoGolArcY = 25
 
-local AUTO_GOL_BLUE_CFRAMES = {
-    Vector3.new(-32.18, -28.94, -203.58),
-}
+local AUTO_GOL_BLUE_CFRAMES = { Vector3.new(-32.18, -28.94, -203.58) }
 local AUTO_GOL_GREEN_CFRAMES = {
     Vector3.new(-34.06, -28.94, 383.88),
     Vector3.new(-3.92, -28.94, 388.81),
@@ -2398,13 +2087,10 @@ local function CheckAutoGol()
     if not AutoGolBlueEnabled and not AutoGolGreenEnabled then return end
     if not RootPart or not RootPart.Parent then return end
     if tick() - AutoGolLast < AutoGolCooldown then return end
-
     local ball = GetValidBall()
     if not ball or not ball.Parent then return end
-
     local dist = (ball.Position - RootPart.Position).Magnitude
     if dist > 6 then return end
-
     local target
     if AutoGolBlueEnabled and AutoGolGreenEnabled then
         if math.random() < 0.5 then
@@ -2417,17 +2103,14 @@ local function CheckAutoGol()
     elseif AutoGolGreenEnabled then
         target = EscolherCFrameAleatorio(AUTO_GOL_GREEN_CFRAMES)
     end
-
     if not target then return end
     AutoGolLast = tick()
-
     local dir = target - ball.Position
     local dirH = Vector3.new(dir.X, 0, dir.Z)
     if dirH.Magnitude < 0.1 then return end
     local dirUnit = dirH.Unit
     local shootVec = (dirUnit * AutoGolForce) + Vector3.new(0, AutoGolArcY, 0)
     local currentVel = ball.AssemblyLinearVelocity
-
     ball.AssemblyLinearVelocity = currentVel:Lerp(shootVec, 0.85)
     ball.AssemblyAngularVelocity = Vector3.new(
         math.random(-15, 15),
@@ -2441,43 +2124,13 @@ local function CheckAutoGol()
 end
 
 FarmTab:Section({ Title = "ᴀᴜᴛᴏ ɢᴏʟ" })
+FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ʙʟᴜᴇ", Value = false, Callback = function(Value) AutoGolBlueEnabled = Value end})
+FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ɢʀᴇᴇɴ", Value = false, Callback = function(Value) AutoGolGreenEnabled = Value end})
+FarmTab:Slider({Title = "ꜰᴏʀᴄᴀ ᴅᴏ ᴀʀʀᴇᴍᴇssᴏ", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AutoGolForce = v end})
+FarmTab:Slider({Title = "ᴀʀᴄᴏ (ᴀʟᴛᴜʀᴀ)", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AutoGolArcY = v end})
+FarmTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = "x0.1s"}, Callback = function(v) AutoGolCooldown = v / 10 end})
 
-FarmTab:Toggle({
-    Title = "ᴀᴜᴛᴏ ɢᴏʟ ʙʟᴜᴇ",
-    Desc = "Ao tocar na bola, ela e arremessada pro gol azul",
-    Value = false,
-    Callback = function(Value) AutoGolBlueEnabled = Value end,
-})
-
-FarmTab:Toggle({
-    Title = "ᴀᴜᴛᴏ ɢᴏʟ ɢʀᴇᴇɴ",
-    Desc = "Ao tocar na bola, ela e arremessada pro gol verde",
-    Value = false,
-    Callback = function(Value) AutoGolGreenEnabled = Value end,
-})
-
-FarmTab:Slider({
-    Title = "ꜰᴏʀᴄᴀ ᴅᴏ ᴀʀʀᴇᴍᴇssᴏ",
-    Value = { Min = 50, Max = 500, Default = 180 },
-    Callback = function(v) AutoGolForce = v end,
-})
-
-FarmTab:Slider({
-    Title = "ᴀʀᴄᴏ (ᴀʟᴛᴜʀᴀ)",
-    Value = { Min = 0, Max = 100, Default = 25 },
-    Callback = function(v) AutoGolArcY = v end,
-})
-
-FarmTab:Slider({
-    Title = "ᴄᴏᴏʟᴅᴏᴡɴ",
-    Value = { Min = 1, Max = 30, Default = 4, Suffix = "x0.1s" },
-    Callback = function(v) AutoGolCooldown = v / 10 end,
-})
-
-RunService.PreRender:Connect(function()
-    CheckAutoGol()
-end)
+RunService.PreRender:Connect(function() CheckAutoGol() end)
 
 print("[MANIC HUB] ᴀʙᴀ ᴀᴜᴛᴏ ꜰᴀʀᴍ ᴄᴀʀʀᴇɢᴀᴅᴀ!")
 print("[MANIC HUB] ᴛᴏᴛᴀʟ ᴅᴇ 11 ᴘᴀʀᴛᴇs ᴄᴀʀʀᴇɢᴀᴅᴀs!")
-print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")
