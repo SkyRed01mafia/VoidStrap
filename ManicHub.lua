@@ -1676,7 +1676,7 @@ local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
 
 ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
-local BackgroundAtual = "92048348535477"
+local BackgroundAtual = "4155801252"
 
 -- ============================================
 -- APLICA IMAGEM DE FUNDO (fix definitivo v5)
