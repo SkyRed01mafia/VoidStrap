@@ -1679,35 +1679,44 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "92048348535477"
 
 -- ============================================
--- APLICA IMAGEM DE FUNDO (cria ImageLabel do zero)
+-- APLICA IMAGEM DE FUNDO (fix definitivo v5)
 -- ============================================
 local function AplicarBackground(assetId)
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
-    -- Encontra a ScreenGui do WindUI
-    local windGui = nil
-    for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") and sg.Enabled then
-            local nome = string.lower(sg.Name)
-            if nome ~= "robloxgui" and nome ~= "manicfps"
-            and nome ~= "manicfloat" and nome ~= "manicnotify" then
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj:IsA("Frame") and obj.AbsoluteSize.X > 400 then
-                        windGui = sg
-                        break
-                    end
-                end
-            end
-            if windGui then break end
+    -- ============================================
+    -- MÉTODO 1: API nativa do WindUI
+    -- ============================================
+    local sucesso = false
+    pcall(function()
+        if Window.SetBackground then
+            Window:SetBackground(url, 0.35)
+            sucesso = true
         end
-    end
-
-    if not windGui then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Abra o menu primeiro", Duration = 3, Icon = "x-circle"})
+    end)
+    if sucesso then
+        BackgroundAtual = assetId
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
         return
     end
 
-    -- Encontra o MainFrame (maior Frame dentro da WindUI)
+    -- ============================================
+    -- MÉTODO 2: Usar Window.GUI (ScreenGui interna)
+    -- ============================================
+    local windGui = nil
+    pcall(function() windGui = Window.GUI end)
+    if not windGui then pcall(function() windGui = Window.ScreenGui end) end
+    if not windGui then pcall(function() windGui = Window.Root end) end
+    if not windGui then pcall(function() windGui = Window.Frame end) end
+
+    if not windGui then
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Nao consegui acessar Window.GUI", Duration = 3, Icon = "x-circle"})
+        return
+    end
+
+    -- ============================================
+    -- Encontra o Frame principal
+    -- ============================================
     local mainFrame = nil
     local maiorArea = 0
     for _, obj in ipairs(windGui:GetDescendants()) do
@@ -1729,7 +1738,7 @@ local function AplicarBackground(assetId)
     local oldBg = mainFrame:FindFirstChild("ManicBackground")
     if oldBg then oldBg:Destroy() end
 
-    -- Cria o novo ImageLabel de fundo
+    -- Cria o ImageLabel de fundo
     local bg = Instance.new("ImageLabel")
     bg.Name = "ManicBackground"
     bg.Size = UDim2.new(1, 0, 1, 0)
@@ -1746,7 +1755,7 @@ local function AplicarBackground(assetId)
     corner.CornerRadius = UDim.new(0, 14)
     corner.Parent = bg
 
-    -- Deixa transparente Frames pretos que cobrem a janela
+    -- Deixa transparente Frames escuros que cobrem a janela
     for _, obj in ipairs(mainFrame:GetChildren()) do
         if obj:IsA("Frame") and obj ~= bg then
             local sz = obj.AbsoluteSize
@@ -1765,19 +1774,26 @@ local function AplicarBackground(assetId)
 end
 
 local function AtualizarTransparencia(valor)
+    -- Procura o ImageLabel em toda parte
     for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") and sg.Enabled then
-            local nome = string.lower(sg.Name)
-            if nome ~= "robloxgui" and nome ~= "manicfps"
-            and nome ~= "manicfloat" and nome ~= "manicnotify" then
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj.Name == "ManicBackground" then
-                        pcall(function() obj.ImageTransparency = valor / 100 end)
-                    end
+        if sg:IsA("ScreenGui") then
+            for _, obj in ipairs(sg:GetDescendants()) do
+                if obj.Name == "ManicBackground" then
+                    pcall(function() obj.ImageTransparency = valor / 100 end)
                 end
             end
         end
     end
+    -- Também procura via Window.GUI
+    pcall(function()
+        if Window.GUI then
+            for _, obj in ipairs(Window.GUI:GetDescendants()) do
+                if obj.Name == "ManicBackground" then
+                    obj.ImageTransparency = valor / 100
+                end
+            end
+        end
+    end)
 end
 
 -- ============================================
@@ -1805,26 +1821,18 @@ ScriptTab:Slider({
 })
 
 ScriptTab:Button({
-    Title = "🔍 ᴅᴇʙᴜɢ ᴊᴀɴᴇʟᴀ",
-    Desc = "Mostra os Frames da WindUI no console",
+    Title = "🔍 ᴅᴇʙᴜɢ ᴡɪɴᴅᴜɪ",
+    Desc = "Mostra as propriedades internas do WindUI",
     Callback = function()
         print("=== DEBUG WINDUI ===")
-        for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") and sg.Enabled then
-                local nome = string.lower(sg.Name)
-                if nome ~= "robloxgui" and nome ~= "manicfps"
-                and nome ~= "manicfloat" and nome ~= "manicnotify" then
-                    print("ScreenGui:", sg.Name)
-                    for _, obj in ipairs(sg:GetDescendants()) do
-                        if obj:IsA("Frame") and obj.AbsoluteSize.X > 300 then
-                            print("  Frame:", obj.Name, "| Size:", obj.AbsoluteSize, "| ZIndex:", obj.ZIndex)
-                        end
-                        if obj:IsA("ImageLabel") and obj.AbsoluteSize.X > 200 then
-                            print("  Img:", obj.Name, "| Size:", obj.AbsoluteSize)
-                        end
-                    end
-                end
-            end
+        print("Window.GUI:", tostring(Window.GUI))
+        print("Window.ScreenGui:", tostring(Window.ScreenGui))
+        print("Window.Root:", tostring(Window.Root))
+        print("Window.Frame:", tostring(Window.Frame))
+        print("Window.SetBackground:", tostring(Window.SetBackground))
+        print("--- Propriedades do Window ---")
+        for k, v in pairs(Window) do
+            print("  Window." .. tostring(k) .. ":", typeof(v))
         end
         print("=== FIM DEBUG ===")
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Veja o console (F9)", Duration = 3})
@@ -1863,6 +1871,15 @@ ScriptTab:Button({
                 end
             end
         end
+        pcall(function()
+            if Window.GUI then
+                for _, obj in ipairs(Window.GUI:GetDescendants()) do
+                    if obj.Name == "ManicBackground" then
+                        obj:Destroy()
+                    end
+                end
+            end
+        end)
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem removida", Duration = 2})
     end,
 })
@@ -1921,7 +1938,8 @@ WindUI:Notify({
 print("[MANIC HUB] Carregado com WindUI!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] Botões GK:", #GKBotoes)
-print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")--[[ MANIC HUB | PARTE 11/11 — ᴛʀᴏʟʟ + ᴀᴜᴛᴏ ꜰᴀʀᴍ ]]
+print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")
+--[[ MANIC HUB | PARTE 11/11 — ᴛʀᴏʟʟ + ᴀᴜᴛᴏ ꜰᴀʀᴍ ]]
 
 -- ABA ᴛʀᴏʟʟ
 local TrollTab = Window:Tab({ Title = "ᴛʀᴏʟʟ", Icon = "zap" })
