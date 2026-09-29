@@ -1454,7 +1454,7 @@ DriveTab:Button({
         EscanearBotoesGK()
         WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = "ʙᴏᴛᴏᴇs: " .. #GKBotoes, Duration = 3})
     end,
-})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops (FIX Assets) ]]
+})--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Loops (FIX Assets REAL) ]]
 
 -- ============================================
 -- LOOPS
@@ -1512,72 +1512,85 @@ local ScriptTab = Window:Tab({ Title = "sᴄʀɪᴘᴛ", Icon = "settings" })
 ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 
 local BackgroundAtual = "11717400651"
-local BackgroundTargets = {}
 
--- Busca robusta: pega qualquer ImageLabel grande do WindUI
-local function EscanearBackgrounds()
-    BackgroundTargets = {}
-    local gui = Window.GUI or CoreGui:FindFirstChild("WindUI")
+-- Encontra o MainFrame do WindUI (janela principal)
+local function EncontrarMainFrame()
+    local gui = nil
+    -- Procura em todas as ScreenGuis do CoreGui
+    for _, sg in ipairs(CoreGui:GetChildren()) do
+        if sg:IsA("ScreenGui") and sg.Name:lower():find("wind") then
+            gui = sg
+            break
+        end
+    end
+    -- Fallback: pega qualquer ScreenGui com "Window" dentro
     if not gui then
-        -- fallback: procura em todas as ScreenGuis
         for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") then gui = sg break end
-        end
-    end
-    if not gui then
-        print("[sᴄʀɪᴘᴛ] Nenhuma ScreenGui encontrada")
-        return
-    end
-
-    for _, v in ipairs(gui:GetDescendants()) do
-        if v:IsA("ImageLabel") then
-            pcall(function()
-                local abs = v.AbsoluteSize
-                if abs.X >= 300 and abs.Y >= 200 then
-                    table.insert(BackgroundTargets, v)
+            if sg:IsA("ScreenGui") then
+                for _, obj in ipairs(sg:GetDescendants()) do
+                    if obj:IsA("Frame") and obj.Name == "Window" then
+                        return obj
+                    end
                 end
-            end)
+            end
         end
     end
-    print("[sᴄʀɪᴘᴛ] ɪᴍᴀɢᴇɴs ᴅᴇ ꜰᴜɴᴅᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀs:", #BackgroundTargets)
+    if gui then
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("Frame") and obj.Name == "Window" then
+                return obj
+            end
+        end
+    end
+    return nil
 end
 
--- Escaneia ao carregar e re-escaneia depois (WindUI pode criar tardio)
-EscanearBackgrounds()
-task.delay(1, EscanearBackgrounds)
-task.delay(3, EscanearBackgrounds)
-
+-- Aplica imagem de fundo no MainFrame (cria/atualiza ImageLabel)
 local function AplicarBackground(assetId)
-    EscanearBackgrounds()
-    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
-    local count = 0
-    for _, bg in ipairs(BackgroundTargets) do
-        if bg and bg.Parent then
-            pcall(function()
-                bg.Image = url
-                bg.ImageTransparency = 0.35
-                bg.Visible = true
-                count = count + 1
-            end)
-        end
-    end
-    BackgroundAtual = assetId
-
-    if count > 0 then
+    local main = EncontrarMainFrame()
+    if not main then
         WindUI:Notify({
             Title = "sᴄʀɪᴘᴛ",
-            Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ ᴇᴍ " .. count .. " ᴇʟᴇᴍᴇɴᴛᴏs",
-            Duration = 2,
-            Icon = "check-circle"
-        })
-    else
-        WindUI:Notify({
-            Title = "sᴄʀɪᴘᴛ",
-            Content = "ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴇɪ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
+            Content = "ᴊᴀɴᴇʟᴀ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ",
             Duration = 3,
             Icon = "x-circle"
         })
+        return
     end
+
+    local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
+
+    -- Procura ImageLabel existente de fundo
+    local bg = main:FindFirstChild("ManicBackground")
+
+    if not bg then
+        -- Cria um novo ImageLabel
+        bg = Instance.new("ImageLabel")
+        bg.Name = "ManicBackground"
+        bg.Size = UDim2.new(1, 0, 1, 0)
+        bg.Position = UDim2.new(0, 0, 0, 0)
+        bg.BackgroundTransparency = 1
+        bg.ScaleType = Enum.ScaleType.Crop
+        bg.ZIndex = 0
+        bg.Parent = main
+
+        -- Canto arredondado igual a janela
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 14)
+        corner.Parent = bg
+    end
+
+    bg.Image = url
+    bg.ImageTransparency = 0.35
+    bg.Visible = true
+    BackgroundAtual = assetId
+
+    WindUI:Notify({
+        Title = "sᴄʀɪᴘᴛ",
+        Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
+        Duration = 2,
+        Icon = "check-circle"
+    })
 end
 
 ScriptTab:Input({
@@ -1595,27 +1608,15 @@ ScriptTab:Button({
     Callback = function() AplicarBackground(BackgroundAtual) end,
 })
 
-ScriptTab:Button({
-    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ɪᴍᴀɢᴇɴs",
-    Callback = function()
-        EscanearBackgrounds()
-        WindUI:Notify({
-            Title = "sᴄʀɪᴘᴛ",
-            Content = #BackgroundTargets .. " ᴇɴᴄᴏɴᴛʀᴀᴅᴀs",
-            Duration = 2,
-            Icon = "success"
-        })
-    end,
-})
-
 ScriptTab:Slider({
     Title = "ᴛʀᴀɴsᴘᴀʀᴇɴᴄɪᴀ ᴅᴀ ɪᴍᴀɢᴇᴍ",
     Value = {Min = 0, Max = 100, Default = 35},
     Callback = function(v)
-        local alpha = v / 100
-        for _, bg in ipairs(BackgroundTargets) do
-            if bg and bg.Parent then
-                pcall(function() bg.ImageTransparency = alpha end)
+        local main = EncontrarMainFrame()
+        if main then
+            local bg = main:FindFirstChild("ManicBackground")
+            if bg then
+                bg.ImageTransparency = v / 100
             end
         end
     end,
@@ -1637,6 +1638,18 @@ for _, asset in ipairs(ASSETS_PRESET) do
         Callback = function() AplicarBackground(asset.ID) end,
     })
 end
+
+ScriptTab:Button({
+    Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
+    Callback = function()
+        local main = EncontrarMainFrame()
+        if main then
+            local bg = main:FindFirstChild("ManicBackground")
+            if bg then bg:Destroy() end
+        end
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ʀᴇᴍᴏᴠɪᴅᴀ", Duration = 2, Icon = "success"})
+    end,
+})
 
 ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
 
