@@ -1679,121 +1679,101 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "4155801252"
 
 -- ============================================
--- APLICA IMAGEM DE FUNDO (fix definitivo v5)
+-- FUNDO DESACOPLADO (ScreenGui própria)
+-- ============================================
+local BgGui = Instance.new("ScreenGui")
+BgGui.Name = "ManicBgGui"
+BgGui.ResetOnSpawn = false
+BgGui.IgnoreGuiInset = true
+BgGui.DisplayOrder = 0        -- atrás de tudo
+BgGui.Parent = CoreGui
+
+local BgFrame = Instance.new("Frame")
+BgFrame.Name = "ManicBgFrame"
+BgFrame.Size = UDim2.new(0, 620, 0, 480)
+BgFrame.Position = UDim2.new(0.5, -310, 0.5, -240)
+BgFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 32)
+BgFrame.BorderSizePixel = 0
+BgFrame.Visible = false
+BgFrame.ZIndex = 0
+BgFrame.Parent = BgGui
+
+local BgCorner = Instance.new("UICorner")
+BgCorner.CornerRadius = UDim.new(0, 14)
+BgCorner.Parent = BgFrame
+
+local BgStroke = Instance.new("UIStroke")
+BgStroke.Color = Color3.fromRGB(120, 90, 240)
+BgStroke.Thickness = 1.5
+BgStroke.Transparency = 0.5
+BgStroke.Parent = BgFrame
+
+local BgImage = Instance.new("ImageLabel")
+BgImage.Name = "ManicBackground"
+BgImage.Size = UDim2.new(1, 0, 1, 0)
+BgImage.BackgroundTransparency = 1
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.Image = "rbxassetid://4155801252"
+BgImage.ImageTransparency = 0.35
+BgImage.ZIndex = 1
+BgImage.Parent = BgFrame
+
+local BgImgCorner = Instance.new("UICorner")
+BgImgCorner.CornerRadius = UDim.new(0, 14)
+BgImgCorner.Parent = BgImage
+
+-- ============================================
+-- SINCRONIZA COM A JANELA DO WINDUI
+-- ============================================
+local function EncontrarJanelaWindUI()
+    -- Tenta acessar a propriedade interna do WindUI
+    local janela = nil
+    pcall(function() janela = Window.Frame end)
+    if not janela then pcall(function() janela = Window.GUI end) end
+    if not janela then pcall(function() janela = Window.Root end) end
+    if not janela then pcall(function() janela = Window.ScreenGui end) end
+    if janela and janela:IsA("Frame") then return janela end
+    if janela and janela:IsA("ScreenGui") then
+        for _, obj in ipairs(janela:GetDescendants()) do
+            if obj:IsA("Frame") and obj.AbsoluteSize.X > 400 then
+                return obj
+            end
+        end
+    end
+    return nil
+end
+
+-- Loop de sincronização
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        local janela = EncontrarJanelaWindUI()
+        if janela and janela.Parent then
+            -- Sincroniza posição e tamanho
+            BgFrame.Position = janela.Position
+            BgFrame.Size = janela.Size
+            BgFrame.Visible = janela.Visible
+        end
+    end
+end)
+
+-- ============================================
+-- FUNÇÃO DE APLICAR BACKGROUND
 -- ============================================
 local function AplicarBackground(assetId)
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
-
-    -- ============================================
-    -- MÉTODO 1: API nativa do WindUI
-    -- ============================================
-    local sucesso = false
-    pcall(function()
-        if Window.SetBackground then
-            Window:SetBackground(url, 0.35)
-            sucesso = true
-        end
-    end)
-    if sucesso then
-        BackgroundAtual = assetId
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
-        return
-    end
-
-    -- ============================================
-    -- MÉTODO 2: Usar Window.GUI (ScreenGui interna)
-    -- ============================================
-    local windGui = nil
-    pcall(function() windGui = Window.GUI end)
-    if not windGui then pcall(function() windGui = Window.ScreenGui end) end
-    if not windGui then pcall(function() windGui = Window.Root end) end
-    if not windGui then pcall(function() windGui = Window.Frame end) end
-
-    if not windGui then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Nao consegui acessar Window.GUI", Duration = 3, Icon = "x-circle"})
-        return
-    end
-
-    -- ============================================
-    -- Encontra o Frame principal
-    -- ============================================
-    local mainFrame = nil
-    local maiorArea = 0
-    for _, obj in ipairs(windGui:GetDescendants()) do
-        if obj:IsA("Frame") then
-            local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
-            if area > maiorArea and area > 50000 then
-                maiorArea = area
-                mainFrame = obj
-            end
-        end
-    end
-
-    if not mainFrame then
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "MainFrame nao encontrado", Duration = 3, Icon = "x-circle"})
-        return
-    end
-
-    -- Remove fundo antigo
-    local oldBg = mainFrame:FindFirstChild("ManicBackground")
-    if oldBg then oldBg:Destroy() end
-
-    -- Cria o ImageLabel de fundo
-    local bg = Instance.new("ImageLabel")
-    bg.Name = "ManicBackground"
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.Position = UDim2.new(0, 0, 0, 0)
-    bg.BackgroundTransparency = 1
-    bg.ScaleType = Enum.ScaleType.Crop
-    bg.ZIndex = 0
-    bg.Image = url
-    bg.ImageTransparency = 0.35
-    bg.Visible = true
-    bg.Parent = mainFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 14)
-    corner.Parent = bg
-
-    -- Deixa transparente Frames escuros que cobrem a janela
-    for _, obj in ipairs(mainFrame:GetChildren()) do
-        if obj:IsA("Frame") and obj ~= bg then
-            local sz = obj.AbsoluteSize
-            if sz.X > 500 and sz.Y > 300 and obj.BackgroundTransparency < 0.7 then
-                obj.BackgroundTransparency = 0.85
-            end
-        end
-    end
-
-    -- Força o bg a ser renderizado primeiro
-    bg.Parent = nil
-    bg.Parent = mainFrame
-
+    BgImage.Image = url
     BackgroundAtual = assetId
-    WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem aplicada!", Duration = 2, Icon = "check-circle"})
+    WindUI:Notify({
+        Title = "sᴄʀɪᴘᴛ",
+        Content = "Imagem aplicada!",
+        Duration = 2,
+        Icon = "check-circle"
+    })
 end
 
 local function AtualizarTransparencia(valor)
-    -- Procura o ImageLabel em toda parte
-    for _, sg in ipairs(CoreGui:GetChildren()) do
-        if sg:IsA("ScreenGui") then
-            for _, obj in ipairs(sg:GetDescendants()) do
-                if obj.Name == "ManicBackground" then
-                    pcall(function() obj.ImageTransparency = valor / 100 end)
-                end
-            end
-        end
-    end
-    -- Também procura via Window.GUI
-    pcall(function()
-        if Window.GUI then
-            for _, obj in ipairs(Window.GUI:GetDescendants()) do
-                if obj.Name == "ManicBackground" then
-                    obj.ImageTransparency = valor / 100
-                end
-            end
-        end
-    end)
+    BgImage.ImageTransparency = valor / 100
 end
 
 -- ============================================
@@ -1820,25 +1800,6 @@ ScriptTab:Slider({
     Callback = function(v) AtualizarTransparencia(v) end,
 })
 
-ScriptTab:Button({
-    Title = "🔍 ᴅᴇʙᴜɢ ᴡɪɴᴅᴜɪ",
-    Desc = "Mostra as propriedades internas do WindUI",
-    Callback = function()
-        print("=== DEBUG WINDUI ===")
-        print("Window.GUI:", tostring(Window.GUI))
-        print("Window.ScreenGui:", tostring(Window.ScreenGui))
-        print("Window.Root:", tostring(Window.Root))
-        print("Window.Frame:", tostring(Window.Frame))
-        print("Window.SetBackground:", tostring(Window.SetBackground))
-        print("--- Propriedades do Window ---")
-        for k, v in pairs(Window) do
-            print("  Window." .. tostring(k) .. ":", typeof(v))
-        end
-        print("=== FIM DEBUG ===")
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Veja o console (F9)", Duration = 3})
-    end,
-})
-
 -- ============================================
 -- ASSETS PRESET
 -- ============================================
@@ -1847,7 +1808,7 @@ ScriptTab:Section({ Title = "ᴀssᴇᴛs ᴘʀᴇsᴇᴛ" })
 local ASSETS_PRESET = {
     {Nome = "ᴀssᴇᴛ 1", ID = "86503454003964"},
     {Nome = "ᴀssᴇᴛ 2", ID = "17228542848"},
-    {Nome = "ᴀssᴇᴛ 3 (ᴘᴀᴅʀᴀᴏ)", ID = "92048348535477"},
+    {Nome = "ᴀssᴇᴛ 3 (ᴘᴀᴅʀᴀᴏ)", ID = "4155801252"},
     {Nome = "ᴀssᴇᴛ 4", ID = "111996173475442"},
     {Nome = "ᴀssᴇᴛ 5", ID = "15423397129"},
 }
@@ -1862,30 +1823,13 @@ end
 ScriptTab:Button({
     Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
     Callback = function()
-        for _, sg in ipairs(CoreGui:GetChildren()) do
-            if sg:IsA("ScreenGui") then
-                for _, obj in ipairs(sg:GetDescendants()) do
-                    if obj.Name == "ManicBackground" then
-                        obj:Destroy()
-                    end
-                end
-            end
-        end
-        pcall(function()
-            if Window.GUI then
-                for _, obj in ipairs(Window.GUI:GetDescendants()) do
-                    if obj.Name == "ManicBackground" then
-                        obj:Destroy()
-                    end
-                end
-            end
-        end)
+        BgImage.Image = ""
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem removida", Duration = 2})
     end,
 })
 
 -- ============================================
--- INFORMAÇÕES
+-- INFO
 -- ============================================
 ScriptTab:Section({ Title = "ɪɴꜰᴏʀᴍᴀᴄᴏᴇs" })
 
@@ -1907,11 +1851,11 @@ ScriptTab:Button({
 ScriptTab:Section({ Title = "ᴄʀᴇᴅɪᴛᴏs" })
 
 ScriptTab:Button({
-    Title = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘",
+    Title = "ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕃𝖆𝖓𝖉𝖝𝖘",
     Desc = "ᴍᴀɴɪᴄ ʜᴜʙ • ᴛʜᴇ ᴄʟᴀꜱꜱɪᴄ ꜱᴏᴄᴄᴇʀ",
     Callback = function()
         pcall(function()
-            if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘") end
+            if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕃𝖆𝖓𝖉𝖝𝖘") end
         end)
         WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Nome copiado", Duration = 2})
     end,
@@ -1938,7 +1882,7 @@ WindUI:Notify({
 print("[MANIC HUB] Carregado com WindUI!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] Botões GK:", #GKBotoes)
-print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")
+print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕃𝖆𝖓𝖉𝖝𝖘")
 --[[ MANIC HUB | PARTE 11/11 — ᴛʀᴏʟʟ + ᴀᴜᴛᴏ ꜰᴀʀᴍ ]]
 
 -- ABA ᴛʀᴏʟʟ
