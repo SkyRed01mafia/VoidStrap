@@ -1579,10 +1579,10 @@ DriveTab:Button({
     end,
 })
 
-print("[MANIC HUB] ᴀʙᴀ ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴄᴀʀʀᴇɢᴀᴅᴀ!")--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Assets + Loops ]]
+print("[MANIC HUB] ᴀʙᴀ ᴀᴄ + ʀᴇᴀᴄʜ + ᴀᴜᴛᴏ DRIVE")--[[ MANIC HUB | PARTE 8/8 — sᴄʀɪᴘᴛ + Assets + Loops + ᴄʀᴇᴅɪᴛᴏs ]]
 
 -- ============================================
--- LOOPS
+-- LOOPS FINAIS
 -- ============================================
 RunService.Heartbeat:Connect(function()
     if State.AutoCatch then
@@ -1639,36 +1639,75 @@ ScriptTab:Section({ Title = "ᴘᴇʀsᴏɴᴀʟɪᴢᴀʀ ᴀssᴇᴛs" })
 local BackgroundAtual = "11717400651"
 
 -- ============================================
--- ENCONTRA O MAINFRAME DO WINDUI
+-- ENCONTRA A SCREENGUI DO WINDUI
 -- ============================================
-local function EncontrarMainFrame()
+local function EncontrarWindUI()
+    -- 1. Procura ScreenGui com "wind" no nome
+    for _, sg in ipairs(CoreGui:GetChildren()) do
+        if sg:IsA("ScreenGui") then
+            if string.lower(sg.Name):find("wind") then
+                return sg
+            end
+        end
+    end
+
+    -- 2. Fallback: qualquer ScreenGui com Frame grande (>300x300)
     for _, sg in ipairs(CoreGui:GetChildren()) do
         if sg:IsA("ScreenGui") and sg.Enabled then
-            local maior, maiorArea = nil, 0
             for _, obj in ipairs(sg:GetDescendants()) do
                 if obj:IsA("Frame") then
                     local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
-                    if area > maiorArea and area > 100000 then
-                        maiorArea = area
-                        maior = obj
+                    if area > 200000 then
+                        return sg
                     end
                 end
             end
-            if maior then return maior end
         end
+    end
+
+    return nil
+end
+
+-- ============================================
+-- ENCONTRA O FRAME PRINCIPAL
+-- ============================================
+local function EncontrarMainFrame(screenGui)
+    local maior, maiorArea = nil, 0
+    for _, obj in ipairs(screenGui:GetDescendants()) do
+        if obj:IsA("Frame") then
+            local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+            if area > maiorArea then
+                maiorArea = area
+                maior = obj
+            end
+        end
+    end
+    if maior and maiorArea > 100000 then
+        return maior
     end
     return nil
 end
 
 -- ============================================
--- APLICA IMAGEM DE FUNDO (ZIndex corrigido)
+-- APLICA IMAGEM DE FUNDO
 -- ============================================
 local function AplicarBackground(assetId)
-    local main = EncontrarMainFrame()
-    if not main then
+    local windGui = EncontrarWindUI()
+    if not windGui then
         WindUI:Notify({
             Title = "sᴄʀɪᴘᴛ",
-            Content = "ᴊᴀɴᴇʟᴀ ɴᴀᴏ ᴇɴᴄᴏɴᴛʀᴀᴅᴀ",
+            Content = "ScreenGui nao encontrada",
+            Duration = 3,
+            Icon = "x-circle"
+        })
+        return
+    end
+
+    local mainFrame = EncontrarMainFrame(windGui)
+    if not mainFrame then
+        WindUI:Notify({
+            Title = "sᴄʀɪᴘᴛ",
+            Content = "Janela nao encontrada",
             Duration = 3,
             Icon = "x-circle"
         })
@@ -1677,8 +1716,8 @@ local function AplicarBackground(assetId)
 
     local url = "rbxassetid://" .. tostring(assetId):gsub("rbxassetid://", "")
 
-    -- Remove versão antiga se existir
-    local oldBg = main:FindFirstChild("ManicBackground")
+    -- Remove versão antiga
+    local oldBg = mainFrame:FindFirstChild("ManicBackground")
     if oldBg then oldBg:Destroy() end
 
     -- Cria novo ImageLabel de fundo
@@ -1688,22 +1727,24 @@ local function AplicarBackground(assetId)
     bg.Position = UDim2.new(0, 0, 0, 0)
     bg.BackgroundTransparency = 1
     bg.ScaleType = Enum.ScaleType.Crop
-    bg.ZIndex = 0
+    bg.ZIndex = -1
     bg.Image = url
     bg.ImageTransparency = 0.35
     bg.Visible = true
-    bg.Parent = main
+    bg.Parent = mainFrame
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 14)
     corner.Parent = bg
 
-    -- Deixa o fundo padrão do WindUI transparente (se existir)
-    for _, obj in ipairs(main:GetChildren()) do
-        if obj:IsA("Frame") and obj ~= bg and obj.Size == UDim2.new(1, 0, 1, 0) then
-            pcall(function()
-                obj.BackgroundTransparency = math.max(obj.BackgroundTransparency, 0.35)
-            end)
+    -- Remove fundos pretos sobrepostos
+    for _, obj in ipairs(mainFrame:GetChildren()) do
+        if obj:IsA("Frame") and obj ~= bg and obj.BackgroundTransparency < 1 then
+            if obj.AbsoluteSize.X > 300 and obj.AbsoluteSize.Y > 200 then
+                pcall(function()
+                    obj.BackgroundTransparency = math.max(obj.BackgroundTransparency, 0.5)
+                end)
+            end
         end
     end
 
@@ -1711,19 +1752,23 @@ local function AplicarBackground(assetId)
 
     WindUI:Notify({
         Title = "sᴄʀɪᴘᴛ",
-        Content = "ɪᴍᴀɢᴇᴍ ᴀᴘʟɪᴄᴀᴅᴀ!",
+        Content = "Imagem aplicada!",
         Duration = 2,
         Icon = "check-circle"
     })
 end
 
+-- ============================================
+-- ATUALIZA TRANSPARÊNCIA
+-- ============================================
 local function AtualizarTransparencia(valor)
-    local main = EncontrarMainFrame()
-    if main then
-        local bg = main:FindFirstChild("ManicBackground")
-        if bg then
-            bg.ImageTransparency = valor / 100
-        end
+    local windGui = EncontrarWindUI()
+    if not windGui then return end
+    local mainFrame = EncontrarMainFrame(windGui)
+    if not mainFrame then return end
+    local bg = mainFrame:FindFirstChild("ManicBackground")
+    if bg then
+        bg.ImageTransparency = valor / 100
     end
 end
 
@@ -1751,6 +1796,23 @@ ScriptTab:Slider({
     Callback = function(v) AtualizarTransparencia(v) end,
 })
 
+ScriptTab:Button({
+    Title = "ʀᴇᴇsᴄᴀɴᴇᴀʀ ᴊᴀɴᴇʟᴀ",
+    Callback = function()
+        local sg = EncontrarWindUI()
+        if sg then
+            local mf = EncontrarMainFrame(sg)
+            if mf then
+                WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Janela encontrada!", Duration = 2, Icon = "success"})
+            else
+                WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Frame nao encontrado", Duration = 2, Icon = "error"})
+            end
+        else
+            WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ScreenGui nao encontrada", Duration = 2, Icon = "error"})
+        end
+    end,
+})
+
 -- ============================================
 -- ASSETS PRESET
 -- ============================================
@@ -1774,12 +1836,15 @@ end
 ScriptTab:Button({
     Title = "ʀᴇᴍᴏᴠᴇʀ ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ",
     Callback = function()
-        local main = EncontrarMainFrame()
-        if main then
-            local bg = main:FindFirstChild("ManicBackground")
-            if bg then bg:Destroy() end
+        local sg = EncontrarWindUI()
+        if sg then
+            local mf = EncontrarMainFrame(sg)
+            if mf then
+                local bg = mf:FindFirstChild("ManicBackground")
+                if bg then bg:Destroy() end
+            end
         end
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɪᴍᴀɢᴇᴍ ʀᴇᴍᴏᴠɪᴅᴀ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Imagem removida", Duration = 2, Icon = "success"})
     end,
 })
 
@@ -1812,7 +1877,7 @@ ScriptTab:Button({
         pcall(function()
             if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘") end
         end)
-        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "ɴᴏᴍᴇ ᴄᴏᴘɪᴀᴅᴏ", Duration = 2, Icon = "success"})
+        WindUI:Notify({Title = "sᴄʀɪᴘᴛ", Content = "Nome copiado", Duration = 2, Icon = "success"})
     end,
 })
 
@@ -1820,7 +1885,7 @@ ScriptTab:Button({
     Title = "ᴏʙʀɪɢᴀᴅᴏ ᴘᴏʀ ᴜsᴀʀ!",
     Desc = "ꜱᴇ ᴄᴜʀᴛɪᴜ, ᴄᴏᴍᴘᴀʀᴛɪʟʜᴀ ᴄᴏᴍ ᴏꜱ ᴀᴍɪɢᴏꜱ.",
     Callback = function()
-        WindUI:Notify({Title = "ᴍᴀɴɪᴄ ʜᴜʙ", Content = "ᴠᴀʟᴇᴜ ᴘᴇʟᴏ ᴀᴘᴏɪᴏ!", Duration = 3, Icon = "success"})
+        WindUI:Notify({Title = "ᴍᴀɴɪᴄ ʜᴜʙ", Content = "Valeu pelo apoio!", Duration = 3, Icon = "success"})
     end,
 })
 
@@ -1838,7 +1903,7 @@ print("[MANIC HUB] Carregado com WindUI!")
 print("[MANIC HUB] FTI:", tostring(FTI ~= nil))
 print("[MANIC HUB] CatchRemote:", tostring(CatchRemote ~= nil))
 print("[MANIC HUB] Botões GK:", #GKBotoes)
-print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕕𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")--[[ MANIC HUB | PARTE 9 — ᴀʙᴀ ᴛʀᴏʟʟ ]]
+print("[MANIC HUB] ᴄʀɪᴀᴅᴏ ᴘᴏʀ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕷𝖆𝖓𝖉𝖝𝖘")--[[ MANIC HUB | PARTE 9 — ᴀʙᴀ ᴛʀᴏʟʟ ]]
 
 local TrollTab = Window:Tab({ Title = "ᴛʀᴏʟʟ", Icon = "zap" })
 
@@ -2136,7 +2201,6 @@ TrollTab:Slider({
     Callback = function(v) PowerShootRange = v end,
 })
 
--- Loop Power Shoot
 RunService.PreRender:Connect(function()
     CheckPowerShoot()
 end)
@@ -2250,7 +2314,6 @@ FarmTab:Slider({
     Callback = function(v) AutoGolCooldown = v / 10 end,
 })
 
--- Loop Auto Gol
 RunService.PreRender:Connect(function()
     CheckAutoGol()
 end)
