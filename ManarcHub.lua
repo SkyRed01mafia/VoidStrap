@@ -1,4 +1,4 @@
---[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 1/9 — Setup + Helpers + Mapa + BoomBox ]]
+--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 1/9 — ꜱᴇᴛᴜᴘ + ʜᴇʟᴘᴇʀꜱ + ᴍᴀᴘᴀ + ʙᴏᴏᴍʙᴏx ]]
 
 Players = game:GetService("Players")
 RunService = game:GetService("RunService")
@@ -58,9 +58,9 @@ Backgrounds = {
 WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 Window = WindUI:CreateWindow({
-    Title = "𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈",
+    Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ",
     Icon = "eye",
-    Author = "𝙰𝚄𝚃𝙾 𝙵𝙰𝚁𝙼",
+    Author = "ᴀᴜᴛᴏ ꜰᴀʀᴍ",
     Folder = "ManicHub",
     Size = UDim2.fromOffset(620, 480),
     Transparent = true,
@@ -72,11 +72,11 @@ Window = WindUI:CreateWindow({
 })
 
 pcall(function()
-    Window:Tag({ Title = "𝚅𝟺.𝟶", Icon = "sparkles", Color = Color3.fromHex("#7850f0"), Radius = 30 })
+    Window:Tag({ Title = "ᴠ4.0", Icon = "sparkles", Color = Color3.fromHex("#7850f0"), Radius = 30 })
 end)
 
 pcall(function()
-    WindUI:Notify({ Title = "𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈", Content = "𝙲𝙰𝚁𝚁𝙴𝙶𝙰𝙳𝙾", Duration = 5, Icon = "check-circle" })
+    WindUI:Notify({ Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ", Content = "ᴄᴀʀʀᴇɢᴀᴅᴏ", Duration = 5, Icon = "check-circle" })
 end)
 
 UserInputService.InputBegan:Connect(function(i, gp)
@@ -129,14 +129,14 @@ FpsBox.Parent = FpsGui
 FpsBox.Size = UDim2.new(0, 90, 0, 32); FpsBox.Position = UDim2.new(0, 12, 0, 110)
 FpsBox.BackgroundColor3 = Color3.fromRGB(20, 22, 32); FpsBox.BackgroundTransparency = 0.3
 FpsBox.TextColor3 = Color3.fromRGB(255, 255, 255); FpsBox.TextSize = 13
-FpsBox.Font = Enum.Font.GothamBold; FpsBox.Text = "𝙵𝙿𝚂 𝟶"
+FpsBox.Font = Enum.Font.GothamBold; FpsBox.Text = "ꜰᴘꜱ 0"
 FpsBox.BorderSizePixel = 0; FpsBox.ZIndex = 100
 Instance.new("UICorner", FpsBox).CornerRadius = UDim.new(0, 6)
 fpsCount, fpsTime = 0, tick()
 RunService.RenderStepped:Connect(function()
     fpsCount = fpsCount + 1
     local now = tick()
-    if now - fpsTime >= 1 then FpsBox.Text = "𝙵𝙿𝚂 " .. fpsCount; fpsCount = 0; fpsTime = now end
+    if now - fpsTime >= 1 then FpsBox.Text = "ꜰᴘꜱ " .. fpsCount; fpsCount = 0; fpsTime = now end
 end)
 
 function GetCharacterData()
@@ -209,8 +209,8 @@ function EhGrama(obj)
         or string.find(n, "turf")) ~= nil
 end
 
-MapTab = Window:Tab({ Title = "𝙼𝙰𝙿𝙰", Icon = "map" })
-MapTab:Section({ Title = "𝙲𝙾𝚁 𝙳𝙾 𝙶𝚁𝙰𝙼𝙰𝙳𝙾" })
+MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ", Icon = "map" })
+MapTab:Section({ Title = "ᴄᴏʀ ᴅᴏ ɢʀᴀᴍᴀᴅᴏ" })
 
 function SalvarGrama()
     for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -247,9 +247,9 @@ function RestaurarGrama()
     State.GrassColor = nil
 end
 
-MapTab:Colorpicker({ Title = "𝙼𝙰𝙿 𝙲𝙾𝙻𝙾𝚁", Default = Color3.fromRGB(60, 145, 60), Callback = function(c) AplicarCorGrama(c) end })
-MapTab:Button({ Title = "𝚁𝙴𝚂𝚃𝙰𝚄𝚁𝙰𝚁 𝙶𝚁𝙰𝙼𝙰", Callback = function()
-    RestaurarGrama(); pcall(function() WindUI:Notify({Title = "𝙼𝙰𝙿𝙰", Content = "𝙶𝚁𝙰𝙼𝙰 𝚁𝙴𝚂𝚃𝙰𝚄𝚁𝙰𝙳𝙰", Duration = 2}) end)
+MapTab:Colorpicker({ Title = "ᴍᴀᴘ ᴄᴏʟᴏʀ", Default = Color3.fromRGB(60, 145, 60), Callback = function(c) AplicarCorGrama(c) end })
+MapTab:Button({ Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ɢʀᴀᴍᴀ", Callback = function()
+    RestaurarGrama(); pcall(function() WindUI:Notify({Title = "ᴍᴀᴘᴀ", Content = "ɢʀᴀᴍᴀ ʀᴇꜱᴛᴀᴜʀᴀᴅᴀ", Duration = 2}) end)
 end })
 
 spawn(function()
@@ -265,7 +265,7 @@ spawn(function()
     end
 end)
 
-MapTab:Section({ Title = "𝚂𝙺𝚈𝙱𝙾𝚇" })
+MapTab:Section({ Title = "ꜱᴋʏʙᴏx" })
 function ForceSkyTCS(assetId)
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") or obj:IsA("Model") then
@@ -290,25 +290,25 @@ function ForceSkyTCS(assetId)
 end
 
 SkyboxIDs = {
-    {Name = "𝚂𝙺𝚈 𝟷", ID = "8202961731"}, {Name = "𝚂𝙺𝚈 𝟸", ID = "2758029221"},
-    {Name = "𝙽𝙸𝙶𝙷𝚃", ID = "13107361022"}, {Name = "𝚂𝙺𝚈 𝟺", ID = "7108851308"},
-    {Name = "𝚂𝙺𝚈 𝟻", ID = "339406852"}, {Name = "𝚂𝙺𝚈 𝟼", ID = "15502592084"},
-    {Name = "𝚂𝙺𝚈 𝟽", ID = "15359965253"}, {Name = "𝚂𝙺𝚈 𝟾", ID = "15470370280"},
-    {Name = "𝙱𝙻𝚄𝙴 𝚂𝙺𝚈", ID = "8808550143"}, {Name = "𝚂𝙺𝚈 𝟷𝟶", ID = "10594723714"},
+    {Name = "ꜱᴋʏ 1", ID = "8202961731"}, {Name = "ꜱᴋʏ 2", ID = "2758029221"},
+    {Name = "ɴɪɢʜᴛ", ID = "13107361022"}, {Name = "ꜱᴋʏ 4", ID = "7108851308"},
+    {Name = "ꜱᴋʏ 5", ID = "339406852"}, {Name = "ꜱᴋʏ 6", ID = "15502592084"},
+    {Name = "ꜱᴋʏ 7", ID = "15359965253"}, {Name = "ꜱᴋʏ 8", ID = "15470370280"},
+    {Name = "ʙʟᴜᴇ ꜱᴋʏ", ID = "8808550143"}, {Name = "ꜱᴋʏ 10", ID = "10594723714"},
 }
 for _, sky in ipairs(SkyboxIDs) do
     MapTab:Button({ Title = sky.Name, Callback = function()
-        ForceSkyTCS(sky.ID); pcall(function() WindUI:Notify({Title = "𝚂𝙺𝚈𝙱𝙾𝚇", Content = sky.Name, Duration = 2}) end)
+        ForceSkyTCS(sky.ID); pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = sky.Name, Duration = 2}) end)
     end })
 end
 
-MapTab:Section({ Title = "𝚂𝙺𝚈 𝙴𝚇𝚃𝚁𝙰" })
+MapTab:Section({ Title = "ꜱᴋʏ ᴇxᴛʀᴀ" })
 function ClearSky()
     for _, obj in ipairs(Lighting:GetChildren()) do
         if obj:IsA("Sky") then obj:Destroy() end
     end
 end
-MapTab:Button({ Title = "𝚂𝙺𝚈 𝙳𝙴 𝚂𝙾𝙻", Callback = function()
+MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ꜱᴏʟ", Callback = function()
     ClearSky(); Lighting.ClockTime = 7; Lighting.Brightness = 2
     local sky = Instance.new("Sky")
     sky.SkyboxBk = "rbxassetid://541743453"; sky.SkyboxDn = "rbxassetid://541743443"
@@ -316,7 +316,7 @@ MapTab:Button({ Title = "𝚂𝙺𝚈 𝙳𝙴 𝚂𝙾𝙻", Callback = functio
     sky.SkyboxRt = "rbxassetid://541743435"; sky.SkyboxUp = "rbxassetid://541743441"
     sky.Parent = Lighting
 end })
-MapTab:Button({ Title = "𝚂𝙺𝚈 𝙳𝙴 𝙻𝚄𝙰", Callback = function()
+MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ʟᴜᴀ", Callback = function()
     ClearSky(); Lighting.ClockTime = 21
     local sky = Instance.new("Sky")
     sky.SkyboxBk = "rbxassetid://4498828382"; sky.SkyboxDn = "rbxassetid://4498828812"
@@ -324,7 +324,7 @@ MapTab:Button({ Title = "𝚂𝙺𝚈 𝙳𝙴 𝙻𝚄𝙰", Callback = functio
     sky.SkyboxRt = "rbxassetid://4498830417"; sky.SkyboxUp = "rbxassetid://4498831746"
     sky.Parent = Lighting
 end })
-MapTab:Button({ Title = "𝚁𝙴𝙼𝙾𝚅𝙴𝚁 𝚂𝙺𝚈", Callback = function() ClearSky(); State.Skybox = nil end })
+MapTab:Button({ Title = "ʀᴇᴍᴏᴠᴇʀ ꜱᴋʏ", Callback = function() ClearSky(); State.Skybox = nil end })
 
 task.spawn(function()
     while true do
@@ -342,7 +342,7 @@ task.spawn(function()
     end
 end)
 
-MapTab:Section({ Title = "𝙶𝚁𝙰𝙵𝙸𝙲𝙾𝚂" })
+MapTab:Section({ Title = "ɢʀᴀꜰɪᴄᴏꜱ" })
 function ResetarLighting()
     pcall(function()
         Lighting.Ambient = Backups.Lighting.Ambient
@@ -356,7 +356,7 @@ function ResetarLighting()
         Lighting.GlobalShadows = true
     end)
 end
-MapTab:Button({Title = "𝙵𝙻𝙾𝚁𝙸𝙳𝙾", Callback = function()
+MapTab:Button({Title = "ꜰʟᴏʀɪᴅᴏ", Callback = function()
     ResetarLighting()
     pcall(function()
         Lighting.Ambient = Color3.fromRGB(255, 200, 230)
@@ -365,27 +365,27 @@ MapTab:Button({Title = "𝙵𝙻𝙾𝚁𝙸𝙳𝙾", Callback = function()
         Lighting.Brightness = 2.5
     end)
 end })
-MapTab:Button({Title = "𝙱𝙾𝙽𝙸𝚃𝙾", Callback = function() ResetarLighting() end })
-MapTab:Button({Title = "𝚂𝙾𝙻", Callback = function()
+MapTab:Button({Title = "ʙᴏɴɪᴛᴏ", Callback = function() ResetarLighting() end })
+MapTab:Button({Title = "ꜱᴏʟ", Callback = function()
     ResetarLighting(); pcall(function() Lighting.ClockTime = 17 end)
 end })
-MapTab:Button({Title = "𝚁𝙴𝙲𝙾𝙼𝙴𝙽𝙳𝙰𝙳𝙾", Callback = function() ResetarLighting() end })
+MapTab:Button({Title = "ʀᴇᴄᴏᴍᴇɴᴅᴀᴅᴏ", Callback = function() ResetarLighting() end })
 
-MapTab:Section({ Title = "𝙸𝙼𝙰𝙶𝙴𝙼 𝙳𝙴 𝙵𝚄𝙽𝙳𝙾" })
+MapTab:Section({ Title = "ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ" })
 MapTab:Dropdown({
-    Title = "𝙱𝙰𝙲𝙺𝙶𝚁𝙾𝚄𝙽𝙳",
+    Title = "ʙᴀᴄᴋɢʀᴏᴜɴᴅ",
     Values = {"BlackCat", "catsamurai", "BlackHole", "Classic"},
     Value = "BlackHole",
     Callback = function(option)
         local url = Backgrounds[option]
         if not url then return end
         pcall(function() if Window.SetBackground then Window:SetBackground(url, 0.35) end end)
-        pcall(function() WindUI:Notify({Title = "𝚃𝙷𝙴𝙼𝙴", Content = option, Duration = 2}) end)
+        pcall(function() WindUI:Notify({Title = "ᴛʜᴇᴍᴇ", Content = option, Duration = 2}) end)
     end,
 })
 
-BoomTab = Window:Tab({ Title = "𝙱𝙾𝙾𝙼 𝙱𝙾𝚇", Icon = "music" })
-BoomTab:Section({ Title = "𝙼𝚄𝚂𝙸𝙲𝙰𝚂" })
+BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx", Icon = "music" })
+BoomTab:Section({ Title = "ᴍᴜꜱɪᴄᴀꜱ" })
 
 function TocarMusica(id)
     pcall(function()
@@ -400,28 +400,28 @@ function TocarMusica(id)
 end
 
 for _, m in ipairs({
-    {Nome = "𝙼𝙴𝙰𝙽𝚃 𝚃𝙾 𝙱𝙴", ID = "84321228471359"},
-    {Nome = "𝚂𝙾𝙼𝙴𝚃𝙸𝙼𝙴𝚂", ID = "128715303988843"},
-    {Nome = "𝙱𝙻𝙾𝙳𝙻𝚈𝙽 𝙱𝙻𝙾𝙾𝙳𝙿𝙾𝙿", ID = "96414211708215"},
+    {Nome = "ᴍᴇᴀɴᴛ ᴛᴏ ʙᴇ", ID = "84321228471359"},
+    {Nome = "ꜱᴏᴍᴇᴛɪᴍᴇꜱ", ID = "128715303988843"},
+    {Nome = "ʙʟᴏᴅʟʏɴ ʙʟᴏᴏᴅᴘᴏᴘ", ID = "96414211708215"},
 }) do
     BoomTab:Button({ Title = m.Nome, Callback = function()
-        TocarMusica(m.ID); pcall(function() WindUI:Notify({Title = "𝙱𝙾𝙾𝙼 𝙱𝙾𝚇", Content = m.Nome, Duration = 2}) end)
+        TocarMusica(m.ID); pcall(function() WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2}) end)
     end })
 end
 
-BoomTab:Section({ Title = "𝙲𝚄𝚂𝚃𝙾𝙼" })
-BoomTab:Input({ Title = "𝙸𝙳", Placeholder = "𝙸𝙳...", Callback = function(text)
+BoomTab:Section({ Title = "ᴄᴜꜱᴛᴏᴍ" })
+BoomTab:Input({ Title = "ɪᴅ", Placeholder = "ɪᴅ...", Callback = function(text)
     if text and text ~= "" then TocarMusica(text) end
 end })
-BoomTab:Button({ Title = "𝙿𝙰𝚁𝙰𝚁 𝙼𝚄𝚂𝙸𝙲𝙰", Callback = function()
+BoomTab:Button({ Title = "ᴘᴀʀᴀʀ ᴍᴜꜱɪᴄᴀ", Callback = function()
     if State.BoomBoxSound then
         pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
         State.BoomBoxSound = nil
     end
-end })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 2/9 — Ball: Auto Ball + Efeitos ]]
+end })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 2/9 — ʙᴀʟʟ ᴀᴜᴛᴏ + ᴇꜰᴇɪᴛᴏꜱ ]]
 
-BallTab = Window:Tab({ Title = "𝙱𝙰𝙻𝙻", Icon = "circle" })
-BallTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝙱𝙰𝙻𝙻" })
+BallTab = Window:Tab({ Title = "ʙᴀʟʟ", Icon = "circle" })
+BallTab:Section({ Title = "ᴀᴜᴛᴏ ʙᴀʟʟ" })
 
 AutoFollowConnection = nil
 CurrentFollowBall = nil
@@ -511,13 +511,13 @@ function StopAutoBall()
     if hum then hum.AutoRotate = true end
 end
 
-BallTab:Toggle({ Title = "𝙰𝚄𝚃𝙾 𝙱𝙰𝙻𝙻", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "ᴀᴜᴛᴏ ʙᴀʟʟ", Value = false, Callback = function(v)
     if v then StartAutoBall() else StopAutoBall() end
 end })
-BallTab:Slider({ Title = "𝙳𝙸𝚂𝚃𝙰𝙽𝙲𝙸𝙰 𝙳𝙴 𝙿𝙰𝚁𝙰𝙳𝙰", Value = {Min = 1, Max = 50, Default = 2}, Callback = function(v) FollowStopDistance = v / 10 end })
-BallTab:Slider({ Title = "𝙵𝙾𝚁𝙲𝙰 𝙳𝙾 𝚂𝚃𝙴𝙴𝚁𝙸𝙽𝙶", Value = {Min = 1, Max = 30, Default = 13}, Callback = function(v) ManualSteerStrength = v / 10 end })
+BallTab:Slider({ Title = "ᴅɪꜱᴛâɴᴄɪᴀ ᴅᴇ ᴘᴀʀᴀᴅᴀ", Value = {Min = 1, Max = 50, Default = 2}, Callback = function(v) FollowStopDistance = v / 10 end })
+BallTab:Slider({ Title = "ꜰᴏʀçᴀ ᴅᴏ ꜱᴛᴇᴇʀɪɴɢ", Value = {Min = 1, Max = 30, Default = 13}, Callback = function(v) ManualSteerStrength = v / 10 end })
 
-BallTab:Section({ Title = "𝙰𝙿𝙰𝚁𝙴𝙽𝙲𝙸𝙰 𝙳𝙰 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴀᴘᴀʀêɴᴄɪᴀ ᴅᴀ ʙᴀʟʟ" })
 
 BallTextureBackup = {}
 function SalvarTexturasBall(ball)
@@ -575,14 +575,14 @@ function RestaurarBall()
     end
 end
 
-BallTab:Colorpicker({ Title = "𝙲𝙾𝚁 𝙳𝙰 𝙱𝙰𝙻𝙻", Default = Color3.fromRGB(89, 247, 255), Callback = function(c) AplicarCorBall(c) end })
+BallTab:Colorpicker({ Title = "ᴄᴏʀ ᴅᴀ ʙᴀʟʟ", Default = Color3.fromRGB(89, 247, 255), Callback = function(c) AplicarCorBall(c) end })
 
 FireColor1 = Color3.fromRGB(255, 100, 0)
 FireColor2 = Color3.fromRGB(255, 200, 0)
 FireSize = 15
 FireHeat = 25
 
-BallTab:Toggle({ Title = "𝙵𝙾𝙶𝙾 𝙽𝙰 𝙱𝙰𝙻𝙻", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "ꜰᴏɢᴏ ɴᴀ ʙᴀʟʟ", Value = false, Callback = function(v)
     State.BallFire = v
     if not v then
         for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -592,17 +592,17 @@ BallTab:Toggle({ Title = "𝙵𝙾𝙶𝙾 𝙽𝙰 𝙱𝙰𝙻𝙻", Value = f
         end
     end
 end })
-BallTab:Colorpicker({ Title = "𝙲𝙾𝚁 𝙿𝚁𝙸𝙽𝙲𝙸𝙿𝙰𝙻 𝙳𝙾 𝙵𝙾𝙶𝙾", Default = FireColor1, Callback = function(c) FireColor1 = c end })
-BallTab:Colorpicker({ Title = "𝙲𝙾𝚁 𝚂𝙴𝙲𝚄𝙽𝙳𝙰𝚁𝙸𝙰", Default = FireColor2, Callback = function(c) FireColor2 = c end })
-BallTab:Slider({Title = "𝚃𝙰𝙼𝙰𝙽𝙷𝙾", Value = {Min = 1, Max = 50, Default = 15}, Callback = function(v) FireSize = v end})
-BallTab:Slider({Title = "𝙸𝙽𝚃𝙴𝙽𝚂𝙸𝙳𝙰𝙳𝙴", Value = {Min = 1, Max = 50, Default = 25}, Callback = function(v) FireHeat = v end})
+BallTab:Colorpicker({ Title = "ᴄᴏʀ ᴘʀɪɴᴄɪᴘᴀʟ ᴅᴏ ꜰᴏɢᴏ", Default = FireColor1, Callback = function(c) FireColor1 = c end })
+BallTab:Colorpicker({ Title = "ᴄᴏʀ ꜱᴇᴄᴜɴᴅáʀɪᴀ", Default = FireColor2, Callback = function(c) FireColor2 = c end })
+BallTab:Slider({Title = "ᴛᴀᴍᴀɴʜᴏ", Value = {Min = 1, Max = 50, Default = 15}, Callback = function(v) FireSize = v end})
+BallTab:Slider({Title = "ɪɴᴛᴇɴꜱɪᴅᴀᴅᴇ", Value = {Min = 1, Max = 50, Default = 25}, Callback = function(v) FireHeat = v end})
 
 TrailEnabled = false
 TrailColor = Color3.fromRGB(120, 90, 240)
 TrailWidth = 1
 TrailLifetime = 1
 
-BallTab:Toggle({ Title = "𝚃𝚁𝙰𝙸𝙻 𝙽𝙰 𝙱𝙰𝙻𝙻", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "ᴛʀᴀɪʟ ɴᴀ ʙᴀʟʟ", Value = false, Callback = function(v)
     TrailEnabled = v; State.BallTrail = v
     if not v then
         for _, obj in ipairs(Workspace:GetDescendants()) do
@@ -615,13 +615,13 @@ BallTab:Toggle({ Title = "𝚃𝚁𝙰𝙸𝙻 𝙽𝙰 𝙱𝙰𝙻𝙻", Value
         end
     end
 end })
-BallTab:Colorpicker({Title = "𝙲𝙾𝚁 𝙳𝙾 𝚃𝚁𝙰𝙸𝙻", Default = TrailColor, Callback = function(c) TrailColor = c end})
-BallTab:Slider({Title = "𝙻𝙰𝚁𝙶𝚄𝚁𝙰", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) TrailWidth = v / 10 end})
-BallTab:Slider({Title = "𝙳𝚄𝚁𝙰𝙲𝙰𝙾", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) TrailLifetime = v / 10 end})
+BallTab:Colorpicker({Title = "ᴄᴏʀ ᴅᴏ ᴛʀᴀɪʟ", Default = TrailColor, Callback = function(c) TrailColor = c end})
+BallTab:Slider({Title = "ʟᴀʀɢᴜʀᴀ", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) TrailWidth = v / 10 end})
+BallTab:Slider({Title = "ᴅᴜʀᴀçãᴏ", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) TrailLifetime = v / 10 end})
 
-BallTab:Button({ Title = "𝚁𝙴𝚂𝚃𝙰𝚄𝚁𝙰𝚁 𝙱𝙰𝙻𝙻", Callback = function()
+BallTab:Button({ Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ʙᴀʟʟ", Callback = function()
     RestaurarBall(); TrailEnabled = false
-    pcall(function() WindUI:Notify({Title = "𝙱𝙰𝙻𝙻", Content = "𝚁𝙴𝚂𝚃𝙰𝚄𝚁𝙰𝙳𝙰", Duration = 2}) end)
+    pcall(function() WindUI:Notify({Title = "ʙᴀʟʟ", Content = "ʀᴇꜱᴛᴀᴜʀᴀᴅᴀ", Duration = 2}) end)
 end })
 
 spawn(function()
@@ -670,9 +670,9 @@ spawn(function()
             end
         end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 3/9 — Ball Extras ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/9 — ʙᴀʟʟ ᴇxᴛʀᴀꜱ ]]
 
-BallTab:Section({ Title = "𝙲𝙷𝙰𝙽𝙶𝙴𝚁 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴄʜᴀɴɢᴇʀ ʙᴀʟʟ" })
 
 BallSkins = {
     ["Champions Laranja"] = {Texture = "rbxassetid://6631296730", Mesh = "rbxassetid://4545270159"},
@@ -704,10 +704,10 @@ function AplicarBallSkin(nomeSkin)
         end
     end
 end
-BallTab:Dropdown({ Title = "𝚂𝙺𝙸𝙽 𝙳𝙰 𝙱𝙰𝙻𝙻", Values = {"Champions Laranja", "Champions Azul", "Champions Branca"}, Value = "Champions Laranja",
-    Callback = function(option) AplicarBallSkin(option); pcall(function() WindUI:Notify({Title = "𝙱𝙰𝙻𝙻 𝚂𝙺𝙸𝙽", Content = option, Duration = 2}) end) end })
+BallTab:Dropdown({ Title = "ꜱᴋɪɴ ᴅᴀ ʙᴀʟʟ", Values = {"Champions Laranja", "Champions Azul", "Champions Branca"}, Value = "Champions Laranja",
+    Callback = function(option) AplicarBallSkin(option); pcall(function() WindUI:Notify({Title = "ʙᴀʟʟ ꜱᴋɪɴ", Content = option, Duration = 2}) end) end })
 
-BallTab:Button({ Title = "𝙳𝙴𝚂𝙰𝚃𝙸𝚅𝙰𝚁 𝚂𝙺𝙸𝙽", Callback = function()
+BallTab:Button({ Title = "ᴅᴇꜱᴀᴛɪᴠᴀʀ ꜱᴋɪɴ", Callback = function()
     for _, ball in ipairs(Workspace:GetDescendants()) do
         if ball:IsA("BasePart") then
             local n = string.lower(ball.Name)
@@ -723,7 +723,7 @@ BallTab:Button({ Title = "𝙳𝙴𝚂𝙰𝚃𝙸𝚅𝙰𝚁 𝚂𝙺𝙸𝙽"
     end
 end })
 
-BallTab:Section({ Title = "𝚅𝙸𝚂𝚄𝙰𝙻 𝙳𝙰 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴠɪꜱᴜᴀʟ ᴅᴀ ʙᴀʟʟ" })
 BallESPEnabled = false
 BallESPColor = Color3.fromRGB(0, 255, 100)
 BallESPInstance = nil
@@ -741,7 +741,7 @@ function CriarBallESP()
     BallESPInstance.Parent = Camera
 end
 
-BallTab:Toggle({ Title = "𝙱𝙰𝙻𝙻 𝙴𝚂𝙿", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "ʙᴀʟʟ ᴇꜱᴘ", Value = false, Callback = function(v)
     BallESPEnabled = v
     if v then
         spawn(function()
@@ -758,11 +758,11 @@ BallTab:Toggle({ Title = "𝙱𝙰𝙻𝙻 𝙴𝚂𝙿", Value = false, Callbac
         if BallESPInstance and BallESPInstance.Parent then BallESPInstance:Destroy(); BallESPInstance = nil end
     end
 end })
-BallTab:Colorpicker({ Title = "𝙲𝙾𝚁 𝙳𝙾 𝙴𝚂𝙿", Default = Color3.fromRGB(0, 255, 100), Callback = function(c)
+BallTab:Colorpicker({ Title = "ᴄᴏʀ ᴅᴏ ᴇꜱᴘ", Default = Color3.fromRGB(0, 255, 100), Callback = function(c)
     BallESPColor = c
     if BallESPInstance then BallESPInstance.FillColor = c; BallESPInstance.OutlineColor = c end
 end })
-BallTab:Slider({ Title = "𝚃𝚁𝙰𝙽𝚂𝙿𝙰𝚁𝙴𝙽𝙲𝙸𝙰", Value = {Min = 0, Max = 100, Default = 50}, Callback = function(v)
+BallTab:Slider({ Title = "ᴛʀᴀɴꜱᴘᴀʀêɴᴄɪᴀ", Value = {Min = 0, Max = 100, Default = 50}, Callback = function(v)
     BallESPFill = v / 100
     if BallESPInstance then BallESPInstance.FillTransparency = BallESPFill end
 end })
@@ -770,7 +770,7 @@ end })
 BallChamsEnabled = false
 BallChamsColor = Color3.fromRGB(255, 50, 50)
 BallChamsBackup = {}
-BallTab:Toggle({ Title = "𝙱𝙰𝙻𝙻 𝙲𝙷𝙰𝙼𝚂", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "ʙᴀʟʟ ᴄʜᴀᴍꜱ", Value = false, Callback = function(v)
     BallChamsEnabled = v
     if not v then
         for ball, data in pairs(BallChamsBackup) do
@@ -781,7 +781,7 @@ BallTab:Toggle({ Title = "𝙱𝙰𝙻𝙻 𝙲𝙷𝙰𝙼𝚂", Value = false,
         BallChamsBackup = {}
     end
 end })
-BallTab:Colorpicker({ Title = "𝙲𝙾𝚁 𝙳𝙾 𝙲𝙷𝙰𝙼𝚂", Default = Color3.fromRGB(255, 50, 50), Callback = function(c) BallChamsColor = c end })
+BallTab:Colorpicker({ Title = "ᴄᴏʀ ᴅᴏ ᴄʜᴀᴍꜱ", Default = Color3.fromRGB(255, 50, 50), Callback = function(c) BallChamsColor = c end })
 
 spawn(function()
     while true do
@@ -803,7 +803,7 @@ spawn(function()
     end
 end)
 
-BallTab:Section({ Title = "𝙿𝚁𝙴𝙳𝙸𝙲𝙰𝙾 𝙳𝙰 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴘʀᴇᴅɪçãᴏ ᴅᴀ ʙᴀʟʟ" })
 PredictionEnabled = false
 PredictionLength = 50
 PredictionColor = Color3.fromRGB(0, 200, 255)
@@ -831,7 +831,7 @@ function CriarPrediction()
     PredictionBeam.Parent = PredictionPart
 end
 
-BallTab:Toggle({ Title = "𝟹𝙳 𝙿𝚁𝙴𝙳𝙸𝙲𝙰𝙾 𝙻𝙸𝙽𝙴", Value = false, Callback = function(v)
+BallTab:Toggle({ Title = "3ᴅ ᴘʀᴇᴅɪçãᴏ ʟɪɴᴇ", Value = false, Callback = function(v)
     PredictionEnabled = v
     if v then
         spawn(function()
@@ -856,16 +856,16 @@ BallTab:Toggle({ Title = "𝟹𝙳 𝙿𝚁𝙴𝙳𝙸𝙲𝙰𝙾 𝙻𝙸𝙽
         if PredictionBeam then PredictionBeam.Enabled = false end
     end
 end })
-BallTab:Slider({Title = "𝙲𝙾𝙼𝙿𝚁𝙸𝙼𝙴𝙽𝚃𝙾", Value = {Min = 10, Max = 200, Default = 50}, Callback = function(v) PredictionLength = v end})
-BallTab:Colorpicker({Title = "𝙲𝙾𝚁", Default = Color3.fromRGB(0, 200, 255), Callback = function(c)
+BallTab:Slider({Title = "ᴄᴏᴍᴘʀɪᴍᴇɴᴛᴏ", Value = {Min = 10, Max = 200, Default = 50}, Callback = function(v) PredictionLength = v end})
+BallTab:Colorpicker({Title = "ᴄᴏʀ", Default = Color3.fromRGB(0, 200, 255), Callback = function(c)
     PredictionColor = c
     if PredictionBeam then PredictionBeam.Color = ColorSequence.new(c) end
 end})
 
-BallTab:Section({ Title = "𝚃𝙴𝙻𝙴𝙿𝙾𝚁𝚃𝙰𝚁 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴛᴇʟᴇᴘᴏʀᴛᴀʀ ʙᴀʟʟ" })
 TPBallPosEnabled = false
 TPBallPosition = Vector3.new(-56, 1194, -281)
-BallTab:Toggle({Title = "𝚃𝙿 𝙱𝙰𝙻𝙻 𝚃𝙾 𝙿𝙾𝚂𝙸𝚃𝙸𝙾𝙽", Value = false, Callback = function(v)
+BallTab:Toggle({Title = "ᴛᴘ ʙᴀʟʟ ᴛᴏ ᴘᴏꜱɪᴛɪᴏɴ", Value = false, Callback = function(v)
     TPBallPosEnabled = v
     if v then
         spawn(function()
@@ -884,16 +884,16 @@ BallTab:Toggle({Title = "𝚃𝙿 𝙱𝙰𝙻𝙻 𝚃𝙾 𝙿𝙾𝚂𝙸𝚃
         end)
     end
 end})
-BallTab:Input({Title = "𝚇", Placeholder = "-56", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(n, TPBallPosition.Y, TPBallPosition.Z) end end})
-BallTab:Input({Title = "𝚈", Placeholder = "1194", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(TPBallPosition.X, n, TPBallPosition.Z) end end})
-BallTab:Input({Title = "𝚉", Placeholder = "-281", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(TPBallPosition.X, TPBallPosition.Y, n) end end})
-BallTab:Button({Title = "𝚄𝚂𝙰𝚁 𝙼𝙸𝙽𝙷𝙰 𝙿𝙾𝚂𝙸𝙲𝙰𝙾", Callback = function()
+BallTab:Input({Title = "x", Placeholder = "-56", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(n, TPBallPosition.Y, TPBallPosition.Z) end end})
+BallTab:Input({Title = "ʏ", Placeholder = "1194", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(TPBallPosition.X, n, TPBallPosition.Z) end end})
+BallTab:Input({Title = "ᴢ", Placeholder = "-281", Callback = function(t) local n = tonumber(t); if n then TPBallPosition = Vector3.new(TPBallPosition.X, TPBallPosition.Y, n) end end})
+BallTab:Button({Title = "ᴜꜱᴀʀ ᴍɪɴʜᴀ ᴘᴏꜱɪçãᴏ", Callback = function()
     if RootPart then TPBallPosition = RootPart.Position
-        pcall(function() WindUI:Notify({Title = "𝙱𝙰𝙻𝙻", Content = "𝙿𝙾𝚂𝙸𝙲𝙰𝙾 𝙳𝙴𝙵𝙸𝙽𝙸𝙳𝙰", Duration = 2}) end) end
+        pcall(function() WindUI:Notify({Title = "ʙᴀʟʟ", Content = "ᴘᴏꜱɪçãᴏ ᴅᴇꜰɪɴɪᴅᴀ", Duration = 2}) end) end
 end})
 
 TPToBallEnabled = false
-BallTab:Toggle({Title = "𝚃𝙿 𝚃𝙾 𝙱𝙰𝙻𝙻", Value = false, Callback = function(v)
+BallTab:Toggle({Title = "ᴛᴘ ᴛᴏ ʙᴀʟʟ", Value = false, Callback = function(v)
     TPToBallEnabled = v
     if v then
         spawn(function()
@@ -908,14 +908,14 @@ BallTab:Toggle({Title = "𝚃𝙿 𝚃𝙾 𝙱𝙰𝙻𝙻", Value = false, Cal
     end
 end})
 
-BallTab:Section({ Title = "𝙲𝚄𝚁𝚅𝙰 𝙳𝙰 𝙱𝙰𝙻𝙻" })
+BallTab:Section({ Title = "ᴄᴜʀᴠᴀ ᴅᴀ ʙᴀʟʟ" })
 CurvePresets = {
     ["None"] = {side = "None", dip = false, cPower = 0, dPower = 0},
     ["Curve Esquerda"] = {side = "Left", dip = true, cPower = 60, dPower = 20},
     ["Curve Direita"] = {side = "Right", dip = false, cPower = 80, dPower = 0},
 }
 CurveState = {Side = "None", Dip = false, CPower = 0, DPower = 0, Active = false}
-BallTab:Dropdown({Title = "𝚃𝙸𝙿𝙾 𝙳𝙴 𝙲𝚄𝚁𝚅𝙰", Values = {"None", "Curve Esquerda", "Curve Direita"}, Value = "None",
+BallTab:Dropdown({Title = "ᴛɪᴘᴏ ᴅᴇ ᴄᴜʀᴠᴀ", Values = {"None", "Curve Esquerda", "Curve Direita"}, Value = "None",
     Callback = function(o)
         local p = CurvePresets[o]; if not p then return end
         CurveState.Side = p.side; CurveState.Dip = p.dip
@@ -940,16 +940,16 @@ RunService.Heartbeat:Connect(function()
     pcall(function() ball.AssemblyLinearVelocity = vel + force end)
 end)
 
-BallTab:Section({ Title = "𝙱𝙾𝚃𝙰𝙾 𝙵𝙻𝚄𝚃𝚄𝙰𝙽𝚃𝙴" })
+BallTab:Section({ Title = "ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ" })
 FloatGui, FloatBtn, FloatLocked = nil, nil, false
 DragStart, StartPos, Moved = nil, nil, false
 
 function AtualizarTextoBotao()
     if not FloatBtn then return end
     if State.AutoBall then
-        FloatBtn.Text = "𝚂𝙴𝙶𝚄𝙸𝚁:𝙾𝙽"; FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 60)
+        FloatBtn.Text = "ꜱᴇɢᴜɪʀ:ᴏɴ"; FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 60)
     else
-        FloatBtn.Text = "𝚂𝙴𝙶𝚄𝙸𝚁:𝙾𝙵𝙵"; FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 90, 50)
+        FloatBtn.Text = "ꜱᴇɢᴜɪʀ:ᴏꜰꜰ"; FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 90, 50)
     end
 end
 
@@ -963,7 +963,7 @@ function CriarFloatBtn()
     FloatBtn.Size = UDim2.new(0, 110, 0, 110)
     FloatBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
     FloatBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 60)
-    FloatBtn.Text = "𝚂𝙴𝙶𝚄𝙸𝚁:𝙾𝙵𝙵"
+    FloatBtn.Text = "ꜱᴇɢᴜɪʀ:ᴏꜰꜰ"
     FloatBtn.TextSize = 16; FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     FloatBtn.Font = Enum.Font.GothamBold; FloatBtn.BorderSizePixel = 0
     FloatBtn.AutoButtonColor = false; FloatBtn.Active = true
@@ -999,27 +999,27 @@ function CriarFloatBtn()
     end)
 end
 
-BallTab:Toggle({Title = "𝙼𝙾𝚂𝚃𝚁𝙰𝚁 𝙱𝙾𝚃𝙰𝙾 𝙵𝙻𝚄𝚃𝚄𝙰𝙽𝚃𝙴", Value = false, Callback = function(v)
+BallTab:Toggle({Title = "ᴍᴏꜱᴛʀᴀʀ ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ", Value = false, Callback = function(v)
     if v then if not FloatBtn then CriarFloatBtn() end; FloatBtn.Visible = true; AtualizarTextoBotao()
     elseif FloatBtn then FloatBtn.Visible = false end
 end})
-BallTab:Toggle({Title = "𝚃𝚁𝙰𝚅𝙰𝚁 𝙱𝙾𝚃𝙰𝙾", Value = false, Callback = function(v) FloatLocked = v end})
-BallTab:Button({Title = "𝚁𝙴𝙲𝚁𝙸𝙰𝚁 𝙱𝙾𝚃𝙰𝙾", Callback = function()
+BallTab:Toggle({Title = "ᴛʀᴀᴠᴀʀ ʙᴏᴛãᴏ", Value = false, Callback = function(v) FloatLocked = v end})
+BallTab:Button({Title = "ʀᴇᴄʀɪᴀʀ ʙᴏᴛãᴏ", Callback = function()
     if FloatBtn then CriarFloatBtn(); FloatBtn.Visible = true end
 end})
 
-spawn(function() while true do task.wait(0.2); if FloatBtn then AtualizarTextoBotao() end end end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 4/9 — Player ]]
+spawn(function() while true do task.wait(0.2); if FloatBtn then AtualizarTextoBotao() end end end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 4/9 — ᴘʟᴀʏᴇʀ ]]
 
-PlayerTab = Window:Tab({ Title = "𝙿𝙻𝙰𝚈𝙴𝚁", Icon = "user" })
+PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ", Icon = "user" })
 
-PlayerTab:Section({ Title = "𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴 (𝙰𝙽𝚃𝙸-𝙱𝙰𝙽)" })
+PlayerTab:Section({ Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ (ᴀɴᴛɪ-ʙᴀɴ)" })
 SpeedEnabled = false
 SpeedValue = 24
 SpeedJitter = true
 
-PlayerTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴", Desc = "𝙰𝙽𝚃𝙸-𝙱𝙰𝙽", Value = false, Callback = function(v) SpeedEnabled = v end})
-PlayerTab:Slider({Title = "𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴", Value = {Min = 16, Max = 60, Default = 24}, Callback = function(v) SpeedValue = v end})
-PlayerTab:Toggle({Title = "𝙹𝙸𝚃𝚃𝙴𝚁 𝙽𝙰𝚃𝚄𝚁𝙰𝙻", Value = true, Callback = function(v) SpeedJitter = v end})
+PlayerTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ", Desc = "ᴀɴᴛɪ-ʙᴀɴ", Value = false, Callback = function(v) SpeedEnabled = v end})
+PlayerTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ", Value = {Min = 16, Max = 60, Default = 24}, Callback = function(v) SpeedValue = v end})
+PlayerTab:Toggle({Title = "ᴊɪᴛᴛᴇʀ ɴᴀᴛᴜʀᴀʟ", Value = true, Callback = function(v) SpeedJitter = v end})
 
 RunService.Heartbeat:Connect(function(dt)
     if not SpeedEnabled then return end
@@ -1038,7 +1038,7 @@ RunService.Heartbeat:Connect(function(dt)
     RootPart.AssemblyLinearVelocity = Vector3.new(newHoriz.X, currentVel.Y, newHoriz.Z)
 end)
 
-PlayerTab:Section({ Title = "𝚃𝚁𝙰𝙸𝙻 𝙳𝙾 𝙹𝙾𝙶𝙰𝙳𝙾𝚁" })
+PlayerTab:Section({ Title = "ᴛʀᴀɪʟ ᴅᴏ ᴊᴏɢᴀᴅᴏʀ" })
 TrailObj = nil
 TrailColorP = Color3.fromRGB(120, 90, 240)
 function CriarTrail()
@@ -1055,19 +1055,19 @@ function CriarTrail()
     TrailObj.WidthScale = NumberSequence.new(0.5)
     TrailObj.Parent = hrp
 end
-PlayerTab:Toggle({Title = "𝚃𝚁𝙰𝙸𝙻 𝙽𝙾 𝙹𝙾𝙶𝙰𝙳𝙾𝚁", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴛʀᴀɪʟ ɴᴏ ᴊᴏɢᴀᴅᴏʀ", Value = false, Callback = function(v)
     State.Trail = v
     if v then CriarTrail() elseif TrailObj then TrailObj:Destroy(); TrailObj = nil end
 end})
-PlayerTab:Colorpicker({Title = "𝙲𝙾𝚁 𝙳𝙾 𝚃𝚁𝙰𝙸𝙻", Default = TrailColorP, Callback = function(c)
+PlayerTab:Colorpicker({Title = "ᴄᴏʀ ᴅᴏ ᴛʀᴀɪʟ", Default = TrailColorP, Callback = function(c)
     TrailColorP = c
     if TrailObj then TrailObj.Color = ColorSequence.new(c) end
 end})
 LocalPlayer.CharacterAdded:Connect(function() task.wait(0.5); if State.Trail then CriarTrail() end end)
 
-PlayerTab:Section({ Title = "𝚃𝙴𝙻𝙰 𝙴𝚂𝚃𝙸𝙲𝙰𝙳𝙰" })
+PlayerTab:Section({ Title = "ᴛᴇʟᴀ ᴇꜱᴛɪᴄᴀᴅᴀ" })
 StretchHConn, StretchVConn = nil, nil
-PlayerTab:Toggle({Title = "𝙴𝚂𝚃𝙸𝙲𝙰𝚁 𝙷𝙾𝚁𝙸𝚉𝙾𝙽𝚃𝙰𝙻", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴇꜱᴛɪᴄᴀʀ ʜᴏʀɪᴢᴏɴᴛᴀʟ", Value = false, Callback = function(v)
     State.StretchH = v
     if v then
         if StretchHConn then StretchHConn:Disconnect() end
@@ -1077,7 +1077,7 @@ PlayerTab:Toggle({Title = "𝙴𝚂𝚃𝙸𝙲𝙰𝚁 𝙷𝙾𝚁𝙸𝚉𝙾
         end)
     elseif StretchHConn then StretchHConn:Disconnect(); StretchHConn = nil end
 end})
-PlayerTab:Toggle({Title = "𝙴𝚂𝚃𝙸𝙲𝙰𝚁 𝚅𝙴𝚁𝚃𝙸𝙲𝙰𝙻", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴇꜱᴛɪᴄᴀʀ ᴠᴇʀᴛɪᴄᴀʟ", Value = false, Callback = function(v)
     State.StretchV = v
     if v then
         if StretchVConn then StretchVConn:Disconnect() end
@@ -1088,7 +1088,7 @@ PlayerTab:Toggle({Title = "𝙴𝚂𝚃𝙸𝙲𝙰𝚁 𝚅𝙴𝚁𝚃𝙸𝙲
     elseif StretchVConn then StretchVConn:Disconnect(); StretchVConn = nil end
 end})
 
-PlayerTab:Section({ Title = "𝙲𝙾𝚁 𝙳𝙰 𝚃𝙴𝙻𝙰" })
+PlayerTab:Section({ Title = "ᴄᴏʀ ᴅᴀ ᴛᴇʟᴀ" })
 ScreenColorEnabled = false
 ScreenColorTint = Color3.fromRGB(255, 255, 255)
 ScreenColorSaturation = 0
@@ -1106,20 +1106,20 @@ function AplicarScreenColor()
     ScreenColorEffect.Brightness = ScreenColorBrightness
     ScreenColorEffect.Parent = Lighting
 end
-PlayerTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙲𝙾𝚁 𝙳𝙰 𝚃𝙴𝙻𝙰", Value = false, Callback = function(v) ScreenColorEnabled = v; AplicarScreenColor() end})
-PlayerTab:Colorpicker({Title = "𝙲𝙾𝚁", Default = Color3.fromRGB(255, 255, 255), Callback = function(c)
+PlayerTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴄᴏʀ ᴅᴀ ᴛᴇʟᴀ", Value = false, Callback = function(v) ScreenColorEnabled = v; AplicarScreenColor() end})
+PlayerTab:Colorpicker({Title = "ᴄᴏʀ", Default = Color3.fromRGB(255, 255, 255), Callback = function(c)
     ScreenColorTint = c; if ScreenColorEffect then ScreenColorEffect.TintColor = c end
 end})
-PlayerTab:Slider({Title = "𝚂𝙰𝚃𝚄𝚁𝙰𝙲𝙰𝙾", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
+PlayerTab:Slider({Title = "ꜱᴀᴛᴜʀᴀçãᴏ", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
     ScreenColorSaturation = v / 100; if ScreenColorEffect then ScreenColorEffect.Saturation = ScreenColorSaturation end
 end})
-PlayerTab:Slider({Title = "𝙲𝙾𝙽𝚃𝚁𝙰𝚂𝚃𝙴", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
+PlayerTab:Slider({Title = "ᴄᴏɴᴛʀᴀꜱᴛᴇ", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
     ScreenColorContrast = v / 100; if ScreenColorEffect then ScreenColorEffect.Contrast = ScreenColorContrast end
 end})
-PlayerTab:Slider({Title = "𝙱𝚁𝙸𝙻𝙷𝙾", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
+PlayerTab:Slider({Title = "ʙʀɪʟʜᴏ", Value = {Min = -100, Max = 100, Default = 0}, Callback = function(v)
     ScreenColorBrightness = v / 100; if ScreenColorEffect then ScreenColorEffect.Brightness = ScreenColorBrightness end
 end})
-PlayerTab:Button({Title = "𝚁𝙴𝚂𝚃𝙰𝚄𝚁𝙰𝚁 𝙲𝙾𝚁", Callback = function()
+PlayerTab:Button({Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ᴄᴏʀ", Callback = function()
     if ScreenColorEffect then ScreenColorEffect:Destroy(); ScreenColorEffect = nil end
     ScreenColorEnabled = false
 end})
@@ -1137,22 +1137,22 @@ function AplicarScreenInvert()
     ScreenInvertEffect.Brightness = -0.3
     ScreenInvertEffect.Parent = Lighting
 end
-PlayerTab:Toggle({Title = "𝙸𝙽𝚅𝙴𝚁𝚃𝙴𝚁 𝙲𝙾𝚁 𝙳𝙰 𝚃𝙴𝙻𝙰", Desc = "𝙼𝙾𝙳𝙾 𝙴𝚂𝙲𝚄𝚁𝙾", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ɪɴᴠᴇʀᴛᴇʀ ᴄᴏʀ ᴅᴀ ᴛᴇʟᴀ", Desc = "ᴍᴏᴅᴏ ᴇꜱᴄᴜʀᴏ", Value = false, Callback = function(v)
     ScreenInvertEnabled = v; AplicarScreenInvert()
 end})
 
-PlayerTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝚂𝙺𝙸𝙻𝙻" })
+PlayerTab:Section({ Title = "ᴀᴜᴛᴏ ꜱᴋɪʟʟ" })
 AutoSkillEnabled = false
 SkillSpeed = 5
 SkillStep = 0
 SkillPhase = 0
 SkillRange = 3
-PlayerTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝚂𝙺𝙸𝙻𝙻", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴀᴜᴛᴏ ꜱᴋɪʟʟ", Value = false, Callback = function(v)
     AutoSkillEnabled = v
     if not v then SkillPhase = 0; SkillStep = 0 end
 end})
-PlayerTab:Slider({Title = "𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴", Value = {Min = 1, Max = 10, Default = 5}, Callback = function(v) SkillSpeed = v end})
-PlayerTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 1, Max = 10, Default = 3}, Callback = function(v) SkillRange = v end})
+PlayerTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ", Value = {Min = 1, Max = 10, Default = 5}, Callback = function(v) SkillSpeed = v end})
+PlayerTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 1, Max = 10, Default = 3}, Callback = function(v) SkillRange = v end})
 RunService.Heartbeat:Connect(function()
     if not AutoSkillEnabled then return end
     if not Character or not RootPart or not Humanoid then return end
@@ -1174,7 +1174,7 @@ RunService.Heartbeat:Connect(function()
     end)
 end)
 
-PlayerTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝙵𝙾𝙻𝙻𝙾𝚆" })
+PlayerTab:Section({ Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ" })
 AutoFollowEnabled = false
 AutoFollowKey = Enum.KeyCode.K
 AutoFollowStopDist = 1.8
@@ -1201,14 +1201,14 @@ RunService.RenderStepped:Connect(function()
         RootPart.CFrame = CFrame.new(RootPart.Position, Vector3.new(ball.Position.X, RootPart.Position.Y, ball.Position.Z))
     else Humanoid:Move(Vector3.zero, false) end
 end)
-PlayerTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝙵𝙾𝙻𝙻𝙾𝚆", Desc = "𝙺𝙴𝚈: 𝙺", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ", Desc = "ᴋᴇʏ: ᴋ", Value = false, Callback = function(v)
     AutoFollowEnabled = v
     if not v and Humanoid then Humanoid:Move(Vector3.zero, false) end
 end})
-PlayerTab:Input({Title = "𝙺𝙴𝚈𝙱𝙸𝙽𝙳", Placeholder = "𝙺", Callback = function(text)
+PlayerTab:Input({Title = "ᴋᴇʏʙɪɴᴅ", Placeholder = "ᴋ", Callback = function(text)
     local clean = text:gsub("%s+", ""); if clean == "" then return end
     local key = KeyMap[clean] or Enum.KeyCode[clean]
-    if key then AutoFollowKey = key; pcall(function() WindUI:Notify({Title = "𝙺𝙴𝚈𝙱𝙸𝙽𝙳", Content = "𝙵𝙾𝙻𝙻𝙾𝚆: " .. clean, Duration = 2}) end) end
+    if key then AutoFollowKey = key; pcall(function() WindUI:Notify({Title = "ᴋᴇʏʙɪɴᴅ", Content = "ꜰᴏʟʟᴏᴡ: " .. clean, Duration = 2}) end) end
 end})
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -1218,7 +1218,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-PlayerTab:Section({ Title = "𝙲𝙾𝙽𝚃𝚁𝙾𝙻 𝙱𝙰𝙻𝙻" })
+PlayerTab:Section({ Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ" })
 ControlBallEnabled = false
 ControllingBall = false
 ControlledBall = nil
@@ -1278,11 +1278,11 @@ function StartControl(ball)
         Workspace.CurrentCamera.CFrame = CFrame.lookAt(camPos, ControlledBall.Position + Vector3.new(0, 1.5, 0))
     end)
 end
-PlayerTab:Toggle({Title = "𝙲𝙾𝙽𝚃𝚁𝙾𝙻 𝙱𝙰𝙻𝙻", Desc = "𝙺𝙴𝚈: 𝚄", Value = false, Callback = function(v)
+PlayerTab:Toggle({Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ", Desc = "ᴋᴇʏ: ᴜ", Value = false, Callback = function(v)
     ControlBallEnabled = v
     if not v and ControllingBall then StopControl() end
 end})
-PlayerTab:Slider({Title = "𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴 𝙳𝙰 𝙱𝙰𝙻𝙻", Value = {Min = 10, Max = 200, Default = 70}, Callback = function(v) ControlBallSpeed = v end})
+PlayerTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴀ ʙᴀʟʟ", Value = {Min = 10, Max = 200, Default = 70}, Callback = function(v) ControlBallSpeed = v end})
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == ControlKey and ControlBallEnabled then
@@ -1290,10 +1290,10 @@ UserInputService.InputBegan:Connect(function(input, gp)
             local ball = GetValidBall(); if ball then StartControl(ball) end
         end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 5/9 — Chars + AC + Reach ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 5/9 — ᴄʜᴀʀꜱ + ᴀᴄ + ʀᴇᴀᴄʜ ]]
 
-CharsTab = Window:Tab({ Title = "𝙲𝙷𝙰𝚁𝚂", Icon = "users" })
-CharsTab:Section({ Title = "𝙲𝙷𝙰𝚁𝚂" })
+CharsTab = Window:Tab({ Title = "ᴄʜᴀʀꜱ", Icon = "users" })
+CharsTab:Section({ Title = "ᴄʜᴀʀꜱ" })
 CharsList = {
     "oxentepivetih77","RB9844","FearZakk","pachowillian","DavskCbm9","6unfire","mikaelfacada10","guto785662",
     "orieehrjr","beastsxc","candyxzzz0","polarnyp","kayquealt1106","Skxgoat7","KingOfKitsunezx","slk_eosouzax",
@@ -1312,12 +1312,12 @@ function SendChar(nome)
 end
 for _, char in ipairs(CharsList) do
     CharsTab:Button({ Title = char, Callback = function()
-        SendChar(char); pcall(function() WindUI:Notify({Title = "𝙲𝙷𝙰𝚁", Content = char, Duration = 2}) end)
+        SendChar(char); pcall(function() WindUI:Notify({Title = "ᴄʜᴀʀ", Content = char, Duration = 2}) end)
     end })
 end
 
-ACTab = Window:Tab({ Title = "𝙰𝙲", Icon = "shield" })
-ACTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝙲𝙰𝚃𝙲𝙷" })
+ACTab = Window:Tab({ Title = "ᴀᴄ", Icon = "shield" })
+ACTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ" })
 CatchRemote = nil
 pcall(function()
     for _, name in ipairs({"CatchBall", "Catch", "AutoCatch", "Grab"}) do
@@ -1350,10 +1350,10 @@ function DoAutoCatch(ball)
     end
     AutoCatchLast = os.clock() + AutoCatchDelay
 end
-ACTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝙲𝙰𝚃𝙲𝙷", Value = false, Callback = function(v) State.AutoCatch = v end})
-ACTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 3, Max = 30, Default = 8}, Callback = function(v) AutoCatchRange = v end})
-ACTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 2, Max = 30, Default = 8, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) AutoCatchDelay = v / 10 end})
-ACTab:Toggle({Title = "𝙼𝙾𝚂𝚃𝚁𝙰𝚁 𝙷𝙸𝚃𝙱𝙾𝚇", Value = false, Callback = function(v) AC_Hitbox = v end})
+ACTab:Toggle({Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ", Value = false, Callback = function(v) State.AutoCatch = v end})
+ACTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 3, Max = 30, Default = 8}, Callback = function(v) AutoCatchRange = v end})
+ACTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 2, Max = 30, Default = 8, Suffix = " x0.1s"}, Callback = function(v) AutoCatchDelay = v / 10 end})
+ACTab:Toggle({Title = "ᴍᴏꜱᴛʀᴀʀ ʜɪᴛʙᴏx", Value = false, Callback = function(v) AC_Hitbox = v end})
 
 RunService.Heartbeat:Connect(function()
     if State.AutoCatch then
@@ -1380,7 +1380,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-ACTab:Section({ Title = "𝚁𝙴𝙰𝙲𝙷" })
+ACTab:Section({ Title = "ʀᴇᴀᴄʜ" })
 ReachLast = 0
 ReachVisualEnabled = false
 ReachVisualBox, ReachSelectionBox = nil, nil
@@ -1402,9 +1402,9 @@ function CriarReachVisual()
     ReachSelectionBox.Visible = false
     ReachSelectionBox.Parent = ReachVisualBox
 end
-ACTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝚁𝙴𝙰𝙲𝙷", Value = false, Callback = function(v) State.Reach = v end})
-ACTab:Slider({Title = "𝙳𝙸𝚂𝚃𝙰𝙽𝙲𝙸𝙰", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) State.ReachDistance = v end})
-ACTab:Toggle({Title = "𝚅𝙸𝚂𝚄𝙰𝙻 𝙳𝙾 𝚁𝙴𝙰𝙲𝙷", Value = false, Callback = function(v)
+ACTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ʀᴇᴀᴄʜ", Value = false, Callback = function(v) State.Reach = v end})
+ACTab:Slider({Title = "ᴅɪꜱᴛâɴᴄɪᴀ", Value = {Min = 1, Max = 50, Default = 10}, Callback = function(v) State.ReachDistance = v end})
+ACTab:Toggle({Title = "ᴠɪꜱᴜᴀʟ ᴅᴏ ʀᴇᴀᴄʜ", Value = false, Callback = function(v)
     ReachVisualEnabled = v
     if v then if not ReachVisualBox then CriarReachVisual() end
     elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
@@ -1440,9 +1440,9 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 6/9 — Auto Drive + Sensor ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ + ꜱᴇɴꜱᴏʀ ]]
 
-DriveTab = Window:Tab({ Title = "𝙰𝚄𝚃𝙾 𝙳𝚁𝙸𝚅𝙴", Icon = "car" })
+DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
 GKBotoes = {}
 
@@ -1570,12 +1570,12 @@ function ExecutarDive()
     if botao then ClicarBotao(botao) end
 end
 
-DriveTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝙳𝚁𝙸𝚅𝙴" })
-DriveTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙰𝚄𝚃𝙾 𝙳𝚁𝙸𝚅𝙴", Value = false, Callback = function(v) AutoDiveEnabled = v end})
-DriveTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 5, Max = 50, Default = 25}, Callback = function(v) AutoDiveRange = v end})
-DriveTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 3, Max = 50, Default = 6, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
-DriveTab:Button({Title = "𝚁𝙴𝙴𝚂𝙲𝙰𝙽𝙴𝙰𝚁 𝙱𝙾𝚃𝙾𝙴𝚂 𝙶𝙺", Callback = function()
-    EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "𝙰𝚄𝚃𝙾 𝙳𝚁𝙸𝚅𝙴", Content = #GKBotoes .. " 𝙱𝙾𝚃𝙾𝙴𝚂", Duration = 3}) end)
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Value = false, Callback = function(v) AutoDiveEnabled = v end})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 50, Default = 25}, Callback = function(v) AutoDiveRange = v end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 3, Max = 50, Default = 6, Suffix = " x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
+DriveTab:Button({Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ", Callback = function()
+    EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ", Duration = 3}) end)
 end})
 
 SensorEnabled = false
@@ -1678,27 +1678,27 @@ RunService.Heartbeat:Connect(function()
     elseif SensorVisualEnabled then DestruirSensorVisual() end
 end)
 
-DriveTab:Section({ Title = "𝚂𝙴𝙽𝚂𝙾𝚁 + 𝙰𝚄𝚃𝙾 𝚂𝙰𝚅𝙴" })
-DriveTab:Toggle({Title = "𝚂𝙴𝙽𝚂𝙾𝚁 𝙳𝙴 𝙱𝙰𝙻𝙻", Value = false, Callback = function(v) SensorEnabled = v; if not v then DestruirSensorVisual() end end})
-DriveTab:Toggle({Title = "𝚅𝙸𝚂𝚄𝙰𝙻 𝙳𝙾 𝚂𝙴𝙽𝚂𝙾𝚁", Value = false, Callback = function(v) SensorVisualEnabled = v; if not v then DestruirSensorVisual() end end})
-DriveTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝚂𝙰𝚅𝙴", Value = false, Callback = function(v) SensorAutoSaveEnabled = v end})
-DriveTab:Toggle({Title = "𝙼𝙾𝚅𝙴𝚁 𝙿𝙰𝚁𝙰 𝙸𝙽𝚃𝙴𝚁𝙲𝙴𝙿𝚃𝙰𝚁", Value = true, Callback = function(v) SensorMoveToIntercept = v end})
-DriveTab:Dropdown({Title = "𝙱𝙾𝚃𝙰𝙾 𝙵𝙸𝚇𝙾", Values = {"Auto", "High Dive Left", "High Dive Right", "Dive Left", "Dive Right", "High Catch", "Low Catch", "Reflex", "Front Dive", "Rush"}, Value = "Auto", Callback = function(v) SensorTargetButton = v end})
-DriveTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴 𝙳𝙾 𝚂𝙴𝙽𝚂𝙾𝚁", Value = {Min = 20, Max = 200, Default = 80}, Callback = function(v) SensorRange = v end})
-DriveTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 1, Max = 20, Default = 4, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) SensorCooldown = v / 10 end})
-DriveTab:Button({Title = "𝙵𝙾𝚁𝙲𝙰𝚁 𝙳𝙴𝙵𝙴𝚂𝙰", Callback = function()
+DriveTab:Section({ Title = "ꜱᴇɴꜱᴏʀ + ᴀᴜᴛᴏ ꜱᴀᴠᴇ" })
+DriveTab:Toggle({Title = "ꜱᴇɴꜱᴏʀ ᴅᴇ ʙᴀʟʟ", Value = false, Callback = function(v) SensorEnabled = v; if not v then DestruirSensorVisual() end end})
+DriveTab:Toggle({Title = "ᴠɪꜱᴜᴀʟ ᴅᴏ ꜱᴇɴꜱᴏʀ", Value = false, Callback = function(v) SensorVisualEnabled = v; if not v then DestruirSensorVisual() end end})
+DriveTab:Toggle({Title = "ᴀᴜᴛᴏ ꜱᴀᴠᴇ", Value = false, Callback = function(v) SensorAutoSaveEnabled = v end})
+DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) SensorMoveToIntercept = v end})
+DriveTab:Dropdown({Title = "ʙᴏᴛãᴏ ꜰɪxᴏ", Values = {"Auto", "High Dive Left", "High Dive Right", "Dive Left", "Dive Right", "High Catch", "Low Catch", "Reflex", "Front Dive", "Rush"}, Value = "Auto", Callback = function(v) SensorTargetButton = v end})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ꜱᴇɴꜱᴏʀ", Value = {Min = 20, Max = 200, Default = 80}, Callback = function(v) SensorRange = v end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 20, Default = 4, Suffix = " x0.1s"}, Callback = function(v) SensorCooldown = v / 10 end})
+DriveTab:Button({Title = "ꜰᴏʀçᴀʀ ᴅᴇꜰᴇꜱᴀ", Callback = function()
     if SensorEnabled then SensorLast = 0; ExecutarDefesaSensor() end
-end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 7/9 — Flag ]]
+end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
 
-FlagTab = Window:Tab({ Title = "𝙵𝙻𝙰𝙶", Icon = "zap" })
-FlagTab:Section({ Title = "𝙾𝚃𝙸𝙼𝙸𝚉𝙰𝙲𝙰𝙾" })
+FlagTab = Window:Tab({ Title = "ꜰʟᴀɢ", Icon = "zap" })
+FlagTab:Section({ Title = "ᴏᴛɪᴍɪᴢᴀçãᴏ" })
 
-FlagTab:Toggle({Title = "𝚄𝙽𝙻𝙾𝙲𝙺 𝙵𝙿𝚂", Value = false, Callback = function(v)
+FlagTab:Toggle({Title = "ᴜɴʟᴏᴄᴋ ꜰᴘꜱ", Value = false, Callback = function(v)
     pcall(function() if setfpscap then setfpscap(v and 999 or 60) end end)
 end})
 
 AntiLagBackup = {}
-FlagTab:Toggle({Title = "𝙰𝙽𝚃𝙸 𝙻𝙰𝙶", Value = false, Callback = function(v)
+FlagTab:Toggle({Title = "ᴀɴᴛɪ ʟᴀɢ", Value = false, Callback = function(v)
     pcall(function()
         if v then
             AntiLagBackup.Brightness = Lighting.Brightness
@@ -1723,7 +1723,7 @@ FlagTab:Toggle({Title = "𝙰𝙽𝚃𝙸 𝙻𝙰𝙶", Value = false, Callback
 end})
 
 AntiFreezeEnabled = false
-FlagTab:Toggle({Title = "𝙰𝙽𝚃𝙸 𝙵𝚁𝙴𝙴𝚉𝙴", Value = false, Callback = function(v)
+FlagTab:Toggle({Title = "ᴀɴᴛɪ ꜰʀᴇᴇᴢᴇ", Value = false, Callback = function(v)
     AntiFreezeEnabled = v
     if v then
         spawn(function()
@@ -1741,7 +1741,7 @@ end})
 
 ContainerEnabled = false
 ContainerBackup = {}
-FlagTab:Toggle({Title = "𝙲𝙾𝙽𝚃𝙰𝙸𝙽𝙴𝚁", Value = false, Callback = function(v)
+FlagTab:Toggle({Title = "ᴄᴏɴᴛᴀɪɴᴇʀ", Value = false, Callback = function(v)
     ContainerEnabled = v
     if v then
         spawn(function()
@@ -1765,15 +1765,15 @@ FlagTab:Toggle({Title = "𝙲𝙾𝙽𝚃𝙰𝙸𝙽𝙴𝚁", Value = false, C
         end
         ContainerBackup = {}
     end
-end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 8/9 — Troll ]]
+end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 8/9 — ᴛʀᴏʟʟ ]]
 
-TrollTab = Window:Tab({ Title = "𝚃𝚁𝙾𝙻𝙻", Icon = "skull" })
+TrollTab = Window:Tab({ Title = "ᴛʀᴏʟʟ", Icon = "skull" })
 
 LoopBallEnabled = false
 LoopBallDistance = 2.5
 LoopBallMinSpeed = 5
-TrollTab:Section({ Title = "𝙻𝙾𝙾𝙿 𝙱𝙰𝙻𝙻" })
-TrollTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙻𝙾𝙾𝙿", Value = false, Callback = function(v)
+TrollTab:Section({ Title = "ʟᴏᴏᴘ ʙᴀʟʟ" })
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ʟᴏᴏᴘ", Value = false, Callback = function(v)
     LoopBallEnabled = v
     if v then
         spawn(function()
@@ -1804,14 +1804,14 @@ TrollTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙻𝙾𝙾𝙿", Value = fa
         end)
     end
 end})
-TrollTab:Slider({Title = "𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴 𝙼𝙸𝙽𝙸𝙼𝙰", Value = {Min = 1, Max = 30, Default = 5}, Callback = function(v) LoopBallMinSpeed = v end})
-TrollTab:Slider({Title = "𝙳𝙸𝚂𝚃𝙰𝙽𝙲𝙸𝙰", Value = {Min = 1, Max = 8, Default = 2.5, Decimal = 1}, Callback = function(v) LoopBallDistance = v end})
+TrollTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴍɪɴɪᴍᴀ", Value = {Min = 1, Max = 30, Default = 5}, Callback = function(v) LoopBallMinSpeed = v end})
+TrollTab:Slider({Title = "ᴅɪꜱᴛâɴᴄɪᴀ", Value = {Min = 1, Max = 8, Default = 2.5, Decimal = 1}, Callback = function(v) LoopBallDistance = v end})
 
 ImaBallEnabled = false
 ImaBallForce = 60
 ImaBallRange = 40
-TrollTab:Section({ Title = "𝙸𝙼𝙰 𝙱𝙰𝙻𝙻" })
-TrollTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙸𝙼𝙰", Value = false, Callback = function(v)
+TrollTab:Section({ Title = "íᴍᴀ ʙᴀʟʟ" })
+TrollTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ íᴍᴀ", Value = false, Callback = function(v)
     ImaBallEnabled = v
     if v then
         spawn(function()
@@ -1835,12 +1835,12 @@ TrollTab:Toggle({Title = "𝙰𝚃𝙸𝚅𝙰𝚁 𝙸𝙼𝙰", Value = false,
         end)
     end
 end})
-TrollTab:Slider({Title = "𝙵𝙾𝚁𝙲𝙰", Value = {Min = 10, Max = 200, Default = 60}, Callback = function(v) ImaBallForce = v end})
-TrollTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 5, Max = 100, Default = 40}, Callback = function(v) ImaBallRange = v end})
+TrollTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 10, Max = 200, Default = 60}, Callback = function(v) ImaBallForce = v end})
+TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 100, Default = 40}, Callback = function(v) ImaBallRange = v end})
 
 FlingBallForce = 300
-TrollTab:Section({ Title = "𝙵𝙻𝙸𝙽𝙶 𝙱𝙰𝙻𝙻" })
-TrollTab:Button({Title = "𝙵𝙻𝙸𝙽𝙶 𝙱𝙰𝙻𝙻", Callback = function()
+TrollTab:Section({ Title = "ꜰʟɪɴɢ ʙᴀʟʟ" })
+TrollTab:Button({Title = "ꜰʟɪɴɢ ʙᴀʟʟ", Callback = function()
     local ball = GetValidBall()
     if not ball or not RootPart then return end
     local dir = (ball.Position - RootPart.Position).Unit
@@ -1852,9 +1852,9 @@ TrollTab:Button({Title = "𝙵𝙻𝙸𝙽𝙶 𝙱𝙰𝙻𝙻", Callback = fun
         ball.AssemblyAngularVelocity = Vector3.new(math.random(-50,50), math.random(-50,50), math.random(-50,50))
     end
 end})
-TrollTab:Slider({Title = "𝙵𝙾𝚁𝙲𝙰", Value = {Min = 100, Max = 800, Default = 300}, Callback = function(v) FlingBallForce = v end})
+TrollTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 100, Max = 800, Default = 300}, Callback = function(v) FlingBallForce = v end})
 
-TrollTab:Section({ Title = "𝚂𝙸𝙻𝙴𝙽𝚃 𝙰𝙸𝙼" })
+TrollTab:Section({ Title = "ꜱɪʟᴇɴᴛ ᴀɪᴍ" })
 SilentAimEnabled = false
 SilentAimRange = 150
 SilentAimCooldown = 0.15
@@ -1928,13 +1928,13 @@ UserInputService.InputBegan:Connect(function(input, gp)
     SilentAimLast = tick()
 end)
 
-TrollTab:Toggle({Title = "𝚂𝙸𝙻𝙴𝙽𝚃 𝙰𝙸𝙼", Value = false, Callback = function(v) SilentAimEnabled = v end})
-TrollTab:Dropdown({Title = "𝙼𝙾𝙳𝙾", Values = {"Nearest", "LowestHP"}, Value = "Nearest", Callback = function(v) SilentAimTargetMode = v end})
-TrollTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 20, Max = 500, Default = 150}, Callback = function(v) SilentAimRange = v end})
-TrollTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 1, Max = 100, Default = 15, Suffix = " 𝚇𝟶.𝟶𝟷𝚂"}, Callback = function(v) SilentAimCooldown = v / 100 end})
-TrollTab:Toggle({Title = "𝙼𝙾𝚂𝚃𝚁𝙰𝚁 𝙰𝙻𝚅𝙾", Value = false, Callback = function(v) SilentAimShowTarget = v end})
+TrollTab:Toggle({Title = "ꜱɪʟᴇɴᴛ ᴀɪᴍ", Value = false, Callback = function(v) SilentAimEnabled = v end})
+TrollTab:Dropdown({Title = "ᴍᴏᴅᴏ", Values = {"Nearest", "LowestHP"}, Value = "Nearest", Callback = function(v) SilentAimTargetMode = v end})
+TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 20, Max = 500, Default = 150}, Callback = function(v) SilentAimRange = v end})
+TrollTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 100, Default = 15, Suffix = " x0.01s"}, Callback = function(v) SilentAimCooldown = v / 100 end})
+TrollTab:Toggle({Title = "ᴍᴏꜱᴛʀᴀʀ ᴀʟᴠᴏ", Value = false, Callback = function(v) SilentAimShowTarget = v end})
 
-TrollTab:Section({ Title = "𝙲𝙷𝚄𝚃𝙴 𝚂𝙸𝙻𝙴𝙽𝙲𝙸𝙾𝚂𝙾" })
+TrollTab:Section({ Title = "ᴄʜᴜᴛᴇ ꜱɪʟᴇɴᴄɪᴏꜱᴏ" })
 SilentKickEnabled = false
 SilentKickMode = "Nearest"
 SilentKickRange = 50
@@ -1942,7 +1942,7 @@ SilentKickPower = 250
 SilentKickCooldown = 1
 SilentKickLast = 0
 
-TrollTab:Toggle({Title = "𝙲𝙷𝚄𝚃𝙴 𝚂𝙸𝙻𝙴𝙽𝙲𝙸𝙾𝚂𝙾", Value = false, Callback = function(v)
+TrollTab:Toggle({Title = "ᴄʜᴜᴛᴇ ꜱɪʟᴇɴᴄɪᴏꜱᴏ", Value = false, Callback = function(v)
     SilentKickEnabled = v
     if v then
         spawn(function()
@@ -1976,12 +1976,12 @@ TrollTab:Toggle({Title = "𝙲𝙷𝚄𝚃𝙴 𝚂𝙸𝙻𝙴𝙽𝙲𝙸𝙾�
         end)
     end
 end})
-TrollTab:Dropdown({Title = "𝙼𝙾𝙳𝙾", Values = {"Nearest", "All"}, Value = "Nearest", Callback = function(v) SilentKickMode = v end})
-TrollTab:Slider({Title = "𝙰𝙻𝙲𝙰𝙽𝙲𝙴", Value = {Min = 10, Max = 200, Default = 50}, Callback = function(v) SilentKickRange = v end})
-TrollTab:Slider({Title = "𝙵𝙾𝚁𝙲𝙰", Value = {Min = 100, Max = 800, Default = 250}, Callback = function(v) SilentKickPower = v end})
-TrollTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 1, Max = 100, Default = 10, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) SilentKickCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | PARTE 9/9 — Auto Farm + Utils + Info + Finalização ]]
+TrollTab:Dropdown({Title = "ᴍᴏᴅᴏ", Values = {"Nearest", "All"}, Value = "Nearest", Callback = function(v) SilentKickMode = v end})
+TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 10, Max = 200, Default = 50}, Callback = function(v) SilentKickRange = v end})
+TrollTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 100, Max = 800, Default = 250}, Callback = function(v) SilentKickPower = v end})
+TrollTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 100, Default = 10, Suffix = " x0.1s"}, Callback = function(v) SilentKickCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 9/9 — ᴀᴜᴛᴏ ꜰᴀʀᴍ + ᴜᴛɪʟꜱ + ɪɴꜰᴏ + ꜰɪɴᴀʟɪᴢᴀçãᴏ ]]
 
-FarmTab = Window:Tab({ Title = "𝙰𝚄𝚃𝙾 𝙵𝙰𝚁𝙼", Icon = "repeat" })
+FarmTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ꜰᴀʀᴍ", Icon = "repeat" })
 
 GOAL_COORDS = {
     Blue  = Vector3.new(-9, -27, -199),
@@ -2021,7 +2021,7 @@ function GetEnemyGoalPosition()
     return GOAL_COORDS.Green, "Green"
 end
 
-FarmTab:Section({ Title = "𝙰𝙸𝙼 𝙶𝙾𝙰𝙻 (𝙰𝙸𝙼𝙱𝙾𝚃)" })
+FarmTab:Section({ Title = "ᴀɪᴍ ɢᴏᴀʟ" })
 AimGoalEnabled = false
 AimGoalForce = 180
 AimGoalArcY = 25
@@ -2114,31 +2114,31 @@ RunService.Heartbeat:Connect(function()
 end)
 
 FarmTab:Toggle({
-    Title = "𝙰𝙸𝙼 𝙶𝙾𝙰𝙻",
-    Desc = "𝚃𝙾𝙳𝙾 𝙲𝙷𝚄𝚃𝙴 𝚅𝙰𝙸 𝙿𝙰𝚁𝙰 𝙾 𝙶𝙾𝙻 𝙸𝙽𝙸𝙼𝙸𝙶𝙾",
+    Title = "ᴀɪᴍ ɢᴏᴀʟ",
+    Desc = "ᴛᴏᴅᴏ ᴄʜᴜᴛᴇ ᴠᴀɪ ᴘᴀʀᴀ ᴏ ɢᴏʟ ɪɴɪᴍɪɢᴏ",
     Value = false,
     Callback = function(v)
         AimGoalEnabled = v
         if v then
             local myTeam = GetMyTeam()
             local _, golTeam = GetEnemyGoalPosition()
-            pcall(function() WindUI:Notify({Title = "𝙰𝙸𝙼 𝙶𝙾𝙰𝙻", Content = "𝚃𝙸𝙼𝙴: " .. (myTeam or "?") .. " -> 𝙰𝙻𝚅𝙾: " .. (golTeam or "?"), Duration = 4}) end)
+            pcall(function() WindUI:Notify({Title = "ᴀɪᴍ ɢᴏᴀʟ", Content = "ᴛɪᴍᴇ: " .. (myTeam or "?") .. " -> ᴀʟᴠᴏ: " .. (golTeam or "?"), Duration = 4}) end)
         else DestruirAimVisual() end
     end,
 })
-FarmTab:Slider({Title = "𝙵𝙾𝚁𝙲𝙰 𝙳𝙾 𝙲𝙷𝚄𝚃𝙴", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AimGoalForce = v end})
-FarmTab:Slider({Title = "𝙰𝚁𝙲𝙾", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AimGoalArcY = v end})
-FarmTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 1, Max = 30, Default = 4, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) AimGoalCooldown = v / 10 end})
-FarmTab:Slider({Title = "𝙳𝙴𝚃𝙴𝙲𝙲𝙰𝙾 𝙳𝙴 𝙲𝙷𝚄𝚃𝙴", Value = {Min = 10, Max = 80, Default = 25, Suffix = " 𝚂𝚃𝚄𝙳/𝚂"}, Callback = function(v) AimGoalDetectionThreshold = v end})
-FarmTab:Toggle({Title = "𝚅𝙸𝚂𝚄𝙰𝙻 𝙳𝙾 𝙰𝙸𝙼 𝙶𝙾𝙰𝙻", Value = false, Callback = function(v) AimGoalVisualEnabled = v; if not v then DestruirAimVisual() end end})
-FarmTab:Button({Title = "𝚅𝙴𝚁 𝙼𝙴𝚄 𝚃𝙸𝙼𝙴 𝙴 𝙰𝙻𝚅𝙾", Callback = function()
+FarmTab:Slider({Title = "ꜰᴏʀçᴀ ᴅᴏ ᴄʜᴜᴛᴇ", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AimGoalForce = v end})
+FarmTab:Slider({Title = "ᴀʀᴄᴏ", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AimGoalArcY = v end})
+FarmTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AimGoalCooldown = v / 10 end})
+FarmTab:Slider({Title = "ᴅᴇᴛᴇᴄçãᴏ ᴅᴇ ᴄʜᴜᴛᴇ", Value = {Min = 10, Max = 80, Default = 25, Suffix = " ꜱᴛᴜᴅ/ꜱ"}, Callback = function(v) AimGoalDetectionThreshold = v end})
+FarmTab:Toggle({Title = "ᴠɪꜱᴜᴀʟ ᴅᴏ ᴀɪᴍ ɢᴏᴀʟ", Value = false, Callback = function(v) AimGoalVisualEnabled = v; if not v then DestruirAimVisual() end end})
+FarmTab:Button({Title = "ᴠᴇʀ ᴍᴇᴜ ᴛɪᴍᴇ ᴇ ᴀʟᴠᴏ", Callback = function()
     print("Meu time:", GetMyTeam() or "?")
     local gp, gt = GetEnemyGoalPosition()
     print("Gol inimigo:", gt, "| Pos:", tostring(gp))
-    pcall(function() WindUI:Notify({Title = "𝙰𝙸𝙼 𝙶𝙾𝙰𝙻", Content = "𝚅𝙴𝙹𝙰 𝙾 𝙲𝙾𝙽𝚂𝙾𝙻𝙴 (𝙵𝟿)", Duration = 3}) end)
+    pcall(function() WindUI:Notify({Title = "ᴀɪᴍ ɢᴏᴀʟ", Content = "ᴠᴇᴊᴀ ᴏ ᴄᴏɴꜱᴏʟᴇ (ꜰ9)", Duration = 3}) end)
 end})
 
-FarmTab:Section({ Title = "𝙰𝚄𝚃𝙾 𝙶𝙾𝙻" })
+FarmTab:Section({ Title = "ᴀᴜᴛᴏ ɢᴏʟ" })
 AutoGolBlueEnabled = false
 AutoGolGreenEnabled = false
 AutoGolCooldown = 0.4
@@ -2176,16 +2176,16 @@ function CheckAutoGol()
     end
 end
 
-FarmTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝙶𝙾𝙻 𝙱𝙻𝚄𝙴", Value = false, Callback = function(v) AutoGolBlueEnabled = v end})
-FarmTab:Toggle({Title = "𝙰𝚄𝚃𝙾 𝙶𝙾𝙻 𝙶𝚁𝙴𝙴𝙽", Value = false, Callback = function(v) AutoGolGreenEnabled = v end})
-FarmTab:Slider({Title = "𝙵𝙾𝚁𝙲𝙰", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AutoGolForce = v end})
-FarmTab:Slider({Title = "𝙰𝚁𝙲𝙾", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AutoGolArcY = v end})
-FarmTab:Slider({Title = "𝙲𝙾𝙾𝙻𝙳𝙾𝚆𝙽", Value = {Min = 1, Max = 30, Default = 4, Suffix = " 𝚇𝟶.𝟷𝚂"}, Callback = function(v) AutoGolCooldown = v / 10 end})
+FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ʙʟᴜᴇ", Value = false, Callback = function(v) AutoGolBlueEnabled = v end})
+FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ɢʀᴇᴇɴ", Value = false, Callback = function(v) AutoGolGreenEnabled = v end})
+FarmTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AutoGolForce = v end})
+FarmTab:Slider({Title = "ᴀʀᴄᴏ", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AutoGolArcY = v end})
+FarmTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AutoGolCooldown = v / 10 end})
 RunService.PreRender:Connect(CheckAutoGol)
 
-UtilsTab = Window:Tab({ Title = "𝚄𝚃𝙸𝙻𝚂", Icon = "settings-2" })
+UtilsTab = Window:Tab({ Title = "ᴜᴛɪʟꜱ", Icon = "settings-2" })
 
-UtilsTab:Section({ Title = "𝚃𝙴𝙻𝙴𝙿𝙾𝚁𝚃𝙴𝚂" })
+UtilsTab:Section({ Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇꜱ" })
 function TeleportTo(pos)
     if not RootPart or not RootPart.Parent then return end
     if typeof(pos) == "Vector3" then
@@ -2193,25 +2193,25 @@ function TeleportTo(pos)
         RootPart.AssemblyLinearVelocity = Vector3.zero
     end
 end
-UtilsTab:Button({Title = "𝙸𝚁 𝙿𝙰𝚁𝙰 𝙰 𝙱𝙰𝙻𝙻", Callback = function()
+UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴀ ʙᴀʟʟ", Callback = function()
     local ball = GetValidBall()
-    if ball then TeleportTo(ball.Position); pcall(function() WindUI:Notify({Title = "𝚃𝙴𝙻𝙴𝙿𝙾𝚁𝚃𝙴", Content = "𝙸𝙽𝙳𝙾 𝙿𝙰𝚁𝙰 𝙰 𝙱𝙰𝙻𝙻", Duration = 2}) end) end
+    if ball then TeleportTo(ball.Position); pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴀ ʙᴀʟʟ", Duration = 2}) end) end
 end})
-UtilsTab:Button({Title = "𝙸𝚁 𝙿𝙰𝚁𝙰 𝙾 𝙶𝙾𝙻 𝙸𝙽𝙸𝙼𝙸𝙶𝙾", Callback = function()
+UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴏ ɢᴏʟ ɪɴɪᴍɪɢᴏ", Callback = function()
     local gp = GetEnemyGoalPosition()
-    if gp then TeleportTo(gp); pcall(function() WindUI:Notify({Title = "𝚃𝙴𝙻𝙴𝙿𝙾𝚁𝚃𝙴", Content = "𝙸𝙽𝙳𝙾 𝙿𝙰𝚁𝙰 𝙾 𝙶𝙾𝙻", Duration = 2}) end) end
+    if gp then TeleportTo(gp); pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴏ ɢᴏʟ", Duration = 2}) end) end
 end})
-UtilsTab:Button({Title = "𝙸𝚁 𝙿𝙰𝚁𝙰 𝙾 𝙲𝙴𝙽𝚃𝚁𝙾", Callback = function()
+UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴏ ᴄᴇɴᴛʀᴏ", Callback = function()
     TeleportTo(Vector3.new(0, 5, 0))
-    pcall(function() WindUI:Notify({Title = "𝚃𝙴𝙻𝙴𝙿𝙾𝚁𝚃𝙴", Content = "𝙸𝙽𝙳𝙾 𝙿𝙰𝚁𝙰 𝙾 𝙲𝙴𝙽𝚃𝚁𝙾", Duration = 2}) end)
+    pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴏ ᴄᴇɴᴛʀᴏ", Duration = 2}) end)
 end})
-UtilsTab:Button({Title = "𝙻𝙰𝙽𝙲𝙰𝚁 𝙿𝙰𝚁𝙰 𝙻𝙾𝙽𝙶𝙴", Callback = function()
+UtilsTab:Button({Title = "ʟᴀɴçᴀʀ ᴘᴀʀᴀ ʟᴏɴɢᴇ", Callback = function()
     if RootPart then RootPart.AssemblyLinearVelocity = Vector3.new(0, 500, 0) end
 end})
 
-UtilsTab:Section({ Title = "𝙼𝙾𝚅𝙸𝙼𝙴𝙽𝚃𝙾 𝙴𝚇𝚃𝚁𝙰" })
+UtilsTab:Section({ Title = "ᴍᴏᴠɪᴍᴇɴᴛᴏ ᴇxᴛʀᴀ" })
 AntiFlingEnabled = false
-UtilsTab:Toggle({Title = "𝙰𝙽𝚃𝙸-𝙵𝙻𝙸𝙽𝙶", Desc = "𝚃𝚁𝙰𝚅𝙰 𝚅𝙴𝙻𝙾𝙲𝙸𝙳𝙰𝙳𝙴 𝙳𝙾 𝚁𝙾𝙾𝚃𝙿𝙰𝚁𝚃", Value = false, Callback = function(v)
+UtilsTab:Toggle({Title = "ᴀɴᴛɪ-ꜰʟɪɴɢ", Desc = "ᴛʀᴀᴠᴀ ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴏ ʀᴏᴏᴛᴘᴀʀᴛ", Value = false, Callback = function(v)
     AntiFlingEnabled = v
     if v then
         spawn(function()
@@ -2229,12 +2229,12 @@ UtilsTab:Toggle({Title = "𝙰𝙽𝚃𝙸-𝙵𝙻𝙸𝙽𝙶", Desc = "𝚃�
     end
 end})
 
-UtilsTab:Section({ Title = "𝙸𝙽𝙵𝙾 𝙳𝙾 𝙹𝙾𝙶𝙾" })
+UtilsTab:Section({ Title = "ɪɴꜰᴏ ᴅᴏ ᴊᴏɢᴏ" })
 InfoLabel = nil
 pcall(function()
     InfoLabel = UtilsTab:Paragraph({
-        Title = "𝙴𝚂𝚃𝙰𝙳𝙾 𝙰𝚃𝚄𝙰𝙻",
-        Desc = "𝚃𝙸𝙼𝙴: ? | 𝙱𝙰𝙻𝙻: ? | 𝙳𝙸𝚂𝚃: ?",
+        Title = "ᴇꜱᴛᴀᴅᴏ ᴀᴛᴜᴀʟ",
+        Desc = "ᴛɪᴍᴇ: ? | ʙᴀʟʟ: ? | ᴅɪꜱᴛ: ?",
     })
 end)
 
@@ -2247,31 +2247,31 @@ spawn(function()
             if ball and RootPart then
                 distStr = string.format("%.1f", (ball.Position - RootPart.Position).Magnitude)
             end
-            local txt = "𝚃𝙸𝙼𝙴: " .. myTeam .. " | 𝙱𝙰𝙻𝙻: " .. (ball and "𝙾𝙺" or "𝙽𝙾") .. " | 𝙳𝙸𝚂𝚃: " .. distStr
+            local txt = "ᴛɪᴍᴇ: " .. myTeam .. " | ʙᴀʟʟ: " .. (ball and "ᴏᴋ" or "ɴᴏ") .. " | ᴅɪꜱᴛ: " .. distStr
             if InfoLabel and InfoLabel.SetDesc then InfoLabel:SetDesc(txt) end
         end)
     end
 end)
 
-UtilsTab:Button({Title = "𝙲𝙾𝙿𝙸𝙰𝚁 𝙴𝚂𝚃𝙰𝙳𝙾", Callback = function()
+UtilsTab:Button({Title = "ᴄᴏᴘɪᴀʀ ᴇꜱᴛᴀᴅᴏ", Callback = function()
     local myTeam = GetMyTeam() or "?"
     local _, golTeam = GetEnemyGoalPosition()
-    local txt = string.format("𝚃𝙸𝙼𝙴: %s | 𝙰𝙻𝚅𝙾: %s | 𝙵𝙾𝚁𝙲𝙰 𝙰𝙸𝙼: %d | 𝙵𝙾𝚁𝙲𝙰 𝙰𝚄𝚃𝙾: %d",
+    local txt = string.format("ᴛɪᴍᴇ: %s | ᴀʟᴠᴏ: %s | ꜰᴏʀçᴀ ᴀɪᴍ: %d | ꜰᴏʀçᴀ ᴀᴜᴛᴏ: %d",
         myTeam, golTeam or "?", AimGoalForce, AutoGolForce)
     if setclipboard then pcall(setclipboard, txt) end
     print(txt)
-    pcall(function() WindUI:Notify({Title = "𝙸𝙽𝙵𝙾", Content = "𝙲𝙾𝙿𝙸𝙰𝙳𝙾 𝙿𝙰𝚁𝙰 𝙾 𝙲𝙻𝙸𝙿𝙱𝙾𝙰𝚁𝙳", Duration = 3}) end)
+    pcall(function() WindUI:Notify({Title = "ɪɴꜰᴏ", Content = "ᴄᴏᴘɪᴀᴅᴏ ᴘᴀʀᴀ ᴏ ᴄʟɪᴘʙᴏᴀʀᴅ", Duration = 3}) end)
 end})
 
-UtilsTab:Section({ Title = "𝙰𝙲𝙾𝙴𝚂 𝙶𝙻𝙾𝙱𝙰𝙸𝚂" })
-UtilsTab:Button({Title = "𝙳𝙴𝚂𝙻𝙸𝙶𝙰𝚁 𝚃𝙾𝙳𝙾𝚂 𝙾𝚂 𝚃𝙾𝙶𝙶𝙻𝙴𝚂 𝙳𝙴 𝙵𝙰𝚁𝙼", Callback = function()
+UtilsTab:Section({ Title = "ᴀçõᴇꜱ ɢʟᴏʙᴀɪꜱ" })
+UtilsTab:Button({Title = "ᴅᴇꜱʟɪɢᴀʀ ᴛᴏᴅᴏꜱ ᴏꜱ ᴛᴏɢɢʟᴇꜱ ᴅᴇ ꜰᴀʀᴍ", Callback = function()
     AimGoalEnabled = false
     AutoGolBlueEnabled = false
     AutoGolGreenEnabled = false
     DestruirAimVisual()
-    pcall(function() WindUI:Notify({Title = "𝚄𝚃𝙸𝙻𝚂", Content = "𝚃𝙾𝙶𝙶𝙻𝙴𝚂 𝙳𝙴 𝙵𝙰𝚁𝙼 𝙳𝙴𝚂𝙻𝙸𝙶𝙰𝙳𝙾𝚂", Duration = 3}) end)
+    pcall(function() WindUI:Notify({Title = "ᴜᴛɪʟꜱ", Content = "ᴛᴏɢɢʟᴇꜱ ᴅᴇ ꜰᴀʀᴍ ᴅᴇꜱʟɪɢᴀᴅᴏꜱ", Duration = 3}) end)
 end})
-UtilsTab:Button({Title = "𝚁𝙴𝚂𝙿𝙰𝚆𝙽𝙰𝚁", Callback = function()
+UtilsTab:Button({Title = "ʀᴇꜱᴘᴀᴡɴᴀʀ", Callback = function()
     if Character then
         pcall(function()
             local hum = Character:FindFirstChildOfClass("Humanoid")
@@ -2279,24 +2279,24 @@ UtilsTab:Button({Title = "𝚁𝙴𝚂𝙿𝙰𝚆𝙽𝙰𝚁", Callback = func
         end)
     end
 end})
-UtilsTab:Button({Title = "𝚂𝙰𝙸𝚁 𝙳𝙾 𝙹𝙾𝙶𝙾", Callback = function()
+UtilsTab:Button({Title = "ꜱᴀɪʀ ᴅᴏ ᴊᴏɢᴏ", Callback = function()
     pcall(function() LocalPlayer:Kick("Manarc.Gzy") end)
 end})
 
-InfoTab = Window:Tab({ Title = "𝙸𝙽𝙵𝙾", Icon = "info" })
-InfoTab:Section({ Title = "𝙲𝚁𝙴𝙳𝙸𝚃𝙾𝚂" })
+InfoTab = Window:Tab({ Title = "ɪɴꜰᴏ", Icon = "info" })
+InfoTab:Section({ Title = "ᴄʀéᴅɪᴛᴏꜱ" })
 InfoTab:Paragraph({
-    Title = "𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈",
-    Desc = "𝚂𝙲𝚁𝙸𝙿𝚃 𝙵𝚄𝙻𝙻 - 𝙿𝙰𝚁𝚃𝙴𝚂 𝟷/𝟿 𝙰𝚃𝙴 𝟿/𝟿 𝙲𝙰𝚁𝚁𝙴𝙶𝙰𝙳𝙰𝚂 𝙲𝙾𝙼 𝚂𝚄𝙲𝙴𝚂𝚂𝙾.\n𝚃𝙲𝚂 | 𝚆𝙸𝙽𝙳𝚄𝙸 | 𝚅𝟺.𝟶",
+    Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ",
+    Desc = "ꜱᴄʀɪᴘᴛ ꜰᴜʟʟ - ᴘᴀʀᴛᴇꜱ 1/9 ᴀᴛᴇ 9/9 ᴄᴀʀʀᴇɢᴀᴅᴀꜱ ᴄᴏᴍ ꜱᴜᴄᴇꜱꜱᴏ.\nᴛᴄꜱ | ᴡɪɴᴅᴜɪ | ᴠ4.0",
 })
 InfoTab:Paragraph({
-    Title = "𝙰𝚃𝙰𝙻𝙷𝙾𝚂",
-    Desc = "- 𝙻𝙴𝙵𝚃𝚂𝙷𝙸𝙵𝚃: 𝙰𝙱𝚁𝙸𝚁/𝙵𝙴𝙲𝙷𝙰𝚁 𝙼𝙴𝙽𝚄\n- 𝙺: 𝙰𝚄𝚃𝙾 𝙵𝙾𝙻𝙻𝙾𝚆\n- 𝚄: 𝙲𝙾𝙽𝚃𝚁𝙾𝙻 𝙱𝙰𝙻𝙻",
+    Title = "ᴀᴛᴀʟʜᴏꜱ",
+    Desc = "- ʟᴇꜰᴛꜱʜɪꜰᴛ: ᴀʙʀɪʀ/ꜰᴇᴄʜᴀʀ ᴍᴇɴᴜ\n- ᴋ: ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ\n- ᴜ: ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ",
 })
-InfoTab:Button({Title = "𝚅𝙴𝚁 𝚃𝙾𝙳𝙰𝚂 𝙰𝚂 𝙵𝚄𝙽𝙲𝙾𝙴𝚂", Callback = function()
-    print("=== 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 - 𝚃𝙾𝙳𝙰𝚂 𝙰𝚂 𝙵𝚄𝙽𝙲𝙾𝙴𝚂 ===")
-    print("MAPA | BOOMBOX | BALL | PLAYER | CHARS | AC | AUTODRIVE | FLAG | TROLL | AUTOFARM | UTILS | INFO")
-    pcall(function() WindUI:Notify({Title = "𝙸𝙽𝙵𝙾", Content = "𝚅𝙴𝙹𝙰 𝙾 𝙲𝙾𝙽𝚂𝙾𝙻𝙴 (𝙵𝟿)", Duration = 3}) end)
+InfoTab:Button({Title = "ᴠᴇʀ ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ", Callback = function()
+    print("=== ᴍᴀɴᴀʀᴄ.ɢᴢʏ - ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ ===")
+    print("ᴍᴀᴘᴀ | ʙᴏᴏᴍʙᴏx | ʙᴀʟʟ | ᴘʟᴀʏᴇʀ | ᴄʜᴀʀꜱ | ᴀᴄ | ᴀᴜᴛᴏᴅʀɪᴠᴇ | ꜰʟᴀɢ | ᴛʀᴏʟʟ | ᴀᴜᴛᴏꜰᴀʀᴍ | ᴜᴛɪʟꜱ | ɪɴꜰᴏ")
+    pcall(function() WindUI:Notify({Title = "ɪɴꜰᴏ", Content = "ᴠᴇᴊᴀ ᴏ ᴄᴏɴꜱᴏʟᴇ (ꜰ9)", Duration = 3}) end)
 end})
 
 task.spawn(function()
@@ -2311,5 +2311,5 @@ print("[MANARC.GZY] SCRIPT COMPLETO CARREGADO - PARTES 1/9 A 9/9 OK")
 print("[MANARC.GZY] TOTALMENTE INICIADO - BOA SORTE!")
 
 pcall(function()
-    WindUI:Notify({Title = "𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈", Content = "𝚂𝙲𝚁𝙸𝙿𝚃 𝙲𝙾𝙼𝙿𝙻𝙴𝚃𝙾", Duration = 6, Icon = "check-circle"})
+    WindUI:Notify({Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ", Content = "ꜱᴄʀɪᴘᴛ ᴄᴏᴍᴘʟᴇᴛᴏ", Duration = 6, Icon = "check-circle"})
 end)
