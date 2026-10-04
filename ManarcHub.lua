@@ -49,10 +49,7 @@ State = {
 FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
 
 Backgrounds = {
-    BlackCat   = "rbxassetid://73996114712615",
-    catsamurai = "rbxassetid://89598194576679",
-    BlackHole  = "rbxassetid://129182988208983",
-    Classic    = "rbxassetid://137552094969",
+    Padrao = "rbxassetid://89176415",
 }
 
 WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -67,7 +64,7 @@ Window = WindUI:CreateWindow({
     Theme = "Dark",
     SideBarWidth = 180,
     HasOutline = true,
-    Background = Backgrounds.BlackHole,
+    Background = Backgrounds.Padrao,
     BackgroundImageTransparency = 0.35,
 })
 
@@ -374,8 +371,8 @@ MapTab:Button({Title = "ʀᴇᴄᴏᴍᴇɴᴅᴀᴅᴏ", Callback = function() 
 MapTab:Section({ Title = "ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ" })
 MapTab:Dropdown({
     Title = "ʙᴀᴄᴋɢʀᴏᴜɴᴅ",
-    Values = {"BlackCat", "catsamurai", "BlackHole", "Classic"},
-    Value = "BlackHole",
+    Values = {"Padrao"},
+    Value = "Padrao",
     Callback = function(option)
         local url = Backgrounds[option]
         if not url then return end
@@ -1008,7 +1005,7 @@ BallTab:Button({Title = "ʀᴇᴄʀɪᴀʀ ʙᴏᴛãᴏ", Callback = function()
     if FloatBtn then CriarFloatBtn(); FloatBtn.Visible = true end
 end})
 
-spawn(function() while true do task.wait(0.2); if FloatBtn then AtualizarTextoBotao() end end end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 4/9 — ᴘʟᴀʏᴇʀ ]]
+spawn(function() while true do task.wait(0.2); if FloatBtn then AtualizarTextoBotao() end end end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 4/9 — ᴘʟᴀʏᴇʀ (ꜱᴇᴍ ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ) ]]
 
 PlayerTab = Window:Tab({ Title = "ᴘʟᴀʏᴇʀ", Icon = "user" })
 
@@ -1172,50 +1169,6 @@ RunService.Heartbeat:Connect(function()
         ball.AssemblyLinearVelocity = Vector3.zero
         ball.AssemblyAngularVelocity = Vector3.zero
     end)
-end)
-
-PlayerTab:Section({ Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ" })
-AutoFollowEnabled = false
-AutoFollowKey = Enum.KeyCode.K
-AutoFollowStopDist = 1.8
-KeyMap = {
-    Q=Enum.KeyCode.Q,W=Enum.KeyCode.W,E=Enum.KeyCode.E,R=Enum.KeyCode.R,T=Enum.KeyCode.T,
-    Y=Enum.KeyCode.Y,U=Enum.KeyCode.U,I=Enum.KeyCode.I,O=Enum.KeyCode.O,P=Enum.KeyCode.P,
-    A=Enum.KeyCode.A,S=Enum.KeyCode.S,D=Enum.KeyCode.D,F=Enum.KeyCode.F,G=Enum.KeyCode.G,
-    H=Enum.KeyCode.H,J=Enum.KeyCode.J,K=Enum.KeyCode.K,L=Enum.KeyCode.L,Z=Enum.KeyCode.Z,
-    X=Enum.KeyCode.X,C=Enum.KeyCode.C,V=Enum.KeyCode.V,B=Enum.KeyCode.B,N=Enum.KeyCode.N,M=Enum.KeyCode.M,
-}
-function IsMoving()
-    return UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.A)
-        or UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.D)
-end
-RunService.RenderStepped:Connect(function()
-    if not AutoFollowEnabled then return end
-    if not RootPart or not RootPart.Parent or not Humanoid then return end
-    if IsMoving() then return end
-    local ball = GetValidBall(); if not ball then return end
-    local delta = ball.Position - RootPart.Position
-    local flat = Vector3.new(delta.X, 0, delta.Z)
-    if flat.Magnitude > AutoFollowStopDist and flat.Magnitude < 150 then
-        Humanoid:Move(flat.Unit, false)
-        RootPart.CFrame = CFrame.new(RootPart.Position, Vector3.new(ball.Position.X, RootPart.Position.Y, ball.Position.Z))
-    else Humanoid:Move(Vector3.zero, false) end
-end)
-PlayerTab:Toggle({Title = "ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ", Desc = "ᴋᴇʏ: ᴋ", Value = false, Callback = function(v)
-    AutoFollowEnabled = v
-    if not v and Humanoid then Humanoid:Move(Vector3.zero, false) end
-end})
-PlayerTab:Input({Title = "ᴋᴇʏʙɪɴᴅ", Placeholder = "ᴋ", Callback = function(text)
-    local clean = text:gsub("%s+", ""); if clean == "" then return end
-    local key = KeyMap[clean] or Enum.KeyCode[clean]
-    if key then AutoFollowKey = key; pcall(function() WindUI:Notify({Title = "ᴋᴇʏʙɪɴᴅ", Content = "ꜰᴏʟʟᴏᴡ: " .. clean, Duration = 2}) end) end
-end})
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == AutoFollowKey then
-        AutoFollowEnabled = not AutoFollowEnabled
-        if not AutoFollowEnabled and Humanoid then Humanoid:Move(Vector3.zero, false) end
-    end
 end)
 
 PlayerTab:Section({ Title = "ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ" })
@@ -1440,7 +1393,7 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ + ꜱᴇɴꜱᴏʀ ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴍᴇʟʜᴏʀᴀᴅᴏ ]]
 
 DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
@@ -1489,21 +1442,29 @@ function PredizerTrajetoria(ball, tempoMax)
     if not ball or not ball.Parent then return nil end
     local posInicial = ball.Position
     local velInicial = ball.AssemblyLinearVelocity
-    if velInicial.Magnitude < 2 then
-        return {posFinal = posInicial, velFinal = velInicial, tempo = 0, alturaMax = posInicial.Y}
+    if velInicial.Magnitude < 1 then
+        return {posFinal = posInicial, velFinal = velInicial, tempo = 0, alturaMax = posInicial.Y, tempoAtePlayer = 0}
     end
     local gravity = Workspace.Gravity
     local pos, vel = posInicial, velInicial
     local dt, tempo = 0.05, 0
     local alturaMax = pos.Y
+    local tempoAtePlayer = tempoMax
     while tempo < tempoMax do
         vel = Vector3.new(vel.X, vel.Y - gravity * dt, vel.Z)
         pos = pos + vel * dt
         tempo = tempo + dt
         if pos.Y > alturaMax then alturaMax = pos.Y end
+        if RootPart then
+            local dx = pos.X - RootPart.Position.X
+            local dz = pos.Z - RootPart.Position.Z
+            if math.sqrt(dx*dx + dz*dz) < 3 then
+                tempoAtePlayer = math.min(tempoAtePlayer, tempo)
+            end
+        end
         if pos.Y < -100 then break end
     end
-    return {posFinal = pos, velFinal = vel, tempo = tempo, alturaMax = alturaMax}
+    return {posFinal = pos, velFinal = vel, tempo = tempo, alturaMax = alturaMax, tempoAtePlayer = tempoAtePlayer}
 end
 
 function AnalisarBola()
@@ -1511,52 +1472,63 @@ function AnalisarBola()
     if not ball or not RootPart then return nil end
     local vel = ball.AssemblyLinearVelocity
     local dist = (ball.Position - RootPart.Position).Magnitude
-    local traj = PredizerTrajetoria(ball, 1.5)
+    local traj = PredizerTrajetoria(ball, 2.0)
     if not traj then return nil end
-    local camRight = Camera.CFrame.RightVector
-    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
-    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
-    direitaH = direitaH.Unit
-    local delta = traj.posFinal - RootPart.Position
-    local deltaH = Vector3.new(delta.X, 0, delta.Z)
-    local lado = deltaH:Dot(direitaH)
-    local altura = traj.posFinal.Y - RootPart.Position.Y
-    local alturaMax = traj.alturaMax - RootPart.Position.Y
     local dirParaPlayer = RootPart.Position - ball.Position
     local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
     local velH = Vector3.new(vel.X, 0, vel.Z)
     local vindo = false
     if dirH.Magnitude > 0.1 and velH.Magnitude > 0.1 then
-        vindo = velH.Unit:Dot(dirH.Unit) > 0.15
+        vindo = velH.Unit:Dot(dirH.Unit) > 0.1
     end
-    return {ball = ball, vel = vel, dist = dist, lado = lado, altura = altura, alturaMax = alturaMax, vindoParaPlayer = vindo, trajetoria = traj}
+    local alturaNoPlayer = traj.posFinal.Y - RootPart.Position.Y
+    if vindo and traj.tempoAtePlayer < 2.0 then
+        local dt = traj.tempoAtePlayer
+        local alturaProjetada = ball.Position.Y + vel.Y * dt - 0.5 * Workspace.Gravity * dt * dt
+        alturaNoPlayer = alturaProjetada - RootPart.Position.Y
+    end
+    local camRight = Camera.CFrame.RightVector
+    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
+    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
+    direitaH = direitaH.Unit
+    local delta = ball.Position - RootPart.Position
+    local deltaH = Vector3.new(delta.X, 0, delta.Z)
+    local lado = deltaH:Dot(direitaH)
+    return {
+        ball = ball, vel = vel, dist = dist,
+        lado = lado,
+        altura = alturaNoPlayer,
+        alturaMax = traj.alturaMax - RootPart.Position.Y,
+        vindoParaPlayer = vindo,
+        trajetoria = traj,
+    }
 end
 
 function EscolherBotaoDefesa(info)
-    local ladoAbs = math.abs(info.lado)
-    if ladoAbs >= 2.5 then
-        if info.altura > 3.5 or info.alturaMax > 5 then
-            return info.lado > 0 and "High Dive Right" or "High Dive Left"
-        else
-            return info.lado > 0 and "Dive Right" or "Dive Left"
-        end
-    else
-        if info.altura > 3.5 or info.alturaMax > 5 then
-            return "High Catch", true
-        else
-            return "Low Catch"
-        end
+    local altura = info.altura
+    local alturaMax = info.alturaMax
+    local alturaRef = math.max(altura, alturaMax * 0.6)
+    if alturaRef > 4.5 then
+        return "High Catch", true
     end
+    if alturaRef > 2.2 then
+        return "High Catch", false
+    end
+    return "Low Catch", false
 end
 
 AutoDiveEnabled = false
-AutoDiveRange = 25
-AutoDiveCooldown = 0.6
+AutoDiveRange = 60
+AutoDiveCooldown = 0.35
 AutoDiveLast = 0
+AutoDiveMoveEnabled = true
 
 function ExecutarDive()
     local info = AnalisarBola()
-    if not info or not info.vindoParaPlayer then return end
+    if not info then return end
+    if not info.vindoParaPlayer then
+        if info.dist > 3 then return end
+    end
     local texto, pular = EscolherBotaoDefesa(info)
     if not texto then return end
     if pular then
@@ -1572,72 +1544,66 @@ end
 
 DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
 DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Value = false, Callback = function(v) AutoDiveEnabled = v end})
-DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 50, Default = 25}, Callback = function(v) AutoDiveRange = v end})
-DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 3, Max = 50, Default = 6, Suffix = " x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
+DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) AutoDiveMoveEnabled = v end})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 20, Max = 200, Default = 60}, Callback = function(v) AutoDiveRange = v end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
 DriveTab:Button({Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ", Callback = function()
-    EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ", Duration = 3}) end)
+    EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
 end})
 
-SensorEnabled = false
-SensorVisualEnabled = false
-SensorAutoSaveEnabled = false
-SensorRange = 80
-SensorLast = 0
-SensorTargetButton = "Auto"
-SensorMoveToIntercept = true
-SensorCooldown = 0.4
-SensorBeam, SensorPart, SensorAttachA, SensorAttachB, SensorLandingMarker = nil, nil, nil, nil, nil
-
-function CriarSensorVisual()
-    if SensorPart then SensorPart:Destroy() end
-    if SensorBeam then SensorBeam:Destroy() end
-    SensorPart = Instance.new("Part")
-    SensorPart.Name = "Manic_SensorBeam"
-    SensorPart.Size = Vector3.new(1, 1, 1)
-    SensorPart.Transparency = 1
-    SensorPart.CanCollide = false; SensorPart.CanQuery = false
-    SensorPart.CanTouch = false; SensorPart.Anchored = true
-    SensorPart.Parent = Workspace
-    SensorAttachA = Instance.new("Attachment", SensorPart); SensorAttachA.Name = "Manic_SensorA"
-    SensorAttachB = Instance.new("Attachment", SensorPart); SensorAttachB.Name = "Manic_SensorB"
-    SensorBeam = Instance.new("Beam")
-    SensorBeam.Attachment0 = SensorAttachA; SensorBeam.Attachment1 = SensorAttachB
-    SensorBeam.Color = ColorSequence.new(Color3.fromRGB(255, 200, 0))
-    SensorBeam.Width0 = 0.3; SensorBeam.Width1 = 0.3
-    SensorBeam.FaceCamera = true; SensorBeam.LightEmission = 1
-    SensorBeam.Transparency = NumberSequence.new(0.3)
-    SensorBeam.Parent = SensorPart
-    if SensorLandingMarker then SensorLandingMarker:Destroy() end
-    SensorLandingMarker = Instance.new("Part")
-    SensorLandingMarker.Shape = Enum.PartType.Ball
-    SensorLandingMarker.Size = Vector3.new(4, 4, 4)
-    SensorLandingMarker.Material = Enum.Material.ForceField
-    SensorLandingMarker.Color = Color3.fromRGB(255, 200, 0)
-    SensorLandingMarker.Transparency = 0.4
-    SensorLandingMarker.CanCollide = false; SensorLandingMarker.CanQuery = false
-    SensorLandingMarker.CanTouch = false; SensorLandingMarker.Anchored = true
-    SensorLandingMarker.Parent = Workspace
-end
-function DestruirSensorVisual()
-    if SensorPart then SensorPart:Destroy(); SensorPart = nil end
-    if SensorBeam then SensorBeam:Destroy(); SensorBeam = nil end
-    if SensorLandingMarker then SensorLandingMarker:Destroy(); SensorLandingMarker = nil end
-end
-
-function ExecutarDefesaSensor()
+RunService.Heartbeat:Connect(function()
+    if not AutoDiveEnabled then return end
+    if not RootPart or not RootPart.Parent or not Humanoid then return end
     local info = AnalisarBola()
-    if not info or not info.vindoParaPlayer then return end
-    if info.dist > SensorRange or info.vel.Magnitude < 5 then return end
-    if tick() - SensorLast < SensorCooldown then return end
-    SensorLast = tick()
-    if SensorMoveToIntercept and Humanoid then
-        local flat = info.trajetoria.posFinal - RootPart.Position
+    if not info then return end
+    if info.dist > AutoDiveRange then return end
+    if AutoDiveMoveEnabled and info.vindoParaPlayer then
+        local destino = info.trajetoria.posFinal
+        local flat = destino - RootPart.Position
         local flatH = Vector3.new(flat.X, 0, flat.Z)
-        if flatH.Magnitude > 1.5 then Humanoid:Move(flatH.Unit, false) end
+        if flatH.Magnitude > 1.5 and flatH.Magnitude < 50 then
+            Humanoid:Move(flatH.Unit, false)
+        end
     end
+    if tick() - AutoDiveLast >= AutoDiveCooldown then
+        AutoDiveLast = tick()
+        task.spawn(ExecutarDive)
+    end
+end)
+
+AutoCatchMaxEnabled = false
+AutoCatchMaxRange = 12
+AutoCatchMaxLast = 0
+AutoCatchMaxCooldown = 0.25
+AutoCatchMaxMode = "Auto"
+
+function ClassificarAltura(altura)
+    if altura > 4.5 then return "HIGH_JUMP" end
+    if altura > 2.2 then return "HIGH" end
+    if altura > 0.5 then return "MID" end
+    return "LOW"
+end
+
+function ExecutarAutoCatchMax()
+    local info = AnalisarBola()
+    if not info then return end
+    if info.dist > AutoCatchMaxRange then return end
+    if not info.vindoParaPlayer and info.vel.Magnitude < 5 then
+        if info.dist > 6 then return end
+    end
+    local classe = ClassificarAltura(info.altura)
     local texto, pular
-    if SensorTargetButton ~= "Auto" then texto = SensorTargetButton
-    else texto, pular = EscolherBotaoDefesa(info) end
+    if AutoCatchMaxMode ~= "Auto" then
+        if AutoCatchMaxMode == "ᴀʟᴛᴏ + ᴘᴜʟᴏ" then texto = "High Catch"; pular = true
+        elseif AutoCatchMaxMode == "ᴀʟᴛᴏ" then texto = "High Catch"; pular = false
+        elseif AutoCatchMaxMode == "ʙᴀɪxᴏ" then texto = "Low Catch"; pular = false
+        end
+    else
+        if classe == "HIGH_JUMP" then texto = "High Catch"; pular = true
+        elseif classe == "HIGH" then texto = "High Catch"; pular = false
+        elseif classe == "MID" then texto = "High Catch"; pular = false
+        else texto = "Low Catch"; pular = false end
+    end
     if not texto then return end
     if pular then
         task.spawn(function()
@@ -1651,44 +1617,23 @@ function ExecutarDefesaSensor()
 end
 
 RunService.Heartbeat:Connect(function()
-    if not AutoDiveEnabled and not SensorEnabled then return end
-    if not RootPart or not RootPart.Parent then return end
-    if AutoDiveEnabled and tick() - AutoDiveLast >= AutoDiveCooldown then
-        local ball = CurrentFollowBall or FindClosestBall()
-        if ball and ball.Parent and (ball.Position - RootPart.Position).Magnitude <= AutoDiveRange then
-            AutoDiveLast = tick(); task.spawn(ExecutarDive)
-        end
-    end
-    if SensorEnabled then
-        local info = AnalisarBola()
-        if info then
-            if SensorVisualEnabled then
-                if not SensorBeam or not SensorBeam.Parent then CriarSensorVisual() end
-                pcall(function()
-                    SensorPart.Position = info.ball.Position
-                    local dir = info.trajetoria.posFinal - info.ball.Position
-                    if dir.Magnitude > 0.1 then SensorPart.CFrame = CFrame.new(info.ball.Position, info.trajetoria.posFinal) end
-                    SensorAttachA.Position = Vector3.new(0, 0, 0)
-                    SensorAttachB.Position = Vector3.new(0, 0, -dir.Magnitude)
-                    SensorLandingMarker.Position = info.trajetoria.posFinal
-                end)
-            end
-            if SensorAutoSaveEnabled then task.spawn(ExecutarDefesaSensor) end
-        elseif SensorVisualEnabled then DestruirSensorVisual() end
-    elseif SensorVisualEnabled then DestruirSensorVisual() end
+    if not AutoCatchMaxEnabled then return end
+    if not RootPart or not RootPart.Parent or not Humanoid then return end
+    if tick() - AutoCatchMaxLast < AutoCatchMaxCooldown then return end
+    AutoCatchMaxLast = tick()
+    task.spawn(ExecutarAutoCatchMax)
 end)
 
-DriveTab:Section({ Title = "ꜱᴇɴꜱᴏʀ + ᴀᴜᴛᴏ ꜱᴀᴠᴇ" })
-DriveTab:Toggle({Title = "ꜱᴇɴꜱᴏʀ ᴅᴇ ʙᴀʟʟ", Value = false, Callback = function(v) SensorEnabled = v; if not v then DestruirSensorVisual() end end})
-DriveTab:Toggle({Title = "ᴠɪꜱᴜᴀʟ ᴅᴏ ꜱᴇɴꜱᴏʀ", Value = false, Callback = function(v) SensorVisualEnabled = v; if not v then DestruirSensorVisual() end end})
-DriveTab:Toggle({Title = "ᴀᴜᴛᴏ ꜱᴀᴠᴇ", Value = false, Callback = function(v) SensorAutoSaveEnabled = v end})
-DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) SensorMoveToIntercept = v end})
-DriveTab:Dropdown({Title = "ʙᴏᴛãᴏ ꜰɪxᴏ", Values = {"Auto", "High Dive Left", "High Dive Right", "Dive Left", "Dive Right", "High Catch", "Low Catch", "Reflex", "Front Dive", "Rush"}, Value = "Auto", Callback = function(v) SensorTargetButton = v end})
-DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ꜱᴇɴꜱᴏʀ", Value = {Min = 20, Max = 200, Default = 80}, Callback = function(v) SensorRange = v end})
-DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 20, Default = 4, Suffix = " x0.1s"}, Callback = function(v) SensorCooldown = v / 10 end})
-DriveTab:Button({Title = "ꜰᴏʀçᴀʀ ᴅᴇꜰᴇꜱᴀ", Callback = function()
-    if SensorEnabled then SensorLast = 0; ExecutarDefesaSensor() end
-end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx" })
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx", Value = false, Callback = function(v) AutoCatchMaxEnabled = v end})
+DriveTab:Dropdown({
+    Title = "ᴍᴏᴅᴏ",
+    Values = {"Auto", "ᴀʟᴛᴏ + ᴘᴜʟᴏ", "ᴀʟᴛᴏ", "ʙᴀɪxᴏ"},
+    Value = "Auto",
+    Callback = function(v) AutoCatchMaxMode = v end,
+})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 3, Max = 40, Default = 12}, Callback = function(v) AutoCatchMaxRange = v end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 3, Suffix = " x0.1s"}, Callback = function(v) AutoCatchMaxCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
 
 FlagTab = Window:Tab({ Title = "ꜰʟᴀɢ", Icon = "zap" })
 FlagTab:Section({ Title = "ᴏᴛɪᴍɪᴢᴀçãᴏ" })
