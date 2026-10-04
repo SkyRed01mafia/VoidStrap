@@ -1618,82 +1618,74 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘᴜʀᴏ (ɴᴇᴡᴛᴏɴ) ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴜɴɪꜰɪᴄᴀᴅᴏ (ᴅɪᴠᴇ + ɪɴᴛᴇʟ + ᴀɪᴍʙᴏᴛ) ]]
 
 DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
 -- ============================================================
--- AUTO CATCH (remote)
+-- BOTÕES GK
 -- ============================================================
-CatchRemote = nil
-pcall(function()
-    CatchRemote = ReplicatedStorage:FindFirstChild("CatchBall", true)
-end)
-AutoCatchEnabled = false
-AutoCatchRange = 8
-AutoCatchDelay = 1
-AutoCatchLast = 0
-AC_Hitbox = false
-AC_HitboxPart = nil
+GKBotoes = {}
 
-function TryCatch(ball)
-    if not ball or not ball.Parent then return end
-    if CatchRemote then
-        pcall(function()
-            if CatchRemote:IsA("RemoteEvent") then
-                CatchRemote:FireServer(ball)
-            elseif CatchRemote:IsA("RemoteFunction") then
-                CatchRemote:InvokeServer(ball)
+function EscanearBotoesGK()
+    GKBotoes = {}
+    pcall(function()
+        for _, v in ipairs(PlayerGui:GetDescendants()) do
+            if v:IsA("TextButton") or v:IsA("ImageButton") then
+                local nome = v.Name
+                local texto = ""
+                pcall(function() texto = v.Text end)
+                if nome:find("GK") or nome:find("C2")
+                or texto:find("Dive") or texto:find("Catch")
+                or texto:find("High") or texto:find("Low")
+                or texto:find("Reflex") or texto:find("Forward")
+                or texto:find("Front") or texto:find("Rush") then
+                    table.insert(GKBotoes, {Button = v, Nome = nome, Texto = texto})
+                end
             end
-        end)
+        end
+    end)
+    print("[Auto Drive] Botões GK encontrados:", #GKBotoes)
+end
+EscanearBotoesGK()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(2)
+    EscanearBotoesGK()
+end)
+
+function EncontrarBotaoPorTexto(texto)
+    for _, info in ipairs(GKBotoes) do
+        if info.Texto and info.Texto:lower() == texto:lower() then return info.Button end
     end
-    AutoCatchLast = tick()
+    for _, info in ipairs(GKBotoes) do
+        if info.Texto and info.Texto:lower():find(texto:lower(), 1, true) then return info.Button end
+    end
+    return nil
+end
+function ClicarBotao(botao)
+    if not botao then return end
+    pcall(function() firesignal(botao.Activated) end)
+    pcall(function() firesignal(botao.MouseButton1Click) end)
+    pcall(function() firesignal(botao.MouseButton1Down) end)
+    pcall(function() firesignal(botao.MouseButton1Up) end)
+    pcall(function() firesignal(botao.TouchTap) end)
+end
+function Pular()
+    pcall(function() Humanoid.Jump = true end)
+    pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
 end
 
-DriveTab:Section({ Title = "ᴀᴄ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ (ʀᴇᴍᴏᴛᴇ)" })
-DriveTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ",
-    Desc = "ᴄᴀᴘᴛᴜʀᴀ ᴀ ʙᴏʟᴀ ǫᴜᴀɴᴅᴏ ᴇꜱᴛɪᴠᴇʀ ɴᴏ ᴀʟᴄᴀɴᴄᴇ",
-    Value = false,
-    Callback = function(v) AutoCatchEnabled = v end,
-})
-DriveTab:Slider({
-    Title = "ᴅɪꜱᴛâɴᴄɪᴀ ᴅᴇ ᴄᴀᴘᴛᴜʀᴀ",
-    Value = { Min = 3, Max = 30, Default = 8 },
-    Callback = function(v) AutoCatchRange = v end,
-})
-DriveTab:Slider({
-    Title = "ᴄᴏᴏʟᴅᴏᴡɴ",
-    Value = { Min = 0.2, Max = 3, Default = 1, Decimal = 1 },
-    Callback = function(v) AutoCatchDelay = v end,
-})
-DriveTab:Toggle({
-    Title = "ᴍᴏꜱᴛʀᴀʀ ʜɪᴛʙᴏx",
-    Desc = "ᴇxɪʙᴇ ᴇꜱꜰᴇʀᴀ ᴠɪꜱᴜᴀʟ ᴅᴀ áʀᴇᴀ ᴅᴇ ᴄᴀᴘᴛᴜʀᴀ",
-    Value = false,
-    Callback = function(v) AC_Hitbox = v end,
-})
-
 -- ============================================================
--- AUTO CATCH INTELIGENTE
+-- ANÁLISE DE BOLA (lado + altura + se está vindo)
 -- ============================================================
-AutoCatchIntelEnabled = false
-AutoCatchIntelConn = nil
-AutoCatchIntelRange = 16
-AutoCatchIntelCooldown = 0.35
-AutoCatchIntelLast = 0
-AutoCatchIntelHeight = 3.5
-AutoDiveBloquearSeIntelAtivo = true
-
-function AnalisarBola()
+function AnalisarBolaInfo()
     local ball = GetValidBall()
     if not ball or not RootPart then return nil end
     local vel = ball.AssemblyLinearVelocity
     local dist = (ball.Position - RootPart.Position).Magnitude
     local tempo = 0
     if vel.Magnitude > 3 then
-        tempo = dist / vel.Magnitude
-        tempo = math.clamp(tempo, 0, 0.6)
+        tempo = math.clamp(dist / vel.Magnitude, 0, 0.6)
     end
     local posFutura = ball.Position + (vel * tempo)
     local camLook = Camera.CFrame.LookVector
@@ -1706,241 +1698,185 @@ function AnalisarBola()
     direitaH = direitaH.Unit
     local delta = posFutura - RootPart.Position
     local deltaH = Vector3.new(delta.X, 0, delta.Z)
-    local ladoX = deltaH:Dot(direitaH)
-    local ladoY = posFutura.Y - RootPart.Position.Y
-    local frenteDist = deltaH:Dot(frenteH)
+    local lado = deltaH:Dot(direitaH)
+    local altura = posFutura.Y - RootPart.Position.Y
+
+    -- se a bola está vindo pro player (dot product)
+    local dirParaPlayer = RootPart.Position - ball.Position
+    local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
+    local velH = Vector3.new(vel.X, 0, vel.Z)
+    local vindo = false
+    if dirH.Magnitude > 0.1 and velH.Magnitude > 0.1 then
+        vindo = velH.Unit:Dot(dirH.Unit) > 0.15
+    end
+
     return {
         ball = ball,
         vel = vel,
         dist = dist,
         posFutura = posFutura,
-        lado = ladoX,
-        altura = ladoY,
-        frente = frenteDist,
+        lado = lado,
+        altura = altura,
+        vindo = vindo,
     }
 end
 
-function ExecutarAutoCatchIntel()
-    local info = AnalisarBola()
-    if not info then return end
+-- ============================================================
+-- ESCOLHA E CLIQUE DO BOTÃO (decide tudo)
+-- ============================================================
+function DecidirBotao(info)
     local lado = info.lado
     local altura = info.altura
     local ladoAbs = math.abs(lado)
-    local bolaAlta = altura > AutoCatchIntelHeight
+    local bolaAlta = altura > AutoDiveHeightThreshold
     local bolaLateral = ladoAbs >= 2.5
 
     if bolaLateral then
         if bolaAlta then
-            local textoDive = lado < 0 and "High Dive Left" or "High Dive Right"
-            local botaoDive = EncontrarBotaoPorTexto(textoDive)
-            if botaoDive then ClicarBotao(botaoDive) end
+            return lado < 0 and "High Dive Left" or "High Dive Right", true
         else
-            local botao = EncontrarBotaoPorTexto("Low Catch")
-            if botao then ClicarBotao(botao) end
+            return lado < 0 and "Dive Left" or "Dive Right", false
         end
     else
         if bolaAlta then
-            task.spawn(Pular)
-            task.wait(0.05)
-            local botao = EncontrarBotaoPorTexto("High Catch")
-            if botao then ClicarBotao(botao) end
+            return "High Catch", true
         else
-            local botao = EncontrarBotaoPorTexto("Low Catch")
-            if botao then ClicarBotao(botao) end
+            return "Low Catch", false
         end
     end
 end
 
-function StartAutoCatchIntel()
-    if AutoCatchIntelConn then return end
+function DispararBotao(info)
+    if not info then return end
+    local texto, pular = DecidirBotao(info)
+    if not texto then return end
+    if pular then
+        task.spawn(Pular)
+    end
+    local botao = EncontrarBotaoPorTexto(texto)
+    if botao then ClicarBotao(botao) end
+end
+
+-- ============================================================
+-- CONFIGURAÇÕES
+-- ============================================================
+AutoDriveEnabled = false
+AutoDriveConn = nil
+AutoDriveCooldown = 0.35
+AutoDriveLast = 0
+AutoDriveRange = 20
+AutoDiveHeightThreshold = 3.5
+AutoDriveDotThreshold = 0.15
+AutoDriveMinSpeed = 5
+
+-- ============================================================
+-- LOOP ÚNICO (não briga consigo mesmo)
+-- ============================================================
+function StartAutoDrive()
+    if AutoDriveConn then return end
     if #GKBotoes == 0 then EscanearBotoesGK() end
-    AutoCatchIntelConn = RunService.Heartbeat:Connect(function()
-        if not AutoCatchIntelEnabled then return end
-        if not RootPart or not RootPart.Parent then return end
-        if tick() - AutoCatchIntelLast < AutoCatchIntelCooldown then return end
-        local info = AnalisarBola()
+
+    AutoDriveConn = RunService.Heartbeat:Connect(function()
+        if not AutoDriveEnabled then return end
+        if not RootPart or not RootPart.Parent or not Humanoid then return end
+        if tick() - AutoDriveLast < AutoDriveCooldown then return end
+
+        local info = AnalisarBolaInfo()
         if not info then return end
-        if info.dist > AutoCatchIntelRange then return end
-        if info.vel.Magnitude < 4 then return end
-        local dirParaPlayer = RootPart.Position - info.ball.Position
-        local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
-        if dirH.Magnitude < 0.1 then return end
-        local velH = Vector3.new(info.vel.X, 0, info.vel.Z)
-        if velH.Magnitude < 0.1 then return end
-        local dot = velH.Unit:Dot(dirH.Unit)
-        if dot > 0.15 then
-            AutoCatchIntelLast = tick()
-            task.spawn(ExecutarAutoCatchIntel)
-        end
+        if info.dist > AutoDriveRange then return end
+        if info.vel.Magnitude < AutoDriveMinSpeed then return end
+
+        -- Só dispara se a bola está vindo pra você
+        if not info.vindo then return end
+
+        AutoDriveLast = tick()
+        DispararBotao(info)
     end)
 end
-function StopAutoCatchIntel()
-    if AutoCatchIntelConn then
-        AutoCatchIntelConn:Disconnect()
-        AutoCatchIntelConn = nil
+
+function StopAutoDrive()
+    if AutoDriveConn then
+        AutoDriveConn:Disconnect()
+        AutoDriveConn = nil
     end
 end
 
-DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟɪɢᴇɴᴛᴇ" })
+-- ============================================================
+-- UI
+-- ============================================================
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
 DriveTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟɪɢᴇɴᴛᴇ",
-    Desc = "ʙᴏʟᴀ ᴄᴇɴᴛʀᴀʟ: ᴀɢᴀʀʀᴀ. ʟᴀᴛᴇʀᴀʟ ʙᴀɪxᴀ: ᴀɢᴀʀʀᴀʀ ʙᴀɪxᴏ. ʟᴀᴛᴇʀᴀʟ ᴀʟᴛᴀ: ᴅɪᴠᴇ",
+    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ",
+    Desc = "ᴅɪᴠᴇ + ᴀᴄ ɪɴᴛᴇʟ ᴜɴɪꜰɪᴄᴀᴅᴏꜱ · ꜱó ᴘᴀʀᴀ ǫᴜᴀɴᴅᴏ ᴅᴇꜱʟɪɢᴀʀ",
     Value = false,
     Callback = function(v)
-        AutoCatchIntelEnabled = v
-        if v then StartAutoCatchIntel() else StopAutoCatchIntel() end
+        AutoDriveEnabled = v
+        if v then
+            StartAutoDrive()
+        else
+            StopAutoDrive()
+        end
     end,
 })
 DriveTab:Slider({
     Title = "ᴀʟᴄᴀɴᴄᴇ",
-    Value = { Min = 5, Max = 35, Default = 16 },
-    Callback = function(v) AutoCatchIntelRange = v end,
-})
-DriveTab:Slider({
-    Title = "ᴀʟᴛᴜʀᴀ ᴍíɴɪᴍᴀ (ʙᴏʟᴀ ᴀʟᴛᴀ)",
-    Desc = "ᴀᴄɪᴍᴀ ᴅᴇꜱꜱᴀ ᴀʟᴛᴜʀᴀ ᴏ ɢᴏʟᴇɪʀᴏ ᴘᴜʟᴀ/ᴜꜱᴀ ᴀɢᴀʀʀᴀʀ ᴀʟᴛᴏ",
-    Value = { Min = 1, Max = 10, Default = 3.5, Decimal = 1 },
-    Callback = function(v) AutoCatchIntelHeight = v end,
+    Value = { Min = 5, Max = 50, Default = 20 },
+    Callback = function(v) AutoDriveRange = v end,
 })
 DriveTab:Slider({
     Title = "ᴄᴏᴏʟᴅᴏᴡɴ",
-    Value = { Min = 0.1, Max = 2, Default = 0.35, Decimal = 1 },
-    Callback = function(v) AutoCatchIntelCooldown = v end,
+    Value = { Min = 1, Max = 30, Default = 35, Suffix = " x0.01s" },
+    Callback = function(v) AutoDriveCooldown = v / 100 end,
 })
-
--- ============================================================
--- AUTO DIVE (puro do Newton)
--- ============================================================
-AutoDiveEnabled = false
-AutoDiveCooldown = 0.8
-AutoDiveLastTime = 0
-AutoDiveRange = 15
-AutoDiveConn = nil
-AutoDiveMode = "Auto"
-
-GK_BUTTON_TEXTS = {
-    ["Esquerda Alto"] = "High Dive Left",
-    ["Direita Alto"]  = "High Dive Right",
-    ["Esquerda Baixo"] = "Dive Left",
-    ["Direita Baixo"] = "Dive Right",
-    ["Agarrar Alto"]  = "High Catch",
-    ["Agarrar Baixo"] = "Low Catch",
-    ["Reflexo"]       = "Reflex",
-    ["Frente"]        = "Front Dive",
-    ["Enfrentar"]     = "Rush",
-}
-
-function ExecutarDive()
-    local ball = GetValidBall()
-    if not ball or not RootPart then return end
-    local ballVel = ball.AssemblyLinearVelocity
-    local distBola = (ball.Position - RootPart.Position).Magnitude
-    local tempoChegada = 0
-    if ballVel.Magnitude > 5 then
-        tempoChegada = math.clamp(distBola / ballVel.Magnitude, 0, 0.7)
-    end
-    local posFutura = ball.Position + (ballVel * tempoChegada)
-    local camRight = Camera.CFrame.RightVector
-    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
-    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
-    direitaH = direitaH.Unit
-    local delta = posFutura - RootPart.Position
-    local lado = (Vector3.new(delta.X, 0, delta.Z)):Dot(direitaH)
-    local altura = delta.Y
-    local textoAlvo
-    if AutoDiveMode ~= "Auto" then
-        textoAlvo = GK_BUTTON_TEXTS[AutoDiveMode]
-    else
-        if altura > AutoCatchIntelHeight then
-            textoAlvo = lado > 0 and "High Dive Right" or "High Dive Left"
-        else
-            textoAlvo = lado > 0 and "Dive Right" or "Dive Left"
-        end
-    end
-    if not textoAlvo then return end
-    local botao = EncontrarBotaoPorTexto(textoAlvo)
-    if botao then ClicarBotao(botao) end
-end
-
-function StartAutoDive()
-    if AutoDiveConn then return end
-    if #GKBotoes == 0 then EscanearBotoesGK() end
-    AutoDiveConn = RunService.Heartbeat:Connect(function()
-        if not AutoDiveEnabled then return end
-        if AutoDiveBloquearSeIntelAtivo and AutoCatchIntelEnabled then return end
-        if not RootPart or not RootPart.Parent then return end
-        if tick() - AutoDiveLastTime < AutoDiveCooldown then return end
-        local ball = GetValidBall()
-        if not ball or not ball.Parent then return end
-        local dist = (ball.Position - RootPart.Position).Magnitude
-        if dist > AutoDiveRange then return end
-        local ballVel = ball.AssemblyLinearVelocity
-        if ballVel.Magnitude < 5 then return end
-        local dirParaPlayer = RootPart.Position - ball.Position
-        local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
-        if dirH.Magnitude < 0.1 then return end
-        local ballVelH = Vector3.new(ballVel.X, 0, ballVel.Z)
-        if ballVelH.Magnitude < 0.1 then return end
-        local dot = ballVelH.Unit:Dot(dirH.Unit)
-        if dot > 0.15 then
-            AutoDiveLastTime = tick()
-            task.spawn(ExecutarDive)
-        end
-    end)
-end
-function StopAutoDive()
-    if AutoDiveConn then
-        AutoDiveConn:Disconnect()
-        AutoDiveConn = nil
-    end
-end
-
-DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅɪᴠᴇ" })
+DriveTab:Slider({
+    Title = "ᴀʟᴛᴜʀᴀ (ʙᴏʟᴀ ᴀʟᴛᴀ)",
+    Desc = "ᴀᴄɪᴍᴀ ᴅᴇꜱꜱᴀ ᴀʟᴛᴜʀᴀ ᴜꜱᴀ ʜɪɢʜ ᴄᴀᴛᴄʜ ᴏᴜ ʜɪɢʜ ᴅɪᴠᴇ",
+    Value = { Min = 10, Max = 100, Default = 35, Suffix = " x0.1" },
+    Callback = function(v) AutoDiveHeightThreshold = v / 10 end,
+})
+DriveTab:Slider({
+    Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴍíɴɪᴍᴀ ᴅᴀ ʙᴏʟᴀ",
+    Value = { Min = 1, Max = 30, Default = 5 },
+    Callback = function(v) AutoDriveMinSpeed = v end,
+})
 DriveTab:Toggle({
-    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅɪᴠᴇ",
-    Desc = "ᴇxᴇᴄᴜᴛᴀ ᴅɪᴠᴇ ᴀᴜᴛᴏᴍᴀᴛɪᴄᴀᴍᴇɴᴛᴇ ǫᴜᴀɴᴅᴏ ᴀ ʙᴏʟᴀ ᴠᴇᴍ ɴᴀ ꜱᴜᴀ ᴅɪʀᴇçãᴏ",
+    Title = "ᴍᴏᴅᴏ ꜰɪxᴏ (ᴅᴇꜱᴀᴛɪᴠᴀᴅᴏ = ᴀᴜᴛᴏ)",
+    Desc = "ᴛᴏᴅᴏꜱ ᴏꜱ ᴅɪᴠᴇꜱ ᴜꜱᴀᴍ ᴏ ᴍᴇꜱᴍᴏ ʙᴏᴛãᴏ",
     Value = false,
-    Callback = function(v)
-        AutoDiveEnabled = v
-        if v then StartAutoDive() else StopAutoDive() end
-    end,
+    Callback = function(v) AutoDriveForceMode = v end,
 })
 DriveTab:Dropdown({
-    Title = "ᴍᴏᴅᴏ ᴅᴏ ᴅɪᴠᴇ",
-    Values = {
-        "Auto", "Esquerda Alto", "Direita Alto", "Esquerda Baixo", "Direita Baixo",
-        "Agarrar Alto", "Agarrar Baixo", "Reflexo", "Frente", "Enfrentar",
-    },
+    Title = "ʙᴏᴛãᴏ ꜰɪxᴏ",
+    Values = {"Auto", "High Dive Left", "High Dive Right", "Dive Left", "Dive Right", "High Catch", "Low Catch", "Reflex", "Front Dive", "Rush"},
     Value = "Auto",
-    Callback = function(v) AutoDiveMode = v end,
-})
-DriveTab:Slider({
-    Title = "ᴀʟᴄᴀɴᴄᴇ ᴅᴏ ᴅɪᴠᴇ",
-    Value = { Min = 5, Max = 30, Default = 15 },
-    Callback = function(v) AutoDiveRange = v end,
-})
-DriveTab:Slider({
-    Title = "ᴄᴏᴏʟᴅᴏᴡɴ ᴅᴏ ᴅɪᴠᴇ",
-    Value = { Min = 0.3, Max = 5, Default = 0.8, Decimal = 1 },
-    Callback = function(v) AutoDiveCooldown = v end,
-})
-DriveTab:Toggle({
-    Title = "ᴅɪᴠᴇ ᴘᴀᴜꜱᴀ ǫᴜᴀɴᴅᴏ ɪɴᴛᴇʟ ᴏɴ",
-    Desc = "ᴇᴠɪᴛᴀ ᴄᴏɴꜰʟɪᴛᴏ: ꜱᴇ ᴏ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟ ᴇꜱᴛɪᴠᴇʀ ʟɪɢᴀᴅᴏ, ᴏ ᴅɪᴠᴇ ɴãᴏ ɪɴᴛᴇʀꜰᴇʀᴇ",
-    Value = true,
-    Callback = function(v) AutoDiveBloquearSeIntelAtivo = v end,
+    Callback = function(v) AutoDriveFixedButton = v end,
 })
 DriveTab:Button({
     Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ",
-    Desc = "ᴀᴛᴜᴀʟɪᴢᴀ ᴀ ʟɪꜱᴛᴀ ᴅᴇ ʙᴏᴛõᴇꜱ. ᴜꜱᴇ ꜱᴇ ᴇɴᴛʀᴀʀ ᴄᴏᴍᴏ ɢᴏʟᴇɪʀᴏ ᴅᴇᴘᴏɪꜱ",
+    Desc = "ᴜꜱᴇ ᴅᴇᴘᴏɪꜱ ᴅᴇ ᴇɴᴛʀᴀʀ ᴄᴏᴍᴏ ɢᴏʟᴇɪʀᴏ",
     Callback = function()
         EscanearBotoesGK()
-        pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
+        pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
     end,
 })
 
+-- Suporte ao modo fixo
+AutoDriveForceMode = false
+AutoDriveFixedButton = "Auto"
+
+-- Patch no DispararBotao pra respeitar o modo fixo
+_OriginalDispararBotao = DispararBotao
+function DispararBotao(info)
+    if AutoDriveForceMode and AutoDriveFixedButton ~= "Auto" then
+        local botao = EncontrarBotaoPorTexto(AutoDriveFixedButton)
+        if botao then ClicarBotao(botao) end
+        return
+    end
+    _OriginalDispararBotao(info)
+end
+
 -- ============================================================
--- AIMBOT (do Newton)
+-- AIMBOT (mantido)
 -- ============================================================
 AimbotBlueEnabled = false
 AimbotGreenEnabled = false
@@ -1975,67 +1911,65 @@ DriveTab:Toggle({
     Callback = function(v) AimbotGreenEnabled = v end,
 })
 
--- ============================================================
--- HELPERS GK (botões)
--- ============================================================
-GKBotoes = {}
-
-function EscanearBotoesGK()
-    GKBotoes = {}
-    pcall(function()
-        for _, v in ipairs(PlayerGui:GetDescendants()) do
-            if v:IsA("TextButton") or v:IsA("ImageButton") then
-                local nome = v.Name
-                local texto = ""
-                pcall(function() texto = v.Text end)
-                if nome:find("GK") or nome:find("C2")
-                or texto:find("Dive") or texto:find("Catch")
-                or texto:find("High") or texto:find("Low")
-                or texto:find("Reflex") or texto:find("Forward")
-                or texto:find("Front") or texto:find("Rush") then
-                    table.insert(GKBotoes, {Button = v, Nome = nome, Texto = texto})
-                end
-            end
-        end
-    end)
-    print("[Auto Dive] Botões GK encontrados:", #GKBotoes)
-end
-EscanearBotoesGK()
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(2)
-    EscanearBotoesGK()
+RunService.PreRender:Connect(function()
+    if AimbotBlueEnabled then doAimbot("Blue") end
+    if AimbotGreenEnabled then doAimbot("Green") end
 end)
 
-function EncontrarBotaoPorTexto(texto)
-    for _, info in ipairs(GKBotoes) do
-        if info.Texto and info.Texto:lower() == texto:lower() then return info.Button end
+-- ============================================================
+-- ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ (ʀᴇᴍᴏᴛᴇ)
+-- ============================================================
+CatchRemote = nil
+pcall(function()
+    CatchRemote = ReplicatedStorage:FindFirstChild("CatchBall", true)
+end)
+AutoCatchEnabled = false
+AutoCatchRange = 8
+AutoCatchDelay = 1
+AutoCatchLast = 0
+AC_Hitbox = false
+AC_HitboxPart = nil
+
+function TryCatch(ball)
+    if not ball or not ball.Parent then return end
+    if CatchRemote then
+        pcall(function()
+            if CatchRemote:IsA("RemoteEvent") then
+                CatchRemote:FireServer(ball)
+            elseif CatchRemote:IsA("RemoteFunction") then
+                CatchRemote:InvokeServer(ball)
+            end
+        end)
     end
-    for _, info in ipairs(GKBotoes) do
-        if info.Texto and info.Texto:lower():find(texto:lower(), 1, true) then return info.Button end
-    end
-    return nil
-end
-function ClicarBotao(botao)
-    if not botao then return end
-    pcall(function() firesignal(botao.Activated) end)
-    pcall(function() firesignal(botao.MouseButton1Click) end)
-    pcall(function() firesignal(botao.MouseButton1Down) end)
-    pcall(function() firesignal(botao.MouseButton1Up) end)
-    pcall(function() firesignal(botao.TouchTap) end)
-end
-function Pular()
-    pcall(function() Humanoid.Jump = true end)
-    pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
+    AutoCatchLast = tick()
 end
 
--- ============================================================
--- LOOP PRINCIPAL (AutoCatch / Aimbot)
--- ============================================================
+DriveTab:Section({ Title = "ᴀᴄ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ (ʀᴇᴍᴏᴛᴇ)" })
+DriveTab:Toggle({
+    Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ",
+    Value = false,
+    Callback = function(v) AutoCatchEnabled = v end,
+})
+DriveTab:Slider({
+    Title = "ᴅɪꜱᴛâɴᴄɪᴀ",
+    Value = { Min = 3, Max = 30, Default = 8 },
+    Callback = function(v) AutoCatchRange = v end,
+})
+DriveTab:Slider({
+    Title = "ᴄᴏᴏʟᴅᴏᴡɴ",
+    Value = { Min = 2, Max = 30, Default = 10, Suffix = " x0.1s" },
+    Callback = function(v) AutoCatchDelay = v / 10 end,
+})
+DriveTab:Toggle({
+    Title = "ᴍᴏꜱᴛʀᴀʀ ʜɪᴛʙᴏx",
+    Value = false,
+    Callback = function(v) AC_Hitbox = v end,
+})
+
 RunService.PreRender:Connect(function()
     if not RootPart or not RootPart.Parent or not Humanoid then return end
     local ball = GetValidBall()
 
-    -- auto catch
     if AutoCatchEnabled and tick() - AutoCatchLast >= AutoCatchDelay then
         local hrp = Character and Character:FindFirstChild("HumanoidRootPart")
         if ball and hrp and (ball.Position - hrp.Position).Magnitude <= AutoCatchRange then
@@ -2043,7 +1977,6 @@ RunService.PreRender:Connect(function()
         end
     end
 
-    -- hitbox visual
     if AC_Hitbox and RootPart and RootPart.Parent then
         local d = AutoCatchRange * 2
         if not AC_HitboxPart or not AC_HitboxPart.Parent then
@@ -2065,10 +1998,6 @@ RunService.PreRender:Connect(function()
         AC_HitboxPart:Destroy()
         AC_HitboxPart = nil
     end
-
-    -- aimbot
-    if AimbotBlueEnabled then doAimbot("Blue") end
-    if AimbotGreenEnabled then doAimbot("Green") end
 end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
 
 FlagTab = Window:Tab({ Title = "ꜰʟᴀɢ", Icon = "zap" })
