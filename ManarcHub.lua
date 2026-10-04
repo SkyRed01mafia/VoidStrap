@@ -49,7 +49,7 @@ State = {
 FTI = firetouchinterest or (getgenv and getgenv().firetouchinterest)
 
 Backgrounds = {
-    Padrao = "rbxassetid://89176415",
+    Padrao = "rbxassetid://136946915996013",
 }
 
 WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -667,7 +667,7 @@ spawn(function()
             end
         end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/9 — ʙᴀʟʟ ᴇxᴛʀᴀꜱ ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/9 — ʙᴀʟʟ ᴇxᴛʀᴀꜱ + ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ ᴀʀʀᴀꜱᴛáᴠᴇʟ ]]
 
 BallTab:Section({ Title = "ᴄʜᴀɴɢᴇʀ ʙᴀʟʟ" })
 
@@ -937,9 +937,11 @@ RunService.Heartbeat:Connect(function()
     pcall(function() ball.AssemblyLinearVelocity = vel + force end)
 end)
 
+-- ============================================================
+-- ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ ᴀʀʀᴀꜱᴛáᴠᴇʟ
+-- ============================================================
 BallTab:Section({ Title = "ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ" })
 FloatGui, FloatBtn, FloatLocked = nil, nil, false
-DragStart, StartPos, Moved = nil, nil, false
 
 function AtualizarTextoBotao()
     if not FloatBtn then return end
@@ -956,6 +958,7 @@ function CriarFloatBtn()
     FloatGui.Name = "ManicFloat"; FloatGui.ResetOnSpawn = false
     FloatGui.IgnoreGuiInset = true
     pcall(function() FloatGui.Parent = (gethui and gethui()) or CoreGui end)
+
     FloatBtn = Instance.new("TextButton")
     FloatBtn.Size = UDim2.new(0, 110, 0, 110)
     FloatBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -969,36 +972,59 @@ function CriarFloatBtn()
     local s = Instance.new("UIStroke", FloatBtn); s.Color = Color3.fromRGB(0, 0, 0); s.Thickness = 4
     AtualizarTextoBotao()
 
+    local isDragging = false
+    local dragStart = nil
+    local startPos = nil
+    local moveThreshold = 8
+    local movedFar = false
+
     FloatBtn.InputBegan:Connect(function(input)
         if FloatLocked then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            DragStart = input.Position; StartPos = FloatBtn.Position; Moved = false
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = FloatBtn.AbsolutePosition
+            movedFar = false
         end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
-        if DragStart and not FloatLocked then
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                local d = input.Position - DragStart
-                if math.abs(d.X) > 5 or math.abs(d.Y) > 5 then Moved = true end
-                FloatBtn.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + d.X, StartPos.Y.Scale, StartPos.Y.Offset + d.Y)
+        if not isDragging then return end
+        if FloatLocked then isDragging = false; return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            if math.abs(delta.X) > moveThreshold or math.abs(delta.Y) > moveThreshold then
+                movedFar = true
             end
+            local newX = startPos.X + delta.X
+            local newY = startPos.Y + delta.Y
+            FloatBtn.Position = UDim2.new(0, newX, 0, newY)
         end
     end)
+
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            DragStart = nil
-            if not Moved then
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            if isDragging and not movedFar then
                 State.AutoBall = not State.AutoBall
                 if State.AutoBall then StartAutoBall() else StopAutoBall() end
                 AtualizarTextoBotao()
             end
+            isDragging = false
         end
     end)
 end
 
 BallTab:Toggle({Title = "ᴍᴏꜱᴛʀᴀʀ ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ", Value = false, Callback = function(v)
-    if v then if not FloatBtn then CriarFloatBtn() end; FloatBtn.Visible = true; AtualizarTextoBotao()
-    elseif FloatBtn then FloatBtn.Visible = false end
+    if v then
+        if not FloatBtn then CriarFloatBtn() end
+        FloatBtn.Visible = true
+        AtualizarTextoBotao()
+    elseif FloatBtn then
+        FloatBtn.Visible = false
+    end
 end})
 BallTab:Toggle({Title = "ᴛʀᴀᴠᴀʀ ʙᴏᴛãᴏ", Value = false, Callback = function(v) FloatLocked = v end})
 BallTab:Button({Title = "ʀᴇᴄʀɪᴀʀ ʙᴏᴛãᴏ", Callback = function()
@@ -1117,8 +1143,7 @@ PlayerTab:Slider({Title = "ʙʀɪʟʜᴏ", Value = {Min = -100, Max = 100, Defau
     ScreenColorBrightness = v / 100; if ScreenColorEffect then ScreenColorEffect.Brightness = ScreenColorBrightness end
 end})
 PlayerTab:Button({Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ᴄᴏʀ", Callback = function()
-    if ScreenColorEffect then ScreenColorEffect:Destroy(); ScreenColorEffect = nil end
-    ScreenColorEnabled = false
+    if ScreenColorEffect then ScreenColorEffect:Destroy(); ScreenColorEffect = nil end    ScreenColorEnabled = false
 end})
 
 ScreenInvertEnabled = false
@@ -1393,7 +1418,7 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴍᴇʟʜᴏʀᴀᴅᴏ ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ + ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx ]]
 
 DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
@@ -1438,6 +1463,23 @@ function ClicarBotao(botao)
     pcall(function() firesignal(botao.TouchTap) end)
 end
 
+function TryFireRemote(actionName)
+    pcall(function()
+        local packages = ReplicatedStorage:FindFirstChild("Packages")
+        if not packages then return end
+        local knit = packages:FindFirstChild("Knit")
+        if not knit then return end
+        local services = knit:FindFirstChild("Services")
+        if not services then return end
+        local ballService = services:FindFirstChild("BallService")
+        if not ballService then return end
+        local re = ballService:FindFirstChild("RE")
+        if not re then return end
+        local remote = re:FindFirstChild(actionName)
+        if remote then remote:FireServer() end
+    end)
+end
+
 function PredizerTrajetoria(ball, tempoMax)
     if not ball or not ball.Parent then return nil end
     local posInicial = ball.Position
@@ -1450,6 +1492,7 @@ function PredizerTrajetoria(ball, tempoMax)
     local dt, tempo = 0.05, 0
     local alturaMax = pos.Y
     local tempoAtePlayer = tempoMax
+    local distMin = math.huge
     while tempo < tempoMax do
         vel = Vector3.new(vel.X, vel.Y - gravity * dt, vel.Z)
         pos = pos + vel * dt
@@ -1458,8 +1501,10 @@ function PredizerTrajetoria(ball, tempoMax)
         if RootPart then
             local dx = pos.X - RootPart.Position.X
             local dz = pos.Z - RootPart.Position.Z
-            if math.sqrt(dx*dx + dz*dz) < 3 then
-                tempoAtePlayer = math.min(tempoAtePlayer, tempo)
+            local d = math.sqrt(dx*dx + dz*dz)
+            if d < distMin then
+                distMin = d
+                tempoAtePlayer = tempo
             end
         end
         if pos.Y < -100 then break end
@@ -1472,7 +1517,7 @@ function AnalisarBola()
     if not ball or not RootPart then return nil end
     local vel = ball.AssemblyLinearVelocity
     local dist = (ball.Position - RootPart.Position).Magnitude
-    local traj = PredizerTrajetoria(ball, 2.0)
+    local traj = PredizerTrajetoria(ball, 2.5)
     if not traj then return nil end
     local dirParaPlayer = RootPart.Position - ball.Position
     local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
@@ -1482,7 +1527,7 @@ function AnalisarBola()
         vindo = velH.Unit:Dot(dirH.Unit) > 0.1
     end
     local alturaNoPlayer = traj.posFinal.Y - RootPart.Position.Y
-    if vindo and traj.tempoAtePlayer < 2.0 then
+    if vindo and traj.tempoAtePlayer < 2.5 then
         local dt = traj.tempoAtePlayer
         local alturaProjetada = ball.Position.Y + vel.Y * dt - 0.5 * Workspace.Gravity * dt * dt
         alturaNoPlayer = alturaProjetada - RootPart.Position.Y
@@ -1504,10 +1549,50 @@ function AnalisarBola()
     }
 end
 
+DashEnabled = true
+DashSpeed = 65
+DashDuration = 0.12
+DashVelocity = nil
+
+function FastDash(targetPos)
+    if not DashEnabled then return end
+    if not RootPart or not RootPart.Parent then return end
+    pcall(function()
+        if DashVelocity then DashVelocity:Destroy() end
+        local direction = targetPos - RootPart.Position
+        if direction.Magnitude < 0.5 then return end
+        direction = direction.Unit
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "ManicAutoDash"
+        bv.MaxForce = Vector3.new(math.huge, 0, math.huge)
+        bv.Velocity = Vector3.new(direction.X, 0, direction.Z) * DashSpeed
+        bv.P = 5000
+        bv.Parent = RootPart
+        DashVelocity = bv
+        task.delay(DashDuration, function()
+            if bv and bv.Parent then bv:Destroy() end
+            if DashVelocity == bv then DashVelocity = nil end
+        end)
+    end)
+end
+
 function EscolherBotaoDefesa(info)
     local altura = info.altura
     local alturaMax = info.alturaMax
+    local lado = info.lado
+    local ladoAbs = math.abs(lado)
     local alturaRef = math.max(altura, alturaMax * 0.6)
+
+    if ladoAbs > 3.5 then
+        if alturaRef > 4.5 then
+            return lado > 0 and "High Dive Right" or "High Dive Left", true
+        elseif alturaRef > 1.2 then
+            return lado > 0 and "Dive Right" or "Dive Left", false
+        else
+            return lado > 0 and "Dive Right" or "Dive Left", false
+        end
+    end
+
     if alturaRef > 4.5 then
         return "High Catch", true
     end
@@ -1519,9 +1604,10 @@ end
 
 AutoDiveEnabled = false
 AutoDiveRange = 60
-AutoDiveCooldown = 0.35
+AutoDiveCooldown = 0.15
 AutoDiveLast = 0
 AutoDiveMoveEnabled = true
+AutoDiveDashEnabled = true
 
 function ExecutarDive()
     local info = AnalisarBola()
@@ -1531,6 +1617,14 @@ function ExecutarDive()
     end
     local texto, pular = EscolherBotaoDefesa(info)
     if not texto then return end
+
+    if AutoDiveDashEnabled and info.trajetoria then
+        FastDash(info.trajetoria.posFinal)
+    end
+
+    TryFireRemote("Dive")
+    TryFireRemote("Catch")
+
     if pular then
         task.spawn(function()
             pcall(function() Humanoid.Jump = true end)
@@ -1538,15 +1632,17 @@ function ExecutarDive()
         end)
         task.wait(0.05)
     end
+
     local botao = EncontrarBotaoPorTexto(texto)
     if botao then ClicarBotao(botao) end
 end
 
-DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ" })
 DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Value = false, Callback = function(v) AutoDiveEnabled = v end})
 DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) AutoDiveMoveEnabled = v end})
+DriveTab:Toggle({Title = "ᴅᴀꜱʜ ʀáᴘɪᴅᴏ", Value = true, Callback = function(v) AutoDiveDashEnabled = v end})
 DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 20, Max = 200, Default = 60}, Callback = function(v) AutoDiveRange = v end})
-DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 15, Suffix = " x0.01s"}, Callback = function(v) AutoDiveCooldown = v / 100 end})
 DriveTab:Button({Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ", Callback = function()
     EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
 end})
@@ -1557,14 +1653,16 @@ RunService.Heartbeat:Connect(function()
     local info = AnalisarBola()
     if not info then return end
     if info.dist > AutoDiveRange then return end
+
     if AutoDiveMoveEnabled and info.vindoParaPlayer then
         local destino = info.trajetoria.posFinal
         local flat = destino - RootPart.Position
         local flatH = Vector3.new(flat.X, 0, flat.Z)
-        if flatH.Magnitude > 1.5 and flatH.Magnitude < 50 then
+        if flatH.Magnitude > 1.5 and flatH.Magnitude < 50 and not DashVelocity then
             Humanoid:Move(flatH.Unit, false)
         end
     end
+
     if tick() - AutoDiveLast >= AutoDiveCooldown then
         AutoDiveLast = tick()
         task.spawn(ExecutarDive)
@@ -2236,7 +2334,7 @@ InfoTab:Paragraph({
 })
 InfoTab:Paragraph({
     Title = "ᴀᴛᴀʟʜᴏꜱ",
-    Desc = "- ʟᴇꜰᴛꜱʜɪꜰᴛ: ᴀʙʀɪʀ/ꜰᴇᴄʜᴀʀ ᴍᴇɴᴜ\n- ᴋ: ᴀᴜᴛᴏ ꜰᴏʟʟᴏᴡ\n- ᴜ: ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ",
+    Desc = "- ʟᴇꜰᴛꜱʜɪꜰᴛ: ᴀʙʀɪʀ/ꜰᴇᴄʜᴀʀ ᴍᴇɴᴜ\n- ᴜ: ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ",
 })
 InfoTab:Button({Title = "ᴠᴇʀ ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ", Callback = function()
     print("=== ᴍᴀɴᴀʀᴄ.ɢᴢʏ - ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ ===")
