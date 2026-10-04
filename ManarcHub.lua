@@ -81,6 +81,9 @@ UserInputService.InputBegan:Connect(function(i, gp)
     if i.KeyCode == Enum.KeyCode.LeftShift then Window:Toggle() end
 end)
 
+-- ============================================================
+-- ÍCONE CUSTOMIZADO
+-- ============================================================
 ICON_IMAGE_ID = "rbxassetid://136946915996013"
 task.spawn(function()
     task.wait(1.5)
@@ -117,6 +120,9 @@ task.spawn(function()
     end
 end)
 
+-- ============================================================
+-- FPS COUNTER
+-- ============================================================
 FpsGui = Instance.new("ScreenGui")
 FpsGui.Name = "ManicFPS"; FpsGui.ResetOnSpawn = false
 FpsGui.IgnoreGuiInset = true
@@ -136,6 +142,9 @@ RunService.RenderStepped:Connect(function()
     if now - fpsTime >= 1 then FpsBox.Text = "ꜰᴘꜱ " .. fpsCount; fpsCount = 0; fpsTime = now end
 end)
 
+-- ============================================================
+-- HELPERS GLOBAIS
+-- ============================================================
 function GetCharacterData()
     local c = LocalPlayer.Character
     if not c then return nil, nil, nil end
@@ -206,7 +215,79 @@ function EhGrama(obj)
         or string.find(n, "turf")) ~= nil
 end
 
+-- ============================================================
+-- SCAN DE GOL (para o Aimbot)
+-- ============================================================
+function ScanGoalPosition(teamName)
+    local mapa = Workspace:FindFirstChild("WorkspaceStadiumMap1")
+    if mapa then
+        local teamNames = {}
+        if teamName == "Blue" then
+            teamNames = {"Team1", "TeamBlue", "BlueGoal", "Goal1", "GoalBlue"}
+        else
+            teamNames = {"Team2", "TeamGreen", "GreenGoal", "Goal2", "GoalGreen"}
+        end
+        for _, tn in ipairs(teamNames) do
+            local team = mapa:FindFirstChild(tn, true)
+            if team then
+                if team:IsA("BasePart") then return team.Position end
+                local union = team:FindFirstChild("Union2") or team:FindFirstChild("Union") or team:FindFirstChildWhichIsA("BasePart", true)
+                if union and union:IsA("BasePart") then return union.Position end
+            end
+        end
+    end
+    local golKeywords
+    if teamName == "Blue" then
+        golKeywords = {"goalblue", "goal1", "bluegoal", "team1", "teamblue", "goalpost1", "blue_goal"}
+    else
+        golKeywords = {"goalgreen", "goal2", "greengoal", "team2", "teamgreen", "goalpost2", "green_goal"}
+    end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Anchored then
+            local n = obj.Name:lower()
+            for _, keyword in ipairs(golKeywords) do
+                if n:find(keyword) then return obj.Position end
+            end
+        end
+    end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local n = obj.Name:lower()
+            local isTarget = false
+            if teamName == "Blue" and (n:find("team1") or n:find("blue") or n:find("goal1")) then
+                isTarget = true
+            elseif teamName == "Green" and (n:find("team2") or n:find("green") or n:find("goal2")) then
+                isTarget = true
+            end
+            if isTarget then
+                for _, child in ipairs(obj:GetDescendants()) do
+                    if child:IsA("BasePart") then return child.Position end
+                end
+            end
+        end
+    end
+    local minZ, maxZ = math.huge, -math.huge
+    local minZPart, maxZPart = nil, nil
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Anchored and obj.Size.X > 5 then
+            local n = obj.Name:lower()
+            if n:find("goal") or n:find("post") or n:find("net") or n:find("union") then
+                if obj.Position.Z < minZ then minZ = obj.Position.Z; minZPart = obj end
+                if obj.Position.Z > maxZ then maxZ = obj.Position.Z; maxZPart = obj end
+            end
+        end
+    end
+    if teamName == "Blue" and minZPart then return minZPart.Position
+    elseif teamName == "Green" and maxZPart then return maxZPart.Position end
+    return nil
+end
+
+-- ============================================================
+-- ABA MAPA
+-- ============================================================
 MapTab = Window:Tab({ Title = "ᴍᴀᴘᴀ", Icon = "map" })
+
+-- ===== COR DO GRAMADO =====
 MapTab:Section({ Title = "ᴄᴏʀ ᴅᴏ ɢʀᴀᴍᴀᴅᴏ" })
 
 function SalvarGrama()
@@ -262,84 +343,9 @@ spawn(function()
     end
 end)
 
-MapTab:Section({ Title = "ꜱᴋʏʙᴏx" })
-function ForceSkyTCS(assetId)
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local n = string.lower(obj.Name)
-            if (string.find(n, "sky") or string.find(n, "dome") or string.find(n, "ceu") or string.find(n, "atmosphere"))
-            and not string.find(n, "manic") then
-                pcall(function() obj:Destroy() end)
-            end
-        end
-    end
-    for _, child in ipairs(Lighting:GetChildren()) do
-        if child:IsA("Sky") or child:IsA("Atmosphere") or child:IsA("Clouds")
-        or child:IsA("PostEffect") or child:IsA("ColorCorrectionEffect") then child:Destroy() end
-    end
-    local newSky = Instance.new("Sky")
-    newSky.Name = "ManicSky"
-    local url = "rbxassetid://" .. tostring(assetId)
-    newSky.SkyboxBk = url; newSky.SkyboxDn = url; newSky.SkyboxFt = url
-    newSky.SkyboxLf = url; newSky.SkyboxRt = url; newSky.SkyboxUp = url
-    newSky.Parent = Lighting
-    State.Skybox = assetId
-end
-
-SkyboxIDs = {
-    {Name = "ꜱᴋʏ 1", ID = "8202961731"}, {Name = "ꜱᴋʏ 2", ID = "2758029221"},
-    {Name = "ɴɪɢʜᴛ", ID = "13107361022"}, {Name = "ꜱᴋʏ 4", ID = "7108851308"},
-    {Name = "ꜱᴋʏ 5", ID = "339406852"}, {Name = "ꜱᴋʏ 6", ID = "15502592084"},
-    {Name = "ꜱᴋʏ 7", ID = "15359965253"}, {Name = "ꜱᴋʏ 8", ID = "15470370280"},
-    {Name = "ʙʟᴜᴇ ꜱᴋʏ", ID = "8808550143"}, {Name = "ꜱᴋʏ 10", ID = "10594723714"},
-}
-for _, sky in ipairs(SkyboxIDs) do
-    MapTab:Button({ Title = sky.Name, Callback = function()
-        ForceSkyTCS(sky.ID); pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = sky.Name, Duration = 2}) end)
-    end })
-end
-
-MapTab:Section({ Title = "ꜱᴋʏ ᴇxᴛʀᴀ" })
-function ClearSky()
-    for _, obj in ipairs(Lighting:GetChildren()) do
-        if obj:IsA("Sky") then obj:Destroy() end
-    end
-end
-MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ꜱᴏʟ", Callback = function()
-    ClearSky(); Lighting.ClockTime = 7; Lighting.Brightness = 2
-    local sky = Instance.new("Sky")
-    sky.SkyboxBk = "rbxassetid://541743453"; sky.SkyboxDn = "rbxassetid://541743443"
-    sky.SkyboxFt = "rbxassetid://541743446"; sky.SkyboxLf = "rbxassetid://541743436"
-    sky.SkyboxRt = "rbxassetid://541743435"; sky.SkyboxUp = "rbxassetid://541743441"
-    sky.Parent = Lighting
-end })
-MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ʟᴜᴀ", Callback = function()
-    ClearSky(); Lighting.ClockTime = 21
-    local sky = Instance.new("Sky")
-    sky.SkyboxBk = "rbxassetid://4498828382"; sky.SkyboxDn = "rbxassetid://4498828812"
-    sky.SkyboxFt = "rbxassetid://4498829917"; sky.SkyboxLf = "rbxassetid://4498830911"
-    sky.SkyboxRt = "rbxassetid://4498830417"; sky.SkyboxUp = "rbxassetid://4498831746"
-    sky.Parent = Lighting
-end })
-MapTab:Button({ Title = "ʀᴇᴍᴏᴠᴇʀ ꜱᴋʏ", Callback = function() ClearSky(); State.Skybox = nil end })
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if State.Skybox then
-            local exists = false
-            for _, v in ipairs(Lighting:GetChildren()) do
-                if v:IsA("Sky") and v.Name == "ManicSky" then exists = true; break end
-            end
-            if not exists then ForceSkyTCS(State.Skybox) end
-            for _, v in ipairs(Lighting:GetChildren()) do
-                if v:IsA("Sky") and v.Name ~= "ManicSky" then v:Destroy() end
-            end
-        end
-    end
-end)
-
+-- ===== GRÁFICOS =====
 MapTab:Section({ Title = "ɢʀᴀꜰɪᴄᴏꜱ" })
+
 function ResetarLighting()
     pcall(function()
         Lighting.Ambient = Backups.Lighting.Ambient
@@ -368,7 +374,9 @@ MapTab:Button({Title = "ꜱᴏʟ", Callback = function()
 end })
 MapTab:Button({Title = "ʀᴇᴄᴏᴍᴇɴᴅᴀᴅᴏ", Callback = function() ResetarLighting() end })
 
+-- ===== IMAGEM DE FUNDO =====
 MapTab:Section({ Title = "ɪᴍᴀɢᴇᴍ ᴅᴇ ꜰᴜɴᴅᴏ" })
+
 MapTab:Dropdown({
     Title = "ʙᴀᴄᴋɢʀᴏᴜɴᴅ",
     Values = {"Padrao"},
@@ -381,6 +389,9 @@ MapTab:Dropdown({
     end,
 })
 
+-- ============================================================
+-- ABA BOOM BOX
+-- ============================================================
 BoomTab = Window:Tab({ Title = "ʙᴏᴏᴍ ʙᴏx", Icon = "music" })
 BoomTab:Section({ Title = "ᴍᴜꜱɪᴄᴀꜱ" })
 
@@ -415,7 +426,197 @@ BoomTab:Button({ Title = "ᴘᴀʀᴀʀ ᴍᴜꜱɪᴄᴀ", Callback = function(
         pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
         State.BoomBoxSound = nil
     end
-end })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 2/9 — ʙᴀʟʟ ᴀᴜᴛᴏ + ᴇꜰᴇɪᴛᴏꜱ ]]
+end })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 1.5/9 — ꜱᴋʏʙᴏx ᴄᴜꜱᴛᴏᴍ (ᴀʙᴀ ᴍᴀᴘᴀ) ]]
+
+-- ============================================================
+-- FUNÇÕES DE SKYBOX
+-- ============================================================
+function ForceSkyCustom(assetId)
+    -- 1) Destruir sky domes/atmosphere parts do MAPA
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") or obj:IsA("MeshPart") then
+            local n = string.lower(obj.Name)
+            if (string.find(n, "sky") or string.find(n, "dome") or string.find(n, "ceu")
+            or string.find(n, "atmosphere") or string.find(n, "skybox"))
+            and not string.find(n, "manic") then
+                pcall(function() obj:Destroy() end)
+            end
+        end
+    end
+
+    -- 2) Destruir Sky/Atmosphere/Clouds/PostEffect do Lighting
+    for _, child in pairs(Lighting:GetChildren()) do
+        if child:IsA("Sky") or child:IsA("Atmosphere") or child:IsA("Clouds")
+        or child:IsA("PostEffect") or child:IsA("ColorCorrectionEffect") then
+            child:Destroy()
+        end
+    end
+
+    -- 3) Tentar carregar como objeto Sky
+    local loaded = false
+    pcall(function()
+        local objects = game:GetObjects("rbxassetid://" .. tostring(assetId))
+        for _, v in pairs(objects) do
+            if v:IsA("Sky") then
+                v.Name = "ManicSky"
+                v.Parent = Lighting
+                loaded = true
+            end
+        end
+    end)
+
+    -- 4) Se não veio como Sky, aplica via URL nas 6 faces
+    if not loaded then
+        local newSky = Instance.new("Sky")
+        newSky.Name = "ManicSky"
+        local url = "rbxassetid://" .. tostring(assetId)
+        newSky.SkyboxBk = url
+        newSky.SkyboxDn = url
+        newSky.SkyboxFt = url
+        newSky.SkyboxLf = url
+        newSky.SkyboxRt = url
+        newSky.SkyboxUp = url
+        newSky.Parent = Lighting
+    end
+
+    -- 5) Atmosphere neutro
+    pcall(function()
+        local atm = Instance.new("Atmosphere")
+        atm.Name = "ManicAtmosphere"
+        atm.Density = 0
+        atm.Offset = 0
+        atm.Color = Color3.fromRGB(199, 199, 199)
+        atm.Decay = Color3.fromRGB(106, 112, 125)
+        atm.Glare = 0
+        atm.Haze = 0
+        atm.Parent = Lighting
+    end)
+
+    State.Skybox = assetId
+end
+
+function RestaurarSkyOriginal()
+    for _, child in pairs(Lighting:GetChildren()) do
+        if child.Name == "ManicSky" or child.Name == "ManicAtmosphere" then
+            child:Destroy()
+        end
+    end
+    State.Skybox = nil
+    pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = "ᴄéᴜ ʀᴇꜱᴛᴀᴜʀᴀᴅᴏ", Duration = 2}) end)
+end
+
+function ClearSky()
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        if obj:IsA("Sky") then obj:Destroy() end
+    end
+end
+
+-- Loop de manutenção do skybox
+task.spawn(function()
+    while task.wait(2) do
+        if State.Skybox then
+            local found = false
+            for _, v in ipairs(Lighting:GetChildren()) do
+                if v:IsA("Sky") and v.Name == "ManicSky" then found = true; break end
+            end
+            if not found then ForceSkyCustom(State.Skybox) end
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") or obj:IsA("Model") then
+                    local n = string.lower(obj.Name)
+                    if (string.find(n, "sky") or string.find(n, "dome") or string.find(n, "ceu"))
+                    and not string.find(n, "manic") then
+                        pcall(function() obj:Destroy() end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ============================================================
+-- SEÇÕES NA ABA MAPA
+-- ============================================================
+MapTab:Section({ Title = "ꜱᴋʏʙᴏx ᴄᴜꜱᴛᴏᴍ" })
+
+SkyCustomId = ""
+MapTab:Input({
+    Title = "ɪᴅ ᴅᴏ ꜱᴋʏʙᴏx",
+    Placeholder = "ᴇx: 113859918879279",
+    Callback = function(text)
+        SkyCustomId = text or ""
+    end,
+})
+MapTab:Button({
+    Title = "ᴀᴘʟɪᴄᴀʀ ꜱᴋʏʙᴏx ᴄᴜꜱᴛᴏᴍ",
+    Desc = "ᴄᴏʟᴏᴜ ᴏ ɪᴅ ᴀᴄɪᴍᴀ? ᴄʟɪǫᴜᴇ ᴀǫᴜɪ",
+    Callback = function()
+        if SkyCustomId == "" or not SkyCustomId then
+            pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = "ᴄᴏʟᴏǫᴜᴇ ᴜᴍ ɪᴅ ᴘʀɪᴍᴇɪʀᴏ", Duration = 3}) end)
+            return
+        end
+        ForceSkyCustom(SkyCustomId)
+        pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = "ᴀᴘʟɪᴄᴀᴅᴏ: " .. SkyCustomId, Duration = 3}) end)
+    end,
+})
+MapTab:Button({
+    Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ᴄéᴜ ᴏʀɪɢɪɴᴀʟ",
+    Callback = function() RestaurarSkyOriginal() end,
+})
+
+-- ============================================================
+-- PRESETS
+-- ============================================================
+MapTab:Section({ Title = "ꜱᴋʏʙᴏx ᴘʀᴇꜱᴇᴛꜱ" })
+
+SkyPresets = {
+    {Nome = "ɢʀᴇᴇɴ ꜱᴋʏ", ID = "113859918879279"},
+    {Nome = "ᴘɪɴᴋ ꜱᴋʏ", ID = "96902346573845"},
+    {Nome = "ᴍɪɴᴇᴄʀᴀꜰᴛ ꜱᴋʏ", ID = "96736589365838"},
+    {Nome = "ꜱᴋʏ 1", ID = "8202961731"},
+    {Nome = "ꜱᴋʏ 2", ID = "2758029221"},
+    {Nome = "ɴɪɢʜᴛ", ID = "13107361022"},
+    {Nome = "ꜱᴋʏ 4", ID = "7108851308"},
+    {Nome = "ꜱᴋʏ 5", ID = "339406852"},
+    {Nome = "ꜱᴋʏ 6", ID = "15502592084"},
+    {Nome = "ꜱᴋʏ 7", ID = "15359965253"},
+    {Nome = "ꜱᴋʏ 8", ID = "15470370280"},
+    {Nome = "ʙʟᴜᴇ ꜱᴋʏ", ID = "8808550143"},
+    {Nome = "ꜱᴋʏ 10", ID = "10594723714"},
+}
+for _, sky in ipairs(SkyPresets) do
+    MapTab:Button({
+        Title = sky.Nome,
+        Callback = function()
+            ForceSkyCustom(sky.ID)
+            pcall(function() WindUI:Notify({Title = "ꜱᴋʏʙᴏx", Content = sky.Nome, Duration = 2}) end)
+        end,
+    })
+end
+
+-- ============================================================
+-- SKY EXTRAS
+-- ============================================================
+MapTab:Section({ Title = "ꜱᴋʏ ᴇxᴛʀᴀꜱ" })
+
+MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ꜱᴏʟ", Callback = function()
+    ClearSky(); Lighting.ClockTime = 7; Lighting.Brightness = 2
+    local sky = Instance.new("Sky")
+    sky.SkyboxBk = "rbxassetid://541743453"; sky.SkyboxDn = "rbxassetid://541743443"
+    sky.SkyboxFt = "rbxassetid://541743446"; sky.SkyboxLf = "rbxassetid://541743436"
+    sky.SkyboxRt = "rbxassetid://541743435"; sky.SkyboxUp = "rbxassetid://541743441"
+    sky.Parent = Lighting
+    State.Skybox = "sol"
+end })
+MapTab:Button({ Title = "ꜱᴋʏ ᴅᴇ ʟᴜᴀ", Callback = function()
+    ClearSky(); Lighting.ClockTime = 21
+    local sky = Instance.new("Sky")
+    sky.SkyboxBk = "rbxassetid://4498828382"; sky.SkyboxDn = "rbxassetid://4498828812"
+    sky.SkyboxFt = "rbxassetid://4498829917"; sky.SkyboxLf = "rbxassetid://4498830911"
+    sky.SkyboxRt = "rbxassetid://4498830417"; sky.SkyboxUp = "rbxassetid://4498831746"
+    sky.Parent = Lighting
+    State.Skybox = "lua"
+end })
+MapTab:Button({ Title = "ʀᴇᴍᴏᴠᴇʀ ꜱᴋʏ", Callback = function() ClearSky(); State.Skybox = nil end })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 2/9 — ʙᴀʟʟ ᴀᴜᴛᴏ + ᴇꜰᴇɪᴛᴏꜱ ]]
 
 BallTab = Window:Tab({ Title = "ʙᴀʟʟ", Icon = "circle" })
 BallTab:Section({ Title = "ᴀᴜᴛᴏ ʙᴀʟʟ" })
@@ -667,7 +868,7 @@ spawn(function()
             end
         end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/9 — ʙᴀʟʟ ᴇxᴛʀᴀꜱ + ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ ᴀʀʀᴀꜱᴛáᴠᴇʟ ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/9 — ʙᴀʟʟ ᴇxᴛʀᴀꜱ + ᴘʀᴇᴅɪçãᴏ ]]
 
 BallTab:Section({ Title = "ᴄʜᴀɴɢᴇʀ ʙᴀʟʟ" })
 
@@ -938,7 +1139,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- ============================================================
--- ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ ᴀʀʀᴀꜱᴛáᴠᴇʟ
+-- BOTÃO FLUTUANTE ARRASTÁVEL
 -- ============================================================
 BallTab:Section({ Title = "ʙᴏᴛãᴏ ꜰʟᴜᴛᴜᴀɴᴛᴇ" })
 FloatGui, FloatBtn, FloatLocked = nil, nil, false
@@ -998,9 +1199,7 @@ function CriarFloatBtn()
             if math.abs(delta.X) > moveThreshold or math.abs(delta.Y) > moveThreshold then
                 movedFar = true
             end
-            local newX = startPos.X + delta.X
-            local newY = startPos.Y + delta.Y
-            FloatBtn.Position = UDim2.new(0, newX, 0, newY)
+            FloatBtn.Position = UDim2.new(0, startPos.X + delta.X, 0, startPos.Y + delta.Y)
         end
     end)
 
@@ -1143,7 +1342,8 @@ PlayerTab:Slider({Title = "ʙʀɪʟʜᴏ", Value = {Min = -100, Max = 100, Defau
     ScreenColorBrightness = v / 100; if ScreenColorEffect then ScreenColorEffect.Brightness = ScreenColorBrightness end
 end})
 PlayerTab:Button({Title = "ʀᴇꜱᴛᴀᴜʀᴀʀ ᴄᴏʀ", Callback = function()
-    if ScreenColorEffect then ScreenColorEffect:Destroy(); ScreenColorEffect = nil end    ScreenColorEnabled = false
+    if ScreenColorEffect then ScreenColorEffect:Destroy(); ScreenColorEffect = nil end
+    ScreenColorEnabled = false
 end})
 
 ScreenInvertEnabled = false
@@ -1418,10 +1618,13 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ + ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ + ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟ + ᴀɪᴍʙᴏᴛ ]]
 
 DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
+-- ============================================================
+-- BOTÕES GK
+-- ============================================================
 GKBotoes = {}
 
 function EscanearBotoesGK()
@@ -1433,8 +1636,9 @@ function EscanearBotoesGK()
                 local texto = ""
                 pcall(function() texto = v.Text end)
                 if nome:find("GK") or nome:find("C2")
-                or texto:find("Dive") or texto:find("Catch") or texto:find("High")
-                or texto:find("Low") or texto:find("Reflex") or texto:find("Forward")
+                or texto:find("Dive") or texto:find("Catch")
+                or texto:find("High") or texto:find("Low")
+                or texto:find("Reflex") or texto:find("Forward")
                 or texto:find("Front") or texto:find("Rush") then
                     table.insert(GKBotoes, {Button = v, Nome = nome, Texto = texto})
                 end
@@ -1462,93 +1666,14 @@ function ClicarBotao(botao)
     pcall(function() firesignal(botao.MouseButton1Up) end)
     pcall(function() firesignal(botao.TouchTap) end)
 end
-
-function TryFireRemote(actionName)
-    pcall(function()
-        local packages = ReplicatedStorage:FindFirstChild("Packages")
-        if not packages then return end
-        local knit = packages:FindFirstChild("Knit")
-        if not knit then return end
-        local services = knit:FindFirstChild("Services")
-        if not services then return end
-        local ballService = services:FindFirstChild("BallService")
-        if not ballService then return end
-        local re = ballService:FindFirstChild("RE")
-        if not re then return end
-        local remote = re:FindFirstChild(actionName)
-        if remote then remote:FireServer() end
-    end)
+function Pular()
+    pcall(function() Humanoid.Jump = true end)
+    pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
 end
 
-function PredizerTrajetoria(ball, tempoMax)
-    if not ball or not ball.Parent then return nil end
-    local posInicial = ball.Position
-    local velInicial = ball.AssemblyLinearVelocity
-    if velInicial.Magnitude < 1 then
-        return {posFinal = posInicial, velFinal = velInicial, tempo = 0, alturaMax = posInicial.Y, tempoAtePlayer = 0}
-    end
-    local gravity = Workspace.Gravity
-    local pos, vel = posInicial, velInicial
-    local dt, tempo = 0.05, 0
-    local alturaMax = pos.Y
-    local tempoAtePlayer = tempoMax
-    local distMin = math.huge
-    while tempo < tempoMax do
-        vel = Vector3.new(vel.X, vel.Y - gravity * dt, vel.Z)
-        pos = pos + vel * dt
-        tempo = tempo + dt
-        if pos.Y > alturaMax then alturaMax = pos.Y end
-        if RootPart then
-            local dx = pos.X - RootPart.Position.X
-            local dz = pos.Z - RootPart.Position.Z
-            local d = math.sqrt(dx*dx + dz*dz)
-            if d < distMin then
-                distMin = d
-                tempoAtePlayer = tempo
-            end
-        end
-        if pos.Y < -100 then break end
-    end
-    return {posFinal = pos, velFinal = vel, tempo = tempo, alturaMax = alturaMax, tempoAtePlayer = tempoAtePlayer}
-end
-
-function AnalisarBola()
-    local ball = CurrentFollowBall or FindClosestBall()
-    if not ball or not RootPart then return nil end
-    local vel = ball.AssemblyLinearVelocity
-    local dist = (ball.Position - RootPart.Position).Magnitude
-    local traj = PredizerTrajetoria(ball, 2.5)
-    if not traj then return nil end
-    local dirParaPlayer = RootPart.Position - ball.Position
-    local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
-    local velH = Vector3.new(vel.X, 0, vel.Z)
-    local vindo = false
-    if dirH.Magnitude > 0.1 and velH.Magnitude > 0.1 then
-        vindo = velH.Unit:Dot(dirH.Unit) > 0.1
-    end
-    local alturaNoPlayer = traj.posFinal.Y - RootPart.Position.Y
-    if vindo and traj.tempoAtePlayer < 2.5 then
-        local dt = traj.tempoAtePlayer
-        local alturaProjetada = ball.Position.Y + vel.Y * dt - 0.5 * Workspace.Gravity * dt * dt
-        alturaNoPlayer = alturaProjetada - RootPart.Position.Y
-    end
-    local camRight = Camera.CFrame.RightVector
-    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
-    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
-    direitaH = direitaH.Unit
-    local delta = ball.Position - RootPart.Position
-    local deltaH = Vector3.new(delta.X, 0, delta.Z)
-    local lado = deltaH:Dot(direitaH)
-    return {
-        ball = ball, vel = vel, dist = dist,
-        lado = lado,
-        altura = alturaNoPlayer,
-        alturaMax = traj.alturaMax - RootPart.Position.Y,
-        vindoParaPlayer = vindo,
-        trajetoria = traj,
-    }
-end
-
+-- ============================================================
+-- DASH RÁPIDO
+-- ============================================================
 DashEnabled = true
 DashSpeed = 65
 DashDuration = 0.12
@@ -1576,162 +1701,276 @@ function FastDash(targetPos)
     end)
 end
 
-function EscolherBotaoDefesa(info)
-    local altura = info.altura
-    local alturaMax = info.alturaMax
-    local lado = info.lado
-    local ladoAbs = math.abs(lado)
-    local alturaRef = math.max(altura, alturaMax * 0.6)
-
-    if ladoAbs > 3.5 then
-        if alturaRef > 4.5 then
-            return lado > 0 and "High Dive Right" or "High Dive Left", true
-        elseif alturaRef > 1.2 then
-            return lado > 0 and "Dive Right" or "Dive Left", false
-        else
-            return lado > 0 and "Dive Right" or "Dive Left", false
-        end
+-- ============================================================
+-- PREDIÇÃO E ANÁLISE
+-- ============================================================
+function PredizerTrajetoria(ball, tempoMax)
+    if not ball or not ball.Parent then return nil end
+    local posInicial = ball.Position
+    local velInicial = ball.AssemblyLinearVelocity
+    if velInicial.Magnitude < 1 then
+        return {posFinal = posInicial, velFinal = velInicial, tempo = 0, alturaMax = posInicial.Y}
     end
-
-    if alturaRef > 4.5 then
-        return "High Catch", true
+    local gravity = Workspace.Gravity
+    local pos, vel = posInicial, velInicial
+    local dt, tempo = 0.05, 0
+    local alturaMax = pos.Y
+    while tempo < tempoMax do
+        vel = Vector3.new(vel.X, vel.Y - gravity * dt, vel.Z)
+        pos = pos + vel * dt
+        tempo = tempo + dt
+        if pos.Y > alturaMax then alturaMax = pos.Y end
+        if pos.Y < -100 then break end
     end
-    if alturaRef > 2.2 then
-        return "High Catch", false
-    end
-    return "Low Catch", false
+    return {posFinal = pos, velFinal = vel, tempo = tempo, alturaMax = alturaMax}
 end
 
+function AnalisarBolaNewton()
+    local ball = CurrentFollowBall or FindClosestBall()
+    if not ball or not RootPart then return nil end
+    local vel = ball.AssemblyLinearVelocity
+    local dist = (ball.Position - RootPart.Position).Magnitude
+    local tempo = 0
+    if vel.Magnitude > 3 then
+        tempo = dist / vel.Magnitude
+        tempo = math.clamp(tempo, 0, 0.6)
+    end
+    local posFutura = ball.Position + (vel * tempo)
+    local camLook = Camera.CFrame.LookVector
+    local camRight = Camera.CFrame.RightVector
+    local frenteH = Vector3.new(camLook.X, 0, camLook.Z)
+    if frenteH.Magnitude < 0.1 then frenteH = Vector3.new(0, 0, -1) end
+    frenteH = frenteH.Unit
+    local direitaH = Vector3.new(camRight.X, 0, camRight.Z)
+    if direitaH.Magnitude < 0.1 then direitaH = Vector3.new(1, 0, 0) end
+    direitaH = direitaH.Unit
+    local delta = posFutura - RootPart.Position
+    local deltaH = Vector3.new(delta.X, 0, delta.Z)
+    local lado = deltaH:Dot(direitaH)
+    local altura = posFutura.Y - RootPart.Position.Y
+    local frenteDist = deltaH:Dot(frenteH)
+
+    local dirParaPlayer = RootPart.Position - ball.Position
+    local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
+    local velH = Vector3.new(vel.X, 0, vel.Z)
+    local vindo = false
+    if dirH.Magnitude > 0.1 and velH.Magnitude > 0.1 then
+        vindo = velH.Unit:Dot(dirH.Unit) > 0.15
+    end
+
+    return {
+        ball = ball, vel = vel, dist = dist,
+        posFutura = posFutura,
+        lado = lado,
+        altura = altura,
+        frente = frenteDist,
+        vindoParaPlayer = vindo,
+    }
+end
+
+-- ============================================================
+-- AIMBOT (redireciona bola pro gol)
+-- ============================================================
+AimbotBlueEnabled = false
+AimbotGreenEnabled = false
+AimbotForce = 0.25
+
+function doAimbot(direcaoGol)
+    local ball = GetValidBall()
+    if not ball or not ball.Parent then return end
+    if not RootPart or not RootPart.Parent then return end
+    local vel = ball.AssemblyLinearVelocity
+    if vel.Magnitude < 15 then return end
+    local golPos = ScanGoalPosition(direcaoGol)
+    if not golPos then return end
+    local dirGol = (Vector3.new(golPos.X - ball.Position.X, 0, golPos.Z - ball.Position.Z)).Unit
+    local velH = Vector3.new(vel.X, 0, vel.Z)
+    if velH.Magnitude < 0.1 then return end
+    local velAlvo = velH.Unit:Lerp(dirGol, AimbotForce)
+    ball.AssemblyLinearVelocity = Vector3.new(velAlvo.X * velH.Magnitude, vel.Y, velAlvo.Z * velH.Magnitude)
+    ball.AssemblyAngularVelocity = Vector3.zero
+end
+
+RunService.PreRender:Connect(function()
+    if AimbotBlueEnabled then doAimbot("Blue") end
+    if AimbotGreenEnabled then doAimbot("Green") end
+end)
+
+DriveTab:Section({ Title = "ᴀɪᴍʙᴏᴛ" })
+DriveTab:Toggle({Title = "ᴀɪᴍʙᴏᴛ ʙʟᴜᴇ", Desc = "ʀᴇᴅɪʀᴇᴄɪᴏɴᴀ ʙᴏʟᴀ ᴘʀᴏ ɢᴏʟ ᴀᴢᴜʟ", Value = false, Callback = function(v) AimbotBlueEnabled = v end})
+DriveTab:Toggle({Title = "ᴀɪᴍʙᴏᴛ ɢʀᴇᴇɴ", Desc = "ʀᴇᴅɪʀᴇᴄɪᴏɴᴀ ʙᴏʟᴀ ᴘʀᴏ ɢᴏʟ ᴠᴇʀᴅᴇ", Value = false, Callback = function(v) AimbotGreenEnabled = v end})
+DriveTab:Slider({Title = "ꜰᴏʀçᴀ ᴅᴏ ᴀɪᴍʙᴏᴛ", Value = {Min = 5, Max = 100, Default = 25, Suffix = " x0.01"}, Callback = function(v) AimbotForce = v / 100 end})
+
+-- ============================================================
+-- AUTODIVE
+-- ============================================================
 AutoDiveEnabled = false
-AutoDiveRange = 60
-AutoDiveCooldown = 0.15
+AutoDiveRange = 15
+AutoDiveCooldown = 0.8
 AutoDiveLast = 0
-AutoDiveMoveEnabled = true
-AutoDiveDashEnabled = true
+AutoDiveMode = "Auto"
+AutoDiveBloquearSeIntel = true
+AutoDiveHeightThreshold = 3.5
 
-function ExecutarDive()
-    local info = AnalisarBola()
+GK_BUTTON_TEXTS = {
+    ["Esquerda Alto"] = "High Dive Left",
+    ["Direita Alto"]  = "High Dive Right",
+    ["Esquerda Baixo"] = "Dive Left",
+    ["Direita Baixo"] = "Dive Right",
+    ["Agarrar Alto"]  = "High Catch",
+    ["Agarrar Baixo"] = "Low Catch",
+    ["Reflexo"]       = "Reflex",
+    ["Frente"]        = "Front Dive",
+    ["Enfrentar"]     = "Rush",
+}
+
+function ExecutarAutoDive()
+    local info = AnalisarBolaNewton()
     if not info then return end
-    if not info.vindoParaPlayer then
-        if info.dist > 3 then return end
+    local lado = info.lado
+    local altura = info.altura
+    local textoAlvo
+    if AutoDiveMode ~= "Auto" then
+        textoAlvo = GK_BUTTON_TEXTS[AutoDiveMode]
+    else
+        if altura > AutoDiveHeightThreshold then
+            textoAlvo = lado > 0 and "High Dive Right" or "High Dive Left"
+        else
+            textoAlvo = lado > 0 and "Dive Right" or "Dive Left"
+        end
     end
-    local texto, pular = EscolherBotaoDefesa(info)
-    if not texto then return end
-
-    if AutoDiveDashEnabled and info.trajetoria then
-        FastDash(info.trajetoria.posFinal)
-    end
-
-    TryFireRemote("Dive")
-    TryFireRemote("Catch")
-
-    if pular then
-        task.spawn(function()
-            pcall(function() Humanoid.Jump = true end)
-            pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
-        end)
-        task.wait(0.05)
-    end
-
-    local botao = EncontrarBotaoPorTexto(texto)
+    if not textoAlvo then return end
+    local botao = EncontrarBotaoPorTexto(textoAlvo)
     if botao then ClicarBotao(botao) end
 end
 
-DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ" })
-DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Value = false, Callback = function(v) AutoDiveEnabled = v end})
-DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) AutoDiveMoveEnabled = v end})
-DriveTab:Toggle({Title = "ᴅᴀꜱʜ ʀáᴘɪᴅᴏ", Value = true, Callback = function(v) AutoDiveDashEnabled = v end})
-DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 20, Max = 200, Default = 60}, Callback = function(v) AutoDiveRange = v end})
-DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 15, Suffix = " x0.01s"}, Callback = function(v) AutoDiveCooldown = v / 100 end})
-DriveTab:Button({Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ", Callback = function()
-    EscanearBotoesGK(); pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
-end})
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅɪᴠᴇ" })
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅɪᴠᴇ", Value = false, Callback = function(v) AutoDiveEnabled = v end})
+DriveTab:Dropdown({
+    Title = "ᴍᴏᴅᴏ ᴅᴏ ᴅɪᴠᴇ",
+    Values = {"Auto", "Esquerda Alto", "Direita Alto", "Esquerda Baixo", "Direita Baixo", "Agarrar Alto", "Agarrar Baixo", "Reflexo", "Frente", "Enfrentar"},
+    Value = "Auto",
+    Callback = function(v) AutoDiveMode = v end,
+})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 30, Default = 15}, Callback = function(v) AutoDiveRange = v end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 50, Default = 8, Suffix = " x0.1s"}, Callback = function(v) AutoDiveCooldown = v / 10 end})
+DriveTab:Slider({Title = "ᴀʟᴛᴜʀᴀ ᴘᴀʀᴀ ᴅɪᴠᴇ ᴀʟᴛᴏ", Value = {Min = 1, Max = 10, Default = 35, Suffix = " x0.1"}, Callback = function(v) AutoDiveHeightThreshold = v / 10 end})
+DriveTab:Toggle({Title = "ᴘᴀᴜꜱᴀʀ ᴅɪᴠᴇ ꜱᴇ ɪɴᴛᴇʟ ᴏɴ", Value = true, Callback = function(v) AutoDiveBloquearSeIntel = v end})
+
+-- ============================================================
+-- AUTO CATCH INTEL
+-- ============================================================
+AutoCatchIntelEnabled = false
+AutoCatchIntelRange = 16
+AutoCatchIntelCooldown = 0.35
+AutoCatchIntelLast = 0
+AutoCatchIntelHeight = 3.5
+
+function ExecutarAutoCatchIntel()
+    local info = AnalisarBolaNewton()
+    if not info then return end
+    local lado = info.lado
+    local altura = info.altura
+    local ladoAbs = math.abs(lado)
+    local bolaAlta = altura > AutoCatchIntelHeight
+    local bolaLateral = ladoAbs >= 2.5
+
+    if bolaLateral then
+        if bolaAlta then
+            local textoDive = lado < 0 and "High Dive Left" or "High Dive Right"
+            local botaoDive = EncontrarBotaoPorTexto(textoDive)
+            if botaoDive then ClicarBotao(botaoDive) end
+        else
+            local botao = EncontrarBotaoPorTexto("Low Catch")
+            if botao then ClicarBotao(botao) end
+        end
+    else
+        if bolaAlta then
+            task.spawn(Pular)
+            task.wait(0.05)
+            local botao = EncontrarBotaoPorTexto("High Catch")
+            if botao then ClicarBotao(botao) end
+        else
+            local botao = EncontrarBotaoPorTexto("Low Catch")
+            if botao then ClicarBotao(botao) end
+        end
+    end
+end
 
 RunService.Heartbeat:Connect(function()
+    if not AutoCatchIntelEnabled then return end
+    if not RootPart or not RootPart.Parent then return end
+    if tick() - AutoCatchIntelLast < AutoCatchIntelCooldown then return end
+    local info = AnalisarBolaNewton()
+    if not info then return end
+    if info.dist > AutoCatchIntelRange then return end
+    if info.vel.Magnitude < 4 then return end
+    if info.vindoParaPlayer then
+        AutoCatchIntelLast = tick()
+        task.spawn(ExecutarAutoCatchIntel)
+    end
+end)
+
+DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟ" })
+DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ɪɴᴛᴇʟ", Desc = "ᴇꜱᴄᴏʟʜᴇ ʙᴏᴛãᴏ ᴘᴏʀ ʟᴀᴅᴏ + ᴀʟᴛᴜʀᴀ", Value = false, Callback = function(v) AutoCatchIntelEnabled = v end})
+DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 5, Max = 35, Default = 16}, Callback = function(v) AutoCatchIntelRange = v end})
+DriveTab:Slider({Title = "ᴀʟᴛᴜʀᴀ ᴍíɴɪᴍᴀ", Value = {Min = 10, Max = 100, Default = 35, Suffix = " x0.1"}, Callback = function(v) AutoCatchIntelHeight = v / 10 end})
+DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 20, Default = 35, Suffix = " x0.01s"}, Callback = function(v) AutoCatchIntelCooldown = v / 100 end})
+
+-- ============================================================
+-- LOOP PRINCIPAL DO AUTODIVE
+-- ============================================================
+RunService.Heartbeat:Connect(function()
     if not AutoDiveEnabled then return end
+    if AutoDiveBloquearSeIntel and AutoCatchIntelEnabled then return end
     if not RootPart or not RootPart.Parent or not Humanoid then return end
-    local info = AnalisarBola()
+    if tick() - AutoDiveLast < AutoDiveCooldown then return end
+    local info = AnalisarBolaNewton()
     if not info then return end
     if info.dist > AutoDiveRange then return end
+    if info.vel.Magnitude < 5 then return end
+    if info.vindoParaPlayer then
+        AutoDiveLast = tick()
+        task.spawn(ExecutarAutoDive)
+    end
+end)
 
-    if AutoDiveMoveEnabled and info.vindoParaPlayer then
-        local destino = info.trajetoria.posFinal
-        local flat = destino - RootPart.Position
-        local flatH = Vector3.new(flat.X, 0, flat.Z)
-        if flatH.Magnitude > 1.5 and flatH.Magnitude < 50 and not DashVelocity then
+-- ============================================================
+-- MOVER PARA INTERCEPTAR
+-- ============================================================
+AutoMoveIntercept = true
+AutoMoveInterceptDash = true
+
+DriveTab:Section({ Title = "ᴍᴏᴠɪᴍᴇɴᴛᴏ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ" })
+DriveTab:Toggle({Title = "ᴍᴏᴠᴇʀ ᴘᴀʀᴀ ɪɴᴛᴇʀᴄᴇᴘᴛᴀʀ", Value = true, Callback = function(v) AutoMoveIntercept = v end})
+DriveTab:Toggle({Title = "ᴜꜱᴀʀ ᴅᴀꜱʜ ʀáᴘɪᴅᴏ", Value = true, Callback = function(v) AutoMoveInterceptDash = v end})
+DriveTab:Slider({Title = "ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴏ ᴅᴀꜱʜ", Value = {Min = 20, Max = 150, Default = 65}, Callback = function(v) DashSpeed = v end})
+
+RunService.Heartbeat:Connect(function()
+    if not AutoMoveIntercept then return end
+    if not RootPart or not RootPart.Parent or not Humanoid then return end
+    local info = AnalisarBolaNewton()
+    if not info then return end
+    if not info.vindoParaPlayer then return end
+    if info.vel.Magnitude < 3 then return end
+    local traj = PredizerTrajetoria(info.ball, 2.0)
+    if not traj then return end
+    local destino = traj.posFinal
+    local flat = destino - RootPart.Position
+    local flatH = Vector3.new(flat.X, 0, flat.Z)
+    if flatH.Magnitude > 1.5 and flatH.Magnitude < 50 then
+        if AutoMoveInterceptDash and flatH.Magnitude > 8 then
+            FastDash(destino)
+        else
             Humanoid:Move(flatH.Unit, false)
         end
     end
-
-    if tick() - AutoDiveLast >= AutoDiveCooldown then
-        AutoDiveLast = tick()
-        task.spawn(ExecutarDive)
-    end
 end)
 
-AutoCatchMaxEnabled = false
-AutoCatchMaxRange = 12
-AutoCatchMaxLast = 0
-AutoCatchMaxCooldown = 0.25
-AutoCatchMaxMode = "Auto"
-
-function ClassificarAltura(altura)
-    if altura > 4.5 then return "HIGH_JUMP" end
-    if altura > 2.2 then return "HIGH" end
-    if altura > 0.5 then return "MID" end
-    return "LOW"
-end
-
-function ExecutarAutoCatchMax()
-    local info = AnalisarBola()
-    if not info then return end
-    if info.dist > AutoCatchMaxRange then return end
-    if not info.vindoParaPlayer and info.vel.Magnitude < 5 then
-        if info.dist > 6 then return end
-    end
-    local classe = ClassificarAltura(info.altura)
-    local texto, pular
-    if AutoCatchMaxMode ~= "Auto" then
-        if AutoCatchMaxMode == "ᴀʟᴛᴏ + ᴘᴜʟᴏ" then texto = "High Catch"; pular = true
-        elseif AutoCatchMaxMode == "ᴀʟᴛᴏ" then texto = "High Catch"; pular = false
-        elseif AutoCatchMaxMode == "ʙᴀɪxᴏ" then texto = "Low Catch"; pular = false
-        end
-    else
-        if classe == "HIGH_JUMP" then texto = "High Catch"; pular = true
-        elseif classe == "HIGH" then texto = "High Catch"; pular = false
-        elseif classe == "MID" then texto = "High Catch"; pular = false
-        else texto = "Low Catch"; pular = false end
-    end
-    if not texto then return end
-    if pular then
-        task.spawn(function()
-            pcall(function() Humanoid.Jump = true end)
-            pcall(function() Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
-        end)
-        task.wait(0.05)
-    end
-    local botao = EncontrarBotaoPorTexto(texto)
-    if botao then ClicarBotao(botao) end
-end
-
-RunService.Heartbeat:Connect(function()
-    if not AutoCatchMaxEnabled then return end
-    if not RootPart or not RootPart.Parent or not Humanoid then return end
-    if tick() - AutoCatchMaxLast < AutoCatchMaxCooldown then return end
-    AutoCatchMaxLast = tick()
-    task.spawn(ExecutarAutoCatchMax)
-end)
-
-DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx" })
-DriveTab:Toggle({Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ ᴍᴀx", Value = false, Callback = function(v) AutoCatchMaxEnabled = v end})
-DriveTab:Dropdown({
-    Title = "ᴍᴏᴅᴏ",
-    Values = {"Auto", "ᴀʟᴛᴏ + ᴘᴜʟᴏ", "ᴀʟᴛᴏ", "ʙᴀɪxᴏ"},
-    Value = "Auto",
-    Callback = function(v) AutoCatchMaxMode = v end,
-})
-DriveTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 3, Max = 40, Default = 12}, Callback = function(v) AutoCatchMaxRange = v end})
-DriveTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 3, Suffix = " x0.1s"}, Callback = function(v) AutoCatchMaxCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
+DriveTab:Button({Title = "ʀᴇᴇꜱᴄᴀɴᴇᴀʀ ʙᴏᴛõᴇꜱ ɢᴋ", Desc = "ᴜꜱᴇ ᴅᴇᴘᴏɪꜱ ᴅᴇ ᴇɴᴛʀᴀʀ ᴄᴏᴍᴏ ɢᴏʟᴇɪʀᴏ", Callback = function()
+    EscanearBotoesGK()
+    pcall(function() WindUI:Notify({Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Content = #GKBotoes .. " ʙᴏᴛõᴇꜱ ᴇɴᴄᴏɴᴛʀᴀᴅᴏꜱ", Duration = 3}) end)
+end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
 
 FlagTab = Window:Tab({ Title = "ꜰʟᴀɢ", Icon = "zap" })
 FlagTab:Section({ Title = "ᴏᴛɪᴍɪᴢᴀçãᴏ" })
@@ -2022,326 +2261,66 @@ end})
 TrollTab:Dropdown({Title = "ᴍᴏᴅᴏ", Values = {"Nearest", "All"}, Value = "Nearest", Callback = function(v) SilentKickMode = v end})
 TrollTab:Slider({Title = "ᴀʟᴄᴀɴᴄᴇ", Value = {Min = 10, Max = 200, Default = 50}, Callback = function(v) SilentKickRange = v end})
 TrollTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 100, Max = 800, Default = 250}, Callback = function(v) SilentKickPower = v end})
-TrollTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 100, Default = 10, Suffix = " x0.1s"}, Callback = function(v) SilentKickCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 9/9 — ᴀᴜᴛᴏ ꜰᴀʀᴍ + ᴜᴛɪʟꜱ + ɪɴꜰᴏ + ꜰɪɴᴀʟɪᴢᴀçãᴏ ]]
+TrollTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 100, Default = 10, Suffix = " x0.1s"}, Callback = function(v) SilentKickCooldown = v / 10 end})--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 9/9 — ᴄʀéᴅɪᴛᴏꜱ + ꜰɪɴᴀʟɪᴢᴀçãᴏ ]]
 
-FarmTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ꜰᴀʀᴍ", Icon = "repeat" })
+-- ============================================================
+-- ABA CRÉDITOS
+-- ============================================================
+CreditosTab = Window:Tab({ Title = "ᴄʀéᴅɪᴛᴏꜱ", Icon = "heart" })
 
-GOAL_COORDS = {
-    Blue  = Vector3.new(-9, -27, -199),
-    Green = Vector3.new(-20, -29, 379),
-}
-AUTO_GOL_CFRAMES = {
-    Blue  = {Vector3.new(-32.18, -28.94, -203.58)},
-    Green = {Vector3.new(-34.06, -28.94, 383.88), Vector3.new(-3.92, -28.94, 388.81)},
-}
-
-function GetMyTeam()
-    local team = LocalPlayer.Team
-    if not team then return nil end
-    local nome = string.lower(team.Name)
-    if nome:find("blue") or nome:find("azul") or nome:find("team1") or nome:find("time1") then return "Blue" end
-    if nome:find("green") or nome:find("verde") or nome:find("team2") or nome:find("time2") then return "Green" end
-    local tc = LocalPlayer.TeamColor
-    if tc then
-        local tcName = string.lower(tc.Name)
-        if tcName:find("blue") or tcName:find("azul") then return "Blue" end
-        if tcName:find("green") or tcName:find("verde") then return "Green" end
-    end
-    return nil
-end
-
-function GetEnemyGoalPosition()
-    local myTeam = GetMyTeam()
-    if myTeam == "Blue" then return GOAL_COORDS.Green, "Green"
-    elseif myTeam == "Green" then return GOAL_COORDS.Blue, "Blue" end
-    local _, _, root = GetCharacterData()
-    if root then
-        local dBlue = (GOAL_COORDS.Blue - root.Position).Magnitude
-        local dGreen = (GOAL_COORDS.Green - root.Position).Magnitude
-        if dBlue > dGreen then return GOAL_COORDS.Blue, "Blue"
-        else return GOAL_COORDS.Green, "Green" end
-    end
-    return GOAL_COORDS.Green, "Green"
-end
-
-FarmTab:Section({ Title = "ᴀɪᴍ ɢᴏᴀʟ" })
-AimGoalEnabled = false
-AimGoalForce = 180
-AimGoalArcY = 25
-AimGoalCooldown = 0.4
-AimGoalLast = 0
-AimGoalDetectionThreshold = 25
-AimGoalVisualEnabled = false
-AimGoalMarker, AimGoalBeam, AimGoalBeamPart = nil, nil, nil
-
-function CriarAimVisual()
-    if AimGoalMarker then AimGoalMarker:Destroy() end
-    if AimGoalBeamPart then AimGoalBeamPart:Destroy() end
-    AimGoalMarker = Instance.new("Part")
-    AimGoalMarker.Shape = Enum.PartType.Ball
-    AimGoalMarker.Size = Vector3.new(8, 8, 8)
-    AimGoalMarker.Material = Enum.Material.ForceField
-    AimGoalMarker.Color = Color3.fromRGB(255, 50, 50)
-    AimGoalMarker.Transparency = 0.5
-    AimGoalMarker.CanCollide = false; AimGoalMarker.CanQuery = false
-    AimGoalMarker.CanTouch = false; AimGoalMarker.Anchored = true
-    AimGoalMarker.Parent = Workspace
-    AimGoalBeamPart = Instance.new("Part")
-    AimGoalBeamPart.Size = Vector3.new(1, 1, 1)
-    AimGoalBeamPart.Transparency = 1
-    AimGoalBeamPart.CanCollide = false; AimGoalBeamPart.CanQuery = false
-    AimGoalBeamPart.Anchored = true
-    AimGoalBeamPart.Parent = Workspace
-    local a0 = Instance.new("Attachment", AimGoalBeamPart); a0.Name = "AimA0"
-    local a1 = Instance.new("Attachment", AimGoalBeamPart); a1.Name = "AimA1"
-    AimGoalBeam = Instance.new("Beam")
-    AimGoalBeam.Attachment0 = a0; AimGoalBeam.Attachment1 = a1
-    AimGoalBeam.Color = ColorSequence.new(Color3.fromRGB(255, 50, 50))
-    AimGoalBeam.Width0 = 0.4; AimGoalBeam.Width1 = 0.4
-    AimGoalBeam.FaceCamera = true; AimGoalBeam.LightEmission = 1
-    AimGoalBeam.Transparency = NumberSequence.new(0.3)
-    AimGoalBeam.Parent = AimGoalBeamPart
-end
-function DestruirAimVisual()
-    if AimGoalMarker then AimGoalMarker:Destroy(); AimGoalMarker = nil end
-    if AimGoalBeam then AimGoalBeam:Destroy(); AimGoalBeam = nil end
-    if AimGoalBeamPart then AimGoalBeamPart:Destroy(); AimGoalBeamPart = nil end
-end
-
-BolaJaRedirecionada = false
-RunService.Heartbeat:Connect(function()
-    if not AimGoalEnabled then
-        if AimGoalVisualEnabled then DestruirAimVisual() end
-        return
-    end
-    if tick() - AimGoalLast < AimGoalCooldown then return end
-    local ball = GetValidBall()
-    if not ball or not ball.Parent then return end
-    local vel = ball.AssemblyLinearVelocity
-    local velMag = vel.Magnitude
-    if velMag < AimGoalDetectionThreshold then BolaJaRedirecionada = false; return end
-    if BolaJaRedirecionada then return end
-    local golPos = GetEnemyGoalPosition()
-    if not golPos then return end
-    if AimGoalVisualEnabled then
-        if not AimGoalMarker or not AimGoalMarker.Parent then CriarAimVisual() end
+CreditosTab:Section({ Title = "ᴅᴏɴᴏ ᴅᴏ ꜱᴄʀɪᴘᴛ" })
+CreditosTab:Button({
+    Title = "𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕭𝖆𝖓𝖉𝖝𝖘",
+    Desc = "ᴄʀɪᴀᴅᴏʀ ᴇ ᴅᴏɴᴏ ᴅᴏ ꜱᴄʀɪᴘᴛ",
+    Callback = function()
         pcall(function()
-            AimGoalMarker.Position = golPos
-            local dir = golPos - ball.Position
-            AimGoalBeamPart.Position = ball.Position
-            if dir.Magnitude > 0.1 then AimGoalBeamPart.CFrame = CFrame.new(ball.Position, golPos) end
-            local a0 = AimGoalBeamPart:FindFirstChild("AimA0")
-            local a1 = AimGoalBeamPart:FindFirstChild("AimA1")
-            if a0 and a1 then
-                a0.Position = Vector3.new(0, 0, 0)
-                a1.Position = Vector3.new(0, 0, -dir.Magnitude)
-            end
+            if setclipboard then setclipboard("𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕭𝖆𝖓𝖉𝖝𝖘") end
         end)
-    end
-    local dirGol = golPos - ball.Position
-    local dirH = Vector3.new(dirGol.X, 0, dirGol.Z)
-    if dirH.Magnitude < 0.1 then return end
-    local novaVel = dirH.Unit * AimGoalForce + Vector3.new(0, AimGoalArcY, 0)
-    pcall(function()
-        ball.AssemblyLinearVelocity = ball.AssemblyLinearVelocity:Lerp(novaVel, 0.9)
-        ball.AssemblyAngularVelocity = Vector3.new(math.random(-15,15), math.random(-15,15), math.random(-15,15))
-    end)
-    if FTI then
-        pcall(function()
-            firetouchinterest(RootPart, ball, 0)
-            firetouchinterest(RootPart, ball, 1)
-        end)
-    end
-    BolaJaRedirecionada = true
-    AimGoalLast = tick()
-end)
-
-FarmTab:Toggle({
-    Title = "ᴀɪᴍ ɢᴏᴀʟ",
-    Desc = "ᴛᴏᴅᴏ ᴄʜᴜᴛᴇ ᴠᴀɪ ᴘᴀʀᴀ ᴏ ɢᴏʟ ɪɴɪᴍɪɢᴏ",
-    Value = false,
-    Callback = function(v)
-        AimGoalEnabled = v
-        if v then
-            local myTeam = GetMyTeam()
-            local _, golTeam = GetEnemyGoalPosition()
-            pcall(function() WindUI:Notify({Title = "ᴀɪᴍ ɢᴏᴀʟ", Content = "ᴛɪᴍᴇ: " .. (myTeam or "?") .. " -> ᴀʟᴠᴏ: " .. (golTeam or "?"), Duration = 4}) end)
-        else DestruirAimVisual() end
+        pcall(function() WindUI:Notify({Title = "ᴄʀéᴅɪᴛᴏꜱ", Content = "ᴄᴏᴘɪᴀᴅᴏ: 𝕿𝖍𝖊𝕬𝖓𝖌𝖊𝖑𝕭𝖆𝖓𝖉𝖝𝖘", Duration = 3}) end)
     end,
 })
-FarmTab:Slider({Title = "ꜰᴏʀçᴀ ᴅᴏ ᴄʜᴜᴛᴇ", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AimGoalForce = v end})
-FarmTab:Slider({Title = "ᴀʀᴄᴏ", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AimGoalArcY = v end})
-FarmTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AimGoalCooldown = v / 10 end})
-FarmTab:Slider({Title = "ᴅᴇᴛᴇᴄçãᴏ ᴅᴇ ᴄʜᴜᴛᴇ", Value = {Min = 10, Max = 80, Default = 25, Suffix = " ꜱᴛᴜᴅ/ꜱ"}, Callback = function(v) AimGoalDetectionThreshold = v end})
-FarmTab:Toggle({Title = "ᴠɪꜱᴜᴀʟ ᴅᴏ ᴀɪᴍ ɢᴏᴀʟ", Value = false, Callback = function(v) AimGoalVisualEnabled = v; if not v then DestruirAimVisual() end end})
-FarmTab:Button({Title = "ᴠᴇʀ ᴍᴇᴜ ᴛɪᴍᴇ ᴇ ᴀʟᴠᴏ", Callback = function()
-    print("Meu time:", GetMyTeam() or "?")
-    local gp, gt = GetEnemyGoalPosition()
-    print("Gol inimigo:", gt, "| Pos:", tostring(gp))
-    pcall(function() WindUI:Notify({Title = "ᴀɪᴍ ɢᴏᴀʟ", Content = "ᴠᴇᴊᴀ ᴏ ᴄᴏɴꜱᴏʟᴇ (ꜰ9)", Duration = 3}) end)
-end})
 
-FarmTab:Section({ Title = "ᴀᴜᴛᴏ ɢᴏʟ" })
-AutoGolBlueEnabled = false
-AutoGolGreenEnabled = false
-AutoGolCooldown = 0.4
-AutoGolLast = 0
-AutoGolForce = 180
-AutoGolArcY = 25
-
-function CheckAutoGol()
-    if not AutoGolBlueEnabled and not AutoGolGreenEnabled then return end
-    if not RootPart or not RootPart.Parent then return end
-    if tick() - AutoGolLast < AutoGolCooldown then return end
-    local ball = GetValidBall()
-    if not ball or not ball.Parent then return end
-    if (ball.Position - RootPart.Position).Magnitude > 6 then return end
-    local target
-    if AutoGolBlueEnabled and AutoGolGreenEnabled then
-        target = math.random() < 0.5 and AUTO_GOL_CFRAMES.Blue[1] or AUTO_GOL_CFRAMES.Green[1]
-    elseif AutoGolBlueEnabled then target = AUTO_GOL_CFRAMES.Blue[1]
-    elseif AutoGolGreenEnabled then target = AUTO_GOL_CFRAMES.Green[1] end
-    if not target then return end
-    AutoGolLast = tick()
-    local dir = target - ball.Position
-    local dirH = Vector3.new(dir.X, 0, dir.Z)
-    if dirH.Magnitude < 0.1 then return end
-    local shootVec = dirH.Unit * AutoGolForce + Vector3.new(0, AutoGolArcY, 0)
-    pcall(function()
-        ball.AssemblyLinearVelocity = ball.AssemblyLinearVelocity:Lerp(shootVec, 0.85)
-        ball.AssemblyAngularVelocity = Vector3.new(math.random(-15,15), math.random(-15,15), math.random(-15,15))
-    end)
-    if FTI then
+CreditosTab:Section({ Title = "ᴀʟɪᴀᴅᴏ" })
+CreditosTab:Button({
+    Title = "xinelo_fps001_20098",
+    Desc = "ᴀʟɪᴀᴅᴏ ᴅᴏ ᴘʀᴏᴊᴇᴛᴏ",
+    Callback = function()
         pcall(function()
-            firetouchinterest(RootPart, ball, 0)
-            firetouchinterest(RootPart, ball, 1)
+            if setclipboard then setclipboard("xinelo_fps001_20098") end
         end)
-    end
-end
-
-FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ʙʟᴜᴇ", Value = false, Callback = function(v) AutoGolBlueEnabled = v end})
-FarmTab:Toggle({Title = "ᴀᴜᴛᴏ ɢᴏʟ ɢʀᴇᴇɴ", Value = false, Callback = function(v) AutoGolGreenEnabled = v end})
-FarmTab:Slider({Title = "ꜰᴏʀçᴀ", Value = {Min = 50, Max = 500, Default = 180}, Callback = function(v) AutoGolForce = v end})
-FarmTab:Slider({Title = "ᴀʀᴄᴏ", Value = {Min = 0, Max = 100, Default = 25}, Callback = function(v) AutoGolArcY = v end})
-FarmTab:Slider({Title = "ᴄᴏᴏʟᴅᴏᴡɴ", Value = {Min = 1, Max = 30, Default = 4, Suffix = " x0.1s"}, Callback = function(v) AutoGolCooldown = v / 10 end})
-RunService.PreRender:Connect(CheckAutoGol)
-
-UtilsTab = Window:Tab({ Title = "ᴜᴛɪʟꜱ", Icon = "settings-2" })
-
-UtilsTab:Section({ Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇꜱ" })
-function TeleportTo(pos)
-    if not RootPart or not RootPart.Parent then return end
-    if typeof(pos) == "Vector3" then
-        RootPart.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
-        RootPart.AssemblyLinearVelocity = Vector3.zero
-    end
-end
-UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴀ ʙᴀʟʟ", Callback = function()
-    local ball = GetValidBall()
-    if ball then TeleportTo(ball.Position); pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴀ ʙᴀʟʟ", Duration = 2}) end) end
-end})
-UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴏ ɢᴏʟ ɪɴɪᴍɪɢᴏ", Callback = function()
-    local gp = GetEnemyGoalPosition()
-    if gp then TeleportTo(gp); pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴏ ɢᴏʟ", Duration = 2}) end) end
-end})
-UtilsTab:Button({Title = "ɪʀ ᴘᴀʀᴀ ᴏ ᴄᴇɴᴛʀᴏ", Callback = function()
-    TeleportTo(Vector3.new(0, 5, 0))
-    pcall(function() WindUI:Notify({Title = "ᴛᴇʟᴇᴘᴏʀᴛᴇ", Content = "ɪɴᴅᴏ ᴘᴀʀᴀ ᴏ ᴄᴇɴᴛʀᴏ", Duration = 2}) end)
-end})
-UtilsTab:Button({Title = "ʟᴀɴçᴀʀ ᴘᴀʀᴀ ʟᴏɴɢᴇ", Callback = function()
-    if RootPart then RootPart.AssemblyLinearVelocity = Vector3.new(0, 500, 0) end
-end})
-
-UtilsTab:Section({ Title = "ᴍᴏᴠɪᴍᴇɴᴛᴏ ᴇxᴛʀᴀ" })
-AntiFlingEnabled = false
-UtilsTab:Toggle({Title = "ᴀɴᴛɪ-ꜰʟɪɴɢ", Desc = "ᴛʀᴀᴠᴀ ᴠᴇʟᴏᴄɪᴅᴀᴅᴇ ᴅᴏ ʀᴏᴏᴛᴘᴀʀᴛ", Value = false, Callback = function(v)
-    AntiFlingEnabled = v
-    if v then
-        spawn(function()
-            while AntiFlingEnabled do
-                task.wait(0.1)
-                if RootPart and RootPart.Parent then
-                    pcall(function()
-                        local v3 = RootPart.AssemblyLinearVelocity
-                        if v3.Magnitude > 200 then RootPart.AssemblyLinearVelocity = v3.Unit * 200 end
-                        RootPart.AssemblyAngularVelocity = Vector3.zero
-                    end)
-                end
-            end
-        end)
-    end
-end})
-
-UtilsTab:Section({ Title = "ɪɴꜰᴏ ᴅᴏ ᴊᴏɢᴏ" })
-InfoLabel = nil
-pcall(function()
-    InfoLabel = UtilsTab:Paragraph({
-        Title = "ᴇꜱᴛᴀᴅᴏ ᴀᴛᴜᴀʟ",
-        Desc = "ᴛɪᴍᴇ: ? | ʙᴀʟʟ: ? | ᴅɪꜱᴛ: ?",
-    })
-end)
-
-spawn(function()
-    while task.wait(1) do
-        pcall(function()
-            local myTeam = GetMyTeam() or "?"
-            local ball = GetValidBall()
-            local distStr = "?"
-            if ball and RootPart then
-                distStr = string.format("%.1f", (ball.Position - RootPart.Position).Magnitude)
-            end
-            local txt = "ᴛɪᴍᴇ: " .. myTeam .. " | ʙᴀʟʟ: " .. (ball and "ᴏᴋ" or "ɴᴏ") .. " | ᴅɪꜱᴛ: " .. distStr
-            if InfoLabel and InfoLabel.SetDesc then InfoLabel:SetDesc(txt) end
-        end)
-    end
-end)
-
-UtilsTab:Button({Title = "ᴄᴏᴘɪᴀʀ ᴇꜱᴛᴀᴅᴏ", Callback = function()
-    local myTeam = GetMyTeam() or "?"
-    local _, golTeam = GetEnemyGoalPosition()
-    local txt = string.format("ᴛɪᴍᴇ: %s | ᴀʟᴠᴏ: %s | ꜰᴏʀçᴀ ᴀɪᴍ: %d | ꜰᴏʀçᴀ ᴀᴜᴛᴏ: %d",
-        myTeam, golTeam or "?", AimGoalForce, AutoGolForce)
-    if setclipboard then pcall(setclipboard, txt) end
-    print(txt)
-    pcall(function() WindUI:Notify({Title = "ɪɴꜰᴏ", Content = "ᴄᴏᴘɪᴀᴅᴏ ᴘᴀʀᴀ ᴏ ᴄʟɪᴘʙᴏᴀʀᴅ", Duration = 3}) end)
-end})
-
-UtilsTab:Section({ Title = "ᴀçõᴇꜱ ɢʟᴏʙᴀɪꜱ" })
-UtilsTab:Button({Title = "ᴅᴇꜱʟɪɢᴀʀ ᴛᴏᴅᴏꜱ ᴏꜱ ᴛᴏɢɢʟᴇꜱ ᴅᴇ ꜰᴀʀᴍ", Callback = function()
-    AimGoalEnabled = false
-    AutoGolBlueEnabled = false
-    AutoGolGreenEnabled = false
-    DestruirAimVisual()
-    pcall(function() WindUI:Notify({Title = "ᴜᴛɪʟꜱ", Content = "ᴛᴏɢɢʟᴇꜱ ᴅᴇ ꜰᴀʀᴍ ᴅᴇꜱʟɪɢᴀᴅᴏꜱ", Duration = 3}) end)
-end})
-UtilsTab:Button({Title = "ʀᴇꜱᴘᴀᴡɴᴀʀ", Callback = function()
-    if Character then
-        pcall(function()
-            local hum = Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.Health = 0 end
-        end)
-    end
-end})
-UtilsTab:Button({Title = "ꜱᴀɪʀ ᴅᴏ ᴊᴏɢᴏ", Callback = function()
-    pcall(function() LocalPlayer:Kick("Manarc.Gzy") end)
-end})
-
-InfoTab = Window:Tab({ Title = "ɪɴꜰᴏ", Icon = "info" })
-InfoTab:Section({ Title = "ᴄʀéᴅɪᴛᴏꜱ" })
-InfoTab:Paragraph({
-    Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ",
-    Desc = "ꜱᴄʀɪᴘᴛ ꜰᴜʟʟ - ᴘᴀʀᴛᴇꜱ 1/9 ᴀᴛᴇ 9/9 ᴄᴀʀʀᴇɢᴀᴅᴀꜱ ᴄᴏᴍ ꜱᴜᴄᴇꜱꜱᴏ.\nᴛᴄꜱ | ᴡɪɴᴅᴜɪ | ᴠ4.0",
+        pcall(function() WindUI:Notify({Title = "ᴄʀéᴅɪᴛᴏꜱ", Content = "ᴄᴏᴘɪᴀᴅᴏ: xinelo_fps001_20098", Duration = 3}) end)
+    end,
 })
-InfoTab:Paragraph({
-    Title = "ᴀᴛᴀʟʜᴏꜱ",
-    Desc = "- ʟᴇꜰᴛꜱʜɪꜰᴛ: ᴀʙʀɪʀ/ꜰᴇᴄʜᴀʀ ᴍᴇɴᴜ\n- ᴜ: ᴄᴏɴᴛʀᴏʟ ʙᴀʟʟ",
-})
-InfoTab:Button({Title = "ᴠᴇʀ ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ", Callback = function()
-    print("=== ᴍᴀɴᴀʀᴄ.ɢᴢʏ - ᴛᴏᴅᴀꜱ ᴀꜱ ꜰᴜɴçõᴇꜱ ===")
-    print("ᴍᴀᴘᴀ | ʙᴏᴏᴍʙᴏx | ʙᴀʟʟ | ᴘʟᴀʏᴇʀ | ᴄʜᴀʀꜱ | ᴀᴄ | ᴀᴜᴛᴏᴅʀɪᴠᴇ | ꜰʟᴀɢ | ᴛʀᴏʟʟ | ᴀᴜᴛᴏꜰᴀʀᴍ | ᴜᴛɪʟꜱ | ɪɴꜰᴏ")
-    pcall(function() WindUI:Notify({Title = "ɪɴꜰᴏ", Content = "ᴠᴇᴊᴀ ᴏ ᴄᴏɴꜱᴏʟᴇ (ꜰ9)", Duration = 3}) end)
-end})
 
+CreditosTab:Section({ Title = "ᴅɪꜱᴄᴏʀᴅ" })
+CreditosTab:Button({
+    Title = "ᴇɴᴛʀᴀʀ ɴᴏ ᴅɪꜱᴄᴏʀᴅ",
+    Desc = "discord.gg/UrUwUPhYP",
+    Callback = function()
+        pcall(function()
+            if setclipboard then setclipboard("https://discord.gg/UrUwUPhYP") end
+        end)
+        pcall(function() WindUI:Notify({Title = "ᴅɪꜱᴄᴏʀᴅ", Content = "ʟɪɴᴋ ᴄᴏᴘɪᴀᴅᴏ! ᴄᴏʟᴇ ɴᴏ ɴᴀᴠᴇɢᴀᴅᴏʀ", Duration = 4}) end)
+    end,
+})
+
+CreditosTab:Section({ Title = "ᴀɢʀᴀᴅᴇᴄɪᴍᴇɴᴛᴏꜱ" })
+CreditosTab:Button({
+    Title = "ᴏʙʀɪɢᴀᴅᴏ ᴘᴏʀ ᴜꜱᴀʀ",
+    Desc = "ᴄᴏᴍᴘᴀʀᴛɪʟʜᴇ ᴄᴏᴍ ᴏꜱ ᴀᴍɪɢᴏꜱ",
+    Callback = function()
+        pcall(function() WindUI:Notify({Title = "ᴍᴀɴᴀʀᴄ.ɢᴢʏ", Content = "ᴠᴀʟᴇᴜ ᴘᴇʟᴏ ᴀᴘᴏɪᴏ", Duration = 3}) end)
+    end,
+})
+CreditosTab:Button({
+    Title = "ᴠᴇʀꜱãᴏ: ᴠ4.0",
+    Desc = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴘʀᴏ + ᴀɪᴍʙᴏᴛ + ꜱᴋʏʙᴏx ᴄᴜꜱᴛᴏᴍ",
+    Callback = function() end,
+})
+
+-- ============================================================
+-- FINALIZAÇÃO
+-- ============================================================
 task.spawn(function()
     task.wait(0.6)
     pcall(function() Window:SelectTab(1) end)
@@ -2351,6 +2330,8 @@ task.spawn(function()
 end)
 
 print("[MANARC.GZY] SCRIPT COMPLETO CARREGADO - PARTES 1/9 A 9/9 OK")
+print("[MANARC.GZY] DONO: TheAngelBandxs | ALIADO: xinelo_fps001_20098")
+print("[MANARC.GZY] DISCORD: https://discord.gg/UrUwUPhYP")
 print("[MANARC.GZY] TOTALMENTE INICIADO - BOA SORTE!")
 
 pcall(function()
