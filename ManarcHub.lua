@@ -1618,7 +1618,7 @@ task.spawn(function()
             end
         elseif ReachSelectionBox then ReachSelectionBox.Visible = false end
     end
-end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴜɴɪꜰɪᴄᴀᴅᴏ (ᴅɪᴠᴇ + ɪɴᴛᴇʟ + ᴀɪᴍʙᴏᴛ) ]]
+end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 6/9 — ᴀᴜᴛᴏ ᴅʀɪᴠᴇ ᴜɴɪꜰɪᴄᴀᴅᴏ ]]
 
 DriveTab = Window:Tab({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ", Icon = "car" })
 
@@ -1676,7 +1676,7 @@ function Pular()
 end
 
 -- ============================================================
--- ANÁLISE DE BOLA (lado + altura + se está vindo)
+-- ANÁLISE DE BOLA
 -- ============================================================
 function AnalisarBolaInfo()
     local ball = GetValidBall()
@@ -1701,7 +1701,6 @@ function AnalisarBolaInfo()
     local lado = deltaH:Dot(direitaH)
     local altura = posFutura.Y - RootPart.Position.Y
 
-    -- se a bola está vindo pro player (dot product)
     local dirParaPlayer = RootPart.Position - ball.Position
     local dirH = Vector3.new(dirParaPlayer.X, 0, dirParaPlayer.Z)
     local velH = Vector3.new(vel.X, 0, vel.Z)
@@ -1722,7 +1721,7 @@ function AnalisarBolaInfo()
 end
 
 -- ============================================================
--- ESCOLHA E CLIQUE DO BOTÃO (decide tudo)
+-- DECISÃO DE BOTÃO
 -- ============================================================
 function DecidirBotao(info)
     local lado = info.lado
@@ -1748,11 +1747,14 @@ end
 
 function DispararBotao(info)
     if not info then return end
+    if AutoDriveForceMode and AutoDriveFixedButton ~= "Auto" then
+        local botao = EncontrarBotaoPorTexto(AutoDriveFixedButton)
+        if botao then ClicarBotao(botao) end
+        return
+    end
     local texto, pular = DecidirBotao(info)
     if not texto then return end
-    if pular then
-        task.spawn(Pular)
-    end
+    if pular then task.spawn(Pular) end
     local botao = EncontrarBotaoPorTexto(texto)
     if botao then ClicarBotao(botao) end
 end
@@ -1766,34 +1768,29 @@ AutoDriveCooldown = 0.35
 AutoDriveLast = 0
 AutoDriveRange = 20
 AutoDiveHeightThreshold = 3.5
-AutoDriveDotThreshold = 0.15
 AutoDriveMinSpeed = 5
+AutoDriveForceMode = false
+AutoDriveFixedButton = "Auto"
 
 -- ============================================================
--- LOOP ÚNICO (não briga consigo mesmo)
+-- LOOP ÚNICO
 -- ============================================================
 function StartAutoDrive()
     if AutoDriveConn then return end
     if #GKBotoes == 0 then EscanearBotoesGK() end
-
     AutoDriveConn = RunService.Heartbeat:Connect(function()
         if not AutoDriveEnabled then return end
         if not RootPart or not RootPart.Parent or not Humanoid then return end
         if tick() - AutoDriveLast < AutoDriveCooldown then return end
-
         local info = AnalisarBolaInfo()
         if not info then return end
         if info.dist > AutoDriveRange then return end
         if info.vel.Magnitude < AutoDriveMinSpeed then return end
-
-        -- Só dispara se a bola está vindo pra você
         if not info.vindo then return end
-
         AutoDriveLast = tick()
         DispararBotao(info)
     end)
 end
-
 function StopAutoDrive()
     if AutoDriveConn then
         AutoDriveConn:Disconnect()
@@ -1807,15 +1804,11 @@ end
 DriveTab:Section({ Title = "ᴀᴜᴛᴏ ᴅʀɪᴠᴇ" })
 DriveTab:Toggle({
     Title = "ᴀᴛɪᴠᴀʀ ᴀᴜᴛᴏ ᴅʀɪᴠᴇ",
-    Desc = "ᴅɪᴠᴇ + ᴀᴄ ɪɴᴛᴇʟ ᴜɴɪꜰɪᴄᴀᴅᴏꜱ · ꜱó ᴘᴀʀᴀ ǫᴜᴀɴᴅᴏ ᴅᴇꜱʟɪɢᴀʀ",
+    Desc = "ᴅɪᴠᴇ + ɪɴᴛᴇʟ ᴜɴɪꜰɪᴄᴀᴅᴏꜱ · ꜱó ᴘᴀʀᴀ ǫᴜᴀɴᴅᴏ ᴅᴇꜱʟɪɢᴀʀ",
     Value = false,
     Callback = function(v)
         AutoDriveEnabled = v
-        if v then
-            StartAutoDrive()
-        else
-            StopAutoDrive()
-        end
+        if v then StartAutoDrive() else StopAutoDrive() end
     end,
 })
 DriveTab:Slider({
@@ -1840,7 +1833,7 @@ DriveTab:Slider({
     Callback = function(v) AutoDriveMinSpeed = v end,
 })
 DriveTab:Toggle({
-    Title = "ᴍᴏᴅᴏ ꜰɪxᴏ (ᴅᴇꜱᴀᴛɪᴠᴀᴅᴏ = ᴀᴜᴛᴏ)",
+    Title = "ᴍᴏᴅᴏ ꜰɪxᴏ",
     Desc = "ᴛᴏᴅᴏꜱ ᴏꜱ ᴅɪᴠᴇꜱ ᴜꜱᴀᴍ ᴏ ᴍᴇꜱᴍᴏ ʙᴏᴛãᴏ",
     Value = false,
     Callback = function(v) AutoDriveForceMode = v end,
@@ -1860,23 +1853,8 @@ DriveTab:Button({
     end,
 })
 
--- Suporte ao modo fixo
-AutoDriveForceMode = false
-AutoDriveFixedButton = "Auto"
-
--- Patch no DispararBotao pra respeitar o modo fixo
-_OriginalDispararBotao = DispararBotao
-function DispararBotao(info)
-    if AutoDriveForceMode and AutoDriveFixedButton ~= "Auto" then
-        local botao = EncontrarBotaoPorTexto(AutoDriveFixedButton)
-        if botao then ClicarBotao(botao) end
-        return
-    end
-    _OriginalDispararBotao(info)
-end
-
 -- ============================================================
--- AIMBOT (mantido)
+-- AIMBOT
 -- ============================================================
 AimbotBlueEnabled = false
 AimbotGreenEnabled = false
@@ -1917,7 +1895,7 @@ RunService.PreRender:Connect(function()
 end)
 
 -- ============================================================
--- ᴀᴜᴛᴏ ᴄᴀᴛᴄʜ (ʀᴇᴍᴏᴛᴇ)
+-- AUTO CATCH (remote)
 -- ============================================================
 CatchRemote = nil
 pcall(function()
@@ -1927,8 +1905,6 @@ AutoCatchEnabled = false
 AutoCatchRange = 8
 AutoCatchDelay = 1
 AutoCatchLast = 0
-AC_Hitbox = false
-AC_HitboxPart = nil
 
 function TryCatch(ball)
     if not ball or not ball.Parent then return end
@@ -1960,43 +1936,15 @@ DriveTab:Slider({
     Value = { Min = 2, Max = 30, Default = 10, Suffix = " x0.1s" },
     Callback = function(v) AutoCatchDelay = v / 10 end,
 })
-DriveTab:Toggle({
-    Title = "ᴍᴏꜱᴛʀᴀʀ ʜɪᴛʙᴏx",
-    Value = false,
-    Callback = function(v) AC_Hitbox = v end,
-})
 
 RunService.PreRender:Connect(function()
     if not RootPart or not RootPart.Parent or not Humanoid then return end
-    local ball = GetValidBall()
-
     if AutoCatchEnabled and tick() - AutoCatchLast >= AutoCatchDelay then
+        local ball = GetValidBall()
         local hrp = Character and Character:FindFirstChild("HumanoidRootPart")
         if ball and hrp and (ball.Position - hrp.Position).Magnitude <= AutoCatchRange then
             TryCatch(ball)
         end
-    end
-
-    if AC_Hitbox and RootPart and RootPart.Parent then
-        local d = AutoCatchRange * 2
-        if not AC_HitboxPart or not AC_HitboxPart.Parent then
-            AC_HitboxPart = Instance.new("Part")
-            AC_HitboxPart.Name = "Manic_AC_Hitbox"
-            AC_HitboxPart.Shape = Enum.PartType.Ball
-            AC_HitboxPart.Material = Enum.Material.ForceField
-            AC_HitboxPart.Color = Color3.fromRGB(0, 200, 255)
-            AC_HitboxPart.Transparency = 0.65
-            AC_HitboxPart.CanCollide = false
-            AC_HitboxPart.CanQuery = false
-            AC_HitboxPart.CanTouch = false
-            AC_HitboxPart.Anchored = true
-            AC_HitboxPart.Parent = Workspace
-        end
-        AC_HitboxPart.Size = Vector3.new(d, d, d)
-        AC_HitboxPart.Position = RootPart.Position
-    elseif AC_HitboxPart and AC_HitboxPart.Parent then
-        AC_HitboxPart:Destroy()
-        AC_HitboxPart = nil
     end
 end)--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 7/9 — ꜰʟᴀɢ ]]
 
