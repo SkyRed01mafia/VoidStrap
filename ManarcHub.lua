@@ -544,33 +544,10 @@ function TocarMusica(id)
     end)
 end
 
-for _, m in ipairs({
-    {Nome = "ᴍᴇᴀɴᴛ ᴛᴏ ʙᴇ", ID = "84321228471359"},
-    {Nome = "ꜱᴏᴍᴇᴛɪᴍᴇꜱ", ID = "128715303988843"},
-    {Nome = "ʙʟᴏᴅʟʏɴ ʙʟᴏᴏᴅᴘᴏᴘ", ID = "96414211708215"},
-}) do
-    BoomTab:Button({ Title = m.Nome, Callback = function()
-        TocarMusica(m.ID); pcall(function() WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2}) end)
-    end })
-end
-
-BoomTab:Section({ Title = "ᴄᴜꜱᴛᴏᴍ" })
-BoomTab:Input({ Title = "ɪᴅ", Placeholder = "ɪᴅ...", Callback = function(text)
-    if text and text ~= "" then TocarMusica(text) end
-end })
-BoomTab:Button({ Title = "ᴘᴀʀᴀʀ ᴍᴜꜱɪᴄᴀ", Callback = function()
-    if State.BoomBoxSound then
-        pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
-        State.BoomBoxSound = nil
-    end
-end })
-
-BoomTab:Section({ Title = "ᴅᴀᴛᴀʙᴀꜱᴇ ᴅᴇ ᴍúꜱɪᴄᴀꜱ" })
-
-Database = {
-    Musicas = {},
-    Ordem = {},
-}
+-- ============================================================
+-- DATABASE (precisa existir ANTES de criar os botões)
+-- ============================================================
+Database = { Musicas = {}, Ordem = {} }
 ArquivoDB = "ManarcHub_Musicas.json"
 
 function SerializarDB()
@@ -691,6 +668,65 @@ function DB_Limpar()
     SalvarDB()
 end
 
+-- ============================================================
+-- FUNÇÃO PRA DESENHAR MÚSICAS SALVAS NA ABA "MÚSICAS"
+-- ============================================================
+BotoesDBMusicas = {}
+
+function RenderizarMusicasSalvas()
+    -- remove botões antigos (se existirem)
+    for _, btn in ipairs(BotoesDBMusicas) do
+        pcall(function() btn:Destroy() end)
+    end
+    BotoesDBMusicas = {}
+
+    -- adiciona um botão pra cada música salva
+    local lista = DB_Listar()
+    for _, m in ipairs(lista) do
+        local btn = BoomTab:Button({
+            Title = "🎵 " .. m.nome,
+            Desc = "ɪᴅ: " .. m.id .. " · " .. (m.data or ""),
+            Callback = function()
+                TocarMusica(m.id)
+                pcall(function() WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.nome, Duration = 2}) end)
+            end,
+        })
+        table.insert(BotoesDBMusicas, btn)
+    end
+end
+
+-- 3 músicas fixas (padrão)
+for _, m in ipairs({
+    {Nome = "ᴍᴇᴀɴᴛ ᴛᴏ ʙᴇ", ID = "84321228471359"},
+    {Nome = "ꜱᴏᴍᴇᴛɪᴍᴇꜱ", ID = "128715303988843"},
+    {Nome = "ʙʟᴏᴅʟʏɴ ʙʟᴏᴏᴅᴘᴏᴘ", ID = "96414211708215"},
+}) do
+    BoomTab:Button({ Title = m.Nome, Callback = function()
+        TocarMusica(m.ID); pcall(function() WindUI:Notify({Title = "ʙᴏᴏᴍ ʙᴏx", Content = m.Nome, Duration = 2}) end)
+    end })
+end
+
+-- desenha as músicas salvas (se houver)
+RenderizarMusicasSalvas()
+
+-- ============================================================
+-- CUSTOM / PARAR
+-- ============================================================
+BoomTab:Section({ Title = "ᴄᴜꜱᴛᴏᴍ" })
+BoomTab:Input({ Title = "ɪᴅ", Placeholder = "ɪᴅ...", Callback = function(text)
+    if text and text ~= "" then TocarMusica(text) end
+end })
+BoomTab:Button({ Title = "ᴘᴀʀᴀʀ ᴍᴜꜱɪᴄᴀ", Callback = function()
+    if State.BoomBoxSound then
+        pcall(function() State.BoomBoxSound:Stop(); State.BoomBoxSound:Destroy() end)
+        State.BoomBoxSound = nil
+    end
+end })
+
+-- ============================================================
+-- SALVAR / EDITAR / REMOVER
+-- ============================================================
+BoomTab:Section({ Title = "ᴅᴀᴛᴀʙᴀꜱᴇ ᴅᴇ ᴍúꜱɪᴄᴀꜱ" })
 NovoNomeMusica = ""
 NovoIdMusica = ""
 
@@ -706,11 +742,12 @@ BoomTab:Input({
 })
 BoomTab:Button({
     Title = "ꜱᴀʟᴠᴀʀ ɴᴀ ᴅᴀᴛᴀʙᴀꜱᴇ",
-    Desc = "ᴀᴅɪᴄɪᴏɴᴀ ᴀᴏ ʙᴀɴᴄᴏ ᴅᴇ ᴅᴀᴅᴏꜱ",
+    Desc = "ᴀᴅɪᴄɪᴏɴᴀ ᴇ ᴀᴘᴀʀᴇᴄᴇ ɴᴀꜱ ᴍúꜱɪᴄᴀꜱ",
     Callback = function()
         local ok, msg = DB_Adicionar(NovoIdMusica, NovoNomeMusica)
         if ok then
             TocarMusica(NovoIdMusica)
+            RenderizarMusicasSalvas()  -- atualiza a lista em ᴍúꜱɪᴄᴀꜱ
             pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ᴀᴅɪᴄɪᴏɴᴀᴅᴀ: " .. NovoNomeMusica, Duration = 3}) end)
             print("[DB] Adicionada:", NovoNomeMusica, "| ID:", NovoIdMusica)
             print("[DB] Total:", DB_Total())
@@ -720,8 +757,16 @@ BoomTab:Button({
     end,
 })
 BoomTab:Button({
-    Title = "ʟɪꜱᴛᴀʀ ᴅᴀᴛᴀʙᴀꜱᴇ",
-    Desc = "ᴍᴏꜱᴛʀᴀ ᴛᴏᴅᴀꜱ ɴᴏ ᴄᴏɴꜱᴏʟᴇ (ꜰ9)",
+    Title = "ʀᴇᴄᴀʀʀᴇɢᴀʀ ʟɪꜱᴛᴀ",
+    Desc = "ᴀᴛᴜᴀʟɪᴢᴀ ᴏꜱ ʙᴏᴛõᴇꜱ ᴅᴀꜱ ᴍúꜱɪᴄᴀꜱ",
+    Callback = function()
+        RenderizarMusicasSalvas()
+        pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ʟɪꜱᴛᴀ ᴀᴛᴜᴀʟɪᴢᴀᴅᴀ", Duration = 3}) end)
+    end,
+})
+BoomTab:Button({
+    Title = "ʟɪꜱᴛᴀʀ ɴᴏ ᴄᴏɴꜱᴏʟᴇ",
+    Desc = "ᴍᴏꜱᴛʀᴀ ɴᴏ ꜰ9",
     Callback = function()
         local lista = DB_Listar()
         print("=== ᴅᴀᴛᴀʙᴀꜱᴇ ᴅᴇ ᴍúꜱɪᴄᴀꜱ ===")
@@ -730,7 +775,7 @@ BoomTab:Button({
             print("(vazia)")
         else
             for _, m in ipairs(lista) do
-                print(string.format("[%d] %s | ID: %s | Adicionada em: %s",
+                print(string.format("[%d] %s | ID: %s | %s",
                     m.indice, m.nome, m.id, m.data or "?"))
             end
         end
@@ -739,7 +784,6 @@ BoomTab:Button({
 })
 BoomTab:Button({
     Title = "ᴛᴏᴄᴀʀ ᴅᴀᴛᴀʙᴀꜱᴇ ɪɴᴛᴇɪʀᴀ",
-    Desc = "ᴛᴏᴄᴀ ᴛᴏᴅᴀꜱ ᴇᴍ ꜱᴇǫᴜêɴᴄɪᴀ",
     Callback = function()
         local lista = DB_Listar()
         if #lista == 0 then
@@ -777,7 +821,7 @@ BoomTab:Input({
 })
 BoomTab:Input({
     Title = "ɴᴏᴠᴏ ɴᴏᴍᴇ",
-    Placeholder = "ɴᴏᴠᴏ ɴᴏᴍᴇ ᴅᴀ ᴍúꜱɪᴄᴀ",
+    Placeholder = "ɴᴏᴠᴏ ɴᴏᴍᴇ",
     Callback = function(t) NovoNomeEdicao = t or "" end,
 })
 BoomTab:Button({
@@ -788,20 +832,20 @@ BoomTab:Button({
             return
         end
         local ok, msg = DB_EditarNome(IdParaEditar, NovoNomeEdicao)
+        RenderizarMusicasSalvas()
         pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = msg, Duration = 3}) end)
-        print("[DB]", msg, "| ID:", IdParaEditar)
     end,
 })
 BoomTab:Button({
     Title = "ʀᴇᴍᴏᴠᴇʀ ᴍúꜱɪᴄᴀ",
     Callback = function()
         if IdParaEditar == "" then
-            pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ᴄᴏʟᴇ ᴜᴍ ɪᴅ ᴀᴄɪᴍᴀ", Duration = 3}) end)
+            pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ᴄᴏʟᴇ ᴜᴍ ɪᴅ", Duration = 3}) end)
             return
         end
         local ok, msg = DB_Remover(IdParaEditar)
+        RenderizarMusicasSalvas()
         pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = msg, Duration = 3}) end)
-        print("[DB]", msg, "| ID:", IdParaEditar)
     end,
 })
 
@@ -819,16 +863,13 @@ BoomTab:Button({
 })
 BoomTab:Button({
     Title = "ʙᴀᴄᴋᴜᴘ ᴅᴀᴛᴀʙᴀꜱᴇ",
-    Desc = "ꜱᴀʟᴠᴀ ᴜᴍ ᴀʀǫᴜɪᴠᴏ ᴇxᴛʀᴀ",
     Callback = function()
         pcall(function()
             if writefile then
                 local backup = "ManarcHub_Backup_" .. os.date("%Y%m%d_%H%M%S") .. ".json"
                 writefile(backup, SerializarDB())
-                pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ʙᴀᴄᴋᴜᴘ: " .. backup, Duration = 3}) end)
+                pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ʙᴀᴄᴋᴜᴘ ꜱᴀʟᴠᴏ", Duration = 3}) end)
                 print("[DB] Backup:", backup)
-            else
-                pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ᴇxᴇᴄᴜᴛᴏʀ ɴãᴏ ꜱᴜᴘᴏʀᴛᴀ", Duration = 3}) end)
             end
         end)
     end,
@@ -837,6 +878,7 @@ BoomTab:Button({
     Title = "ʟɪᴍᴘᴀʀ ᴛᴏᴅᴀ ᴀ ᴅᴀᴛᴀʙᴀꜱᴇ",
     Callback = function()
         DB_Limpar()
+        RenderizarMusicasSalvas()
         pcall(function() WindUI:Notify({Title = "ᴅᴀᴛᴀʙᴀꜱᴇ", Content = "ʟɪᴍᴘᴀ", Duration = 3}) end)
     end,
 })--[[ 𝙼𝙰𝙽𝙰𝚁𝙲.𝙶𝚉𝚈 | ᴘᴀʀᴛᴇ 3/10 — ʙᴀʟʟ ]]
